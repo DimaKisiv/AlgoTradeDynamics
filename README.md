@@ -1,7 +1,7 @@
 # AlgoTradeDynamics prototype v1
 
 > MVP веб-платформи для безпечного backtesting криптовалютних торгових стратегій.
-> Дипломна робота · Neoversity MSc Computer Science · 2025
+> Дипломна робота · Neoversity MSc Computer Science · 2026
 
 Платформа дозволяє трейдеру налаштувати алгоритмічну стратегію (Moving Average Crossover або
 RSI Mean Reversion), запустити її на історичних даних і отримати:

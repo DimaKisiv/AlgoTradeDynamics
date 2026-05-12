@@ -1,0 +1,30 @@
+.chart {
+  width: 100%;
+  min-width: 0;
+  position: relative;
+}
+
+.chart-empty {
+  height: 360px;
+  display: grid;
+  place-items: center;
+  color: var(--text-tertiary);
+  font-size: 14px;
+}
+
+.chart-tooltip {
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+}
+.chart-tooltip__date {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-bottom: 2px;
+}
+.chart-tooltip__value {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.recharts-default-tooltip { background: transparent !important; border: none !important; }

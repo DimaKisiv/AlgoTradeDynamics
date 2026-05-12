@@ -1,0 +1,71 @@
+# Project Scope
+
+## Цілі MVP
+
+Створити веб-платформу, яка дозволяє трейдеру:
+
+1. Налаштувати алгоритмічну стратегію (вибір типу + параметри + ризик-менеджмент)
+2. Запустити її симуляцію на історичних даних ринку криптовалют
+3. Побачити equity curve, ключові метрики та повний журнал угод
+4. Переглядати історію всіх своїх симуляцій
+
+## In Scope (виконано в MVP)
+
+- ✅ Backend на FastAPI з чистою архітектурою (api/services/bot_engine/db)
+- ✅ PostgreSQL + Alembic міграції
+- ✅ Дві торгові стратегії: MA Crossover і RSI Mean Reversion
+- ✅ Backtester з трьома рівнями ризик-контролю (position size, stop-loss, max drawdown halt)
+- ✅ REST API з повною OpenAPI-документацією (Swagger UI)
+- ✅ React SPA з 4 сторінками + 4 секціями лендингу
+- ✅ Преміальний UI (Apple-style typography, glassmorphism, motion)
+- ✅ Інтерактивна equity curve (Recharts)
+- ✅ Журнал угод
+- ✅ Історія запусків з persistence
+- ✅ 21 тест (unit + integration через FastAPI TestClient)
+- ✅ Docker Compose для one-command запуску
+- ✅ Структуроване логування
+
+## Out of Scope (не входить у MVP)
+
+| Функція | Чому не зараз |
+|---|---|
+| Live trading через біржу | Окрема велика підсистема: WebSocket-стрімінг, transactional ордера, обробка failures. Потребує KYC і ризик-аудиту. |
+| Аутентифікація користувачів | MVP — single-user demo. Підготовлено: API stateless, легко додати JWT middleware. |
+| Реальні дані з біржі (ccxt) | Контракт у `data_loader.py` зведений до простого CSV. Підключення `ccxt`-стрімінгу — 1–2 дні роботи. |
+| Машинне навчання сигналів | Перспектива розвитку. Інфраструктура `Strategy`-abstraction готова до додавання ML-стратегій. |
+| Multi-strategy портфоліо | MVP запускає одну стратегію за раз. Розширення тривіальне — добавити агрегатор у services. |
+| Експорт результатів (CSV/PDF) | Можна додати endpoint `GET /api/backtests/{id}/export`. Дані вже структуровані. |
+| Real-time WebSocket для live equity | Backtest завершується за секунди. WebSocket-стрімінг потрібен для live, не для backtest. |
+| Notifications, sharing, social | Не входить у академічну роботу — це продуктовий шар. |
+
+## Технічні обмеження
+
+- Backtest виконується синхронно в request handler. Прийнятно для датасета ≤1000 свічок
+  (виконання < 100 мс). Для більших — слід винести в `BackgroundTasks` або Celery.
+- Симуляція підтримує тільки LONG позиції. SHORT — окрема логіка, додається у `backtester.py`.
+- Розмір позиції — фіксований % від поточного балансу. Динамічні розміри (Kelly criterion,
+  volatility-based sizing) — наступний крок.
+- Комісії та slippage не моделюються. Реалістичність буде вища при додаванні fee ~0.1% і
+  slippage-моделі.
+
+## Метрики успіху
+
+| Метрика | Цільове значення | Поточне |
+|---|---|---|
+| Покриття тестами | ≥ 20 тестів | 21 ✅ |
+| Тести проходять | 100% | 100% (21/21) ✅ |
+| Час відгуку API на середній backtest | < 200 мс | ~50–80 мс ✅ |
+| Lighthouse Performance (frontend) | ≥ 90 | очікується після build |
+| Накопичення угод/equity-points | без втрат при повторних запусках | ✅ через cascade delete |
+| Документація API | OpenAPI 3.0 | автогенерована FastAPI ✅ |
+
+## Розвиток після захисту
+
+Пріоритети, якщо проєкт продовжуватиметься:
+
+1. Live data через ccxt + WebSocket-канал для real-time
+2. JWT-аутентифікація + multi-user persistence
+3. Більше стратегій: MACD, Bollinger Bands, MACD+RSI композит
+4. Параметрична оптимізація (grid search, генетичний алгоритм)
+5. Експорт результатів і shareable run links
+6. ML-сигнали (LSTM/Transformer на ціновий ряд)

@@ -1,5 +1,5 @@
-import { Github } from 'lucide-react';
-import styles from './Footer.module.css';
+import { Github } from "lucide-react";
+import styles from "./Footer.module.css";
 
 export default function Footer() {
   return (
@@ -10,7 +10,7 @@ export default function Footer() {
           <div>
             <p className={styles.footerName}>AlgoTradeDynamics</p>
             <p className={styles.footerCaption}>
-              Дипломний MVP · Neoversity MSc Computer Science · 2025
+              Дипломний MVP · Neoversity MSc Computer Science · 2026
             </p>
           </div>
         </div>
@@ -19,9 +19,21 @@ export default function Footer() {
           <div>
             <p className={styles.footerTitle}>Продукт</p>
             <ul>
-              <li><a href="/app">Backtest engine</a></li>
-              <li><a href="/runs">Історія запусків</a></li>
-              <li><a href="http://localhost:8000/docs" target="_blank" rel="noreferrer">API · Swagger</a></li>
+              <li>
+                <a href="/app">Backtest engine</a>
+              </li>
+              <li>
+                <a href="/runs">Історія запусків</a>
+              </li>
+              <li>
+                <a
+                  href="http://localhost:8000/docs"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  API · Swagger
+                </a>
+              </li>
             </ul>
           </div>
           <div>
@@ -37,8 +49,8 @@ export default function Footer() {
 
       <div className={`${styles.footerBase} container`}>
         <p className={styles.footerLegal}>
-          Цей MVP не виконує реальних торгових операцій і не є фінансовою порадою. Призначений лише
-          для навчального backtesting.
+          Цей MVP не виконує реальних торгових операцій і не є фінансовою
+          порадою. Призначений лише для навчального backtesting.
         </p>
         <a className={styles.footerGithub} href="#" aria-label="GitHub">
           <Github size={16} />

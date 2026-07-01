@@ -1,0 +1,80 @@
+.hiwSteps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-5);
+  position: relative;
+}
+
+/* Horizontal connector line behind step numbers */
+.hiwSteps::before {
+  content: '';
+  position: absolute;
+  top: 38px;
+  left: 8%;
+  right: 8%;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    var(--line-strong) 10%,
+    var(--line-strong) 90%,
+    transparent
+  );
+  z-index: 0;
+}
+
+.hiwStep {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  z-index: 1;
+}
+
+.hiwStepNum {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: 28px;
+  letter-spacing: -0.04em;
+  color: var(--text-primary);
+  background: var(--bg-1);
+  border: 1px solid var(--line-strong);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  position: relative;
+}
+.hiwStepNum::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  background: var(--gradient-accent);
+  opacity: 0;
+  z-index: -1;
+  transition: opacity var(--t-base);
+}
+.hiwStep:hover .hiwStepNum::after { opacity: 0.4; }
+
+.hiwStepTitle {
+  font-family: var(--font-body);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.hiwStepText {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 920px) {
+  .hiwSteps { grid-template-columns: repeat(2, 1fr); }
+  .hiwSteps::before { display: none; }
+}
+@media (max-width: 540px) {
+  .hiwSteps { grid-template-columns: 1fr; }
+}

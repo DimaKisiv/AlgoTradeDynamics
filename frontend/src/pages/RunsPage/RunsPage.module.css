@@ -1,0 +1,130 @@
+.runs {
+  padding-top: calc(var(--nav-height) + var(--space-7));
+  padding-bottom: var(--space-9);
+}
+
+.runsHead {
+  margin-bottom: var(--space-7);
+  max-width: 760px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.runsState {
+  padding: var(--space-5);
+  text-align: center;
+  color: var(--text-secondary);
+}
+.runsStateError { color: var(--danger); }
+
+.runsEmpty {
+  padding: var(--space-7);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: center;
+}
+.runsEmpty h3 { font-family: var(--font-display); font-size: 28px; font-weight: 400; letter-spacing: -0.03em; }
+.runsEmptyCta {
+  margin-top: var(--space-3);
+  padding: 12px 24px;
+  border-radius: var(--r-full);
+  background: var(--gradient-accent);
+  color: #062017;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.runsList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.runRow {
+  display: grid;
+  grid-template-columns: 60px 2fr 1fr 1fr 1fr 1.2fr 80px;
+  gap: var(--space-4);
+  align-items: center;
+  padding: var(--space-4) var(--space-5);
+  transition: transform var(--t-fast), border-color var(--t-fast), background var(--t-fast);
+  cursor: pointer;
+}
+.runRow:hover {
+  transform: translateY(-2px);
+  border-color: var(--line-strong);
+  background: var(--surface-strong);
+}
+
+.runRowId {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  font-weight: 600;
+}
+
+.runRowStrategy {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+.runRowSymbol {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+.runRowMetric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.runRowMetricLabel {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.runRowMetricValue {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.runRowActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+}
+.runRowDelete {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--text-tertiary);
+  border: 1px solid transparent;
+  transition: color var(--t-fast), border-color var(--t-fast), background var(--t-fast);
+}
+.runRowDelete:hover {
+  color: var(--danger);
+  border-color: rgba(255, 93, 108, 0.4);
+  background: var(--danger-soft);
+}
+.runRowChevron { color: var(--text-tertiary); transition: transform var(--t-fast), color var(--t-fast); }
+.runRow:hover .runRowChevron { color: var(--text-primary); transform: translateX(3px); }
+
+@media (max-width: 980px) {
+  .runRow { grid-template-columns: 50px 2fr 1fr 1fr 60px; }
+  .runRowMetric:nth-child(4),
+  .runRowMetric:nth-child(6) { display: none; }
+}
+@media (max-width: 640px) {
+  .runRow { grid-template-columns: 1fr auto; }
+  .runRowId { display: none; }
+  .runRowMetric { display: none !important; }
+  .runRowMetric:nth-child(3) { display: flex !important; grid-column: 2; }
+}

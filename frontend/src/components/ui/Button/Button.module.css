@@ -1,0 +1,82 @@
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: var(--r-full);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform var(--t-fast) var(--ease-out),
+    background var(--t-fast) var(--ease-out),
+    border-color var(--t-fast) var(--ease-out),
+    box-shadow var(--t-fast) var(--ease-out),
+    color var(--t-fast) var(--ease-out);
+  border: 1px solid transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.btn:disabled { cursor: not-allowed; opacity: 0.55; }
+.btnLoading { cursor: progress; }
+
+/* Sizes */
+.btnSm { padding: 8px 16px; font-size: 13px; }
+.btnMd { padding: 12px 22px; font-size: 14px; }
+.btnLg { padding: 16px 28px; font-size: 15px; }
+
+/* Variants */
+.btnPrimary {
+  background: var(--gradient-accent);
+  color: #062017;
+  box-shadow: 0 12px 32px rgba(0, 224, 143, 0.25), inset 0 1px 0 rgba(255,255,255,0.35);
+}
+.btnPrimary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 18px 44px rgba(0, 224, 143, 0.38), inset 0 1px 0 rgba(255,255,255,0.4);
+}
+.btnPrimary:active:not(:disabled) { transform: translateY(0); }
+
+.btnGhost {
+  background: var(--surface);
+  border-color: var(--line);
+  color: var(--text-primary);
+  backdrop-filter: blur(8px);
+}
+.btnGhost:hover:not(:disabled) {
+  background: var(--surface-strong);
+  border-color: var(--line-strong);
+  transform: translateY(-1px);
+}
+
+.btnLink {
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 8px 4px;
+}
+.btnLink:hover:not(:disabled) { color: var(--text-primary); }
+
+.btnDanger {
+  background: var(--danger-soft);
+  border-color: rgba(255, 93, 108, 0.3);
+  color: var(--danger);
+}
+.btnDanger:hover:not(:disabled) {
+  background: rgba(255, 93, 108, 0.18);
+  border-color: rgba(255, 93, 108, 0.5);
+}
+
+.btnIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.btnIcon svg { width: 16px; height: 16px; }
+
+.btnLg .btnIcon svg { width: 18px; height: 18px; }

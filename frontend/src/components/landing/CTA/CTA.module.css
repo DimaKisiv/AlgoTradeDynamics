@@ -1,0 +1,50 @@
+.ctaCard {
+  position: relative;
+  padding: clamp(var(--space-6), 6vw, var(--space-9)) var(--space-6);
+  text-align: center;
+  overflow: hidden;
+  border-radius: var(--r-2xl);
+}
+
+.ctaGlow {
+  position: absolute;
+  inset: -40% 20%;
+  background: radial-gradient(circle, rgba(0, 224, 143, 0.35) 0%, transparent 60%);
+  filter: blur(60px);
+  pointer-events: none;
+}
+
+.ctaContent {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.ctaContent :global(.lead) { text-align: center; }
+
+.ctaBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 32px;
+  margin-top: var(--space-3);
+  font-size: 15px;
+  font-weight: 600;
+  color: #062017;
+  background: var(--gradient-accent);
+  border-radius: var(--r-full);
+  box-shadow: 0 16px 48px rgba(0, 224, 143, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  transition: transform var(--t-fast), box-shadow var(--t-fast);
+}
+.ctaBtn:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 24px 60px rgba(0, 224, 143, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+.ctaBtn svg { transition: transform var(--t-fast); }
+.ctaBtn:hover svg { transform: translateX(4px); }

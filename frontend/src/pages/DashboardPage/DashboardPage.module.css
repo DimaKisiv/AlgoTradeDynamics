@@ -1,0 +1,77 @@
+.dashboard {
+  padding-top: calc(var(--nav-height) + var(--space-7));
+  padding-bottom: var(--space-9);
+}
+
+/* Wider container on dashboard so 4 metric cards + chart fit comfortably */
+.dashboard :global(.container) {
+  width: min(1480px, 100% - var(--space-5) * 2);
+}
+
+.dashboardHead {
+  margin-bottom: var(--space-7);
+  max-width: 760px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.dashboardGrid {
+  display: grid;
+  grid-template-columns: 380px minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.dashboardResults {
+  min-width: 0; /* prevents grid blowout from inner content */
+}
+
+@media (min-width: 1400px) {
+  .dashboardResults {
+    position: sticky;
+    top: calc(var(--nav-height) + var(--space-4));
+  }
+}
+
+.dashboardPlaceholder {
+  min-height: 540px;
+  display: grid;
+  place-items: center;
+  padding: var(--space-7);
+}
+
+.dashboardPlaceholderInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: center;
+  max-width: 360px;
+}
+.dashboardPlaceholderInner h3 {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 400;
+  letter-spacing: -0.025em;
+}
+
+.dashboardPlaceholderOrb {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--gradient-accent);
+  opacity: 0.4;
+  filter: blur(10px);
+  animation: orb-pulse 3s ease-in-out infinite;
+}
+
+@keyframes orb-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.35; }
+  50% { transform: scale(1.18); opacity: 0.55; }
+}
+
+@media (max-width: 1024px) {
+  .dashboardGrid { grid-template-columns: 1fr; }
+  .dashboardResults { position: static; }
+}

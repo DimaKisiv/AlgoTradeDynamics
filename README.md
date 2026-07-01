@@ -24,7 +24,7 @@ RSI Mean Reversion), запустити її на історичних дани�
 | База даних     | PostgreSQL 16 (SQLite для локального dev / тестів)              |
 | Bot Engine     | Pure Python (без сторонніх trading-бібліотек)                   |
 | Frontend       | React 18, Vite 5, React Router 6, Framer Motion, Recharts       |
-| Дизайн         | Glassmorphism, custom CSS variables, Instrument Serif + Manrope |
+| Дизайн         | CSS Modules + дизайн-токени, Glassmorphism, Instrument Serif + Manrope |
 | Тести          | pytest + httpx TestClient                                       |
 | Інфраструктура | Docker, Docker Compose                                          |
 
@@ -52,16 +52,18 @@ algotrade-dynamics/
 ├── frontend/                   # React SPA
 │   ├── src/
 │   │   ├── api/                # API клієнт
-│   │   ├── components/
-│   │   │   ├── layout/         # Navbar, Footer
-│   │   │   ├── ui/             # Button, Card
-│   │   │   ├── landing/        # Hero, Features, ...
-│   │   │   └── dashboard/      # ControlPanel, EquityChart, ...
-│   │   ├── pages/              # Landing, Dashboard, Runs, RunDetail
+│   │   ├── components/         # кожен компонент — окрема папка:
+│   │   │   │                   #   Name/Name.jsx + Name/Name.module.css
+│   │   │   ├── layout/         # Navbar/, Footer/
+│   │   │   ├── ui/             # Button/, Card/
+│   │   │   ├── landing/        # Hero/, Features/, HowItWorks/, Strategies/, CTA/
+│   │   │   └── dashboard/      # ControlPanel/, EquityChart/, TradeJournal/, MetricCard/, ResultsView/
+│   │   ├── pages/              # LandingPage/, DashboardPage/, RunsPage/, RunDetailPage/
 │   │   ├── hooks/              # useBacktest, useScrollReveal
 │   │   ├── lib/                # Форматери
-│   │   ├── styles/             # CSS variables + globals
-│   │   └── App.jsx
+│   │   ├── styles/             # глобальний шар: variables.css (токени) + globals.css (reset, типографіка, утиліти)
+│   │   ├── App.jsx
+│   │   └── main.jsx
 │   └── Dockerfile
 ├── docs/                       # Архітектура, demo-script, scope
 └── docker-compose.yml

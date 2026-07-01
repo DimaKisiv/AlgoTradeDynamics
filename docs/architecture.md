@@ -100,7 +100,11 @@ SQLAlchemy 2.0 з `Mapped[]` синтаксисом. Три таблиці:
 - `useScrollReveal` — IntersectionObserver для fade-up анімацій на скролі
 
 ### Стилі
-CSS-модулі по компоненту + єдиний `styles/variables.css` з дизайн-токенами:
+Гібридний підхід: **CSS-модулі** (`Name.module.css`, co-located з кожним компонентом) для локальних
+скоупованих стилів + **глобальний шар** у `styles/` — `variables.css` (дизайн-токени в `:root`) і
+`globals.css` (reset, типографіка та утиліти-класи: `.container`, `.glass`, `.reveal`, `.eyebrow` тощо).
+Vite хешує локальні класи (напр. `_heroInner_cm4rb`), тож колізій імен між компонентами немає; спільні
+утиліти лишаються глобальними і застосовуються як звичайні класи. Дизайн-мова:
 
 - Палітра: глибокий navy + emerald accent + coral для збитків
 - Типографіка: Instrument Serif (display) + Manrope (body) + JetBrains Mono (цифри)
@@ -133,7 +137,7 @@ CSS-модулі по компоненту + єдиний `styles/variables.css`
 2. Імплементувати `generate_signals(candles)` і `to_params_dict()`
 3. Зареєструвати у `STRATEGIES` dict + `get_strategy()` factory
 4. Додати Pydantic-схему параметрів у `schemas/backtest.py`
-5. Додати tab у `ControlPanel.jsx`
+5. Додати tab у `ControlPanel/ControlPanel.jsx`
 
 Жодних змін у backtester чи в БД-схемі — стратегії повністю відокремлені.
 

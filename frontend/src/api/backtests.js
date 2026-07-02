@@ -1,45 +1,8 @@
 /**
- * API client for AlgoTradeDynamics backend.
- * All requests go through a single fetch wrapper for consistent error handling.
+ * API client for AlgoTradeDynamics backtests + strategies.
+ * Uses the shared `request` wrapper (auth token + error handling).
  */
-
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
-
-class ApiError extends Error {
-  constructor(message, status, detail) {
-    super(message);
-    this.name = 'ApiError';
-    this.status = status;
-    this.detail = detail;
-  }
-}
-
-async function request(path, options = {}) {
-  const url = `${API_BASE_URL}${path}`;
-  const response = await fetch(url, {
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-    ...options,
-  });
-
-  if (!response.ok) {
-    let detail = response.statusText;
-    try {
-      const body = await response.json();
-      detail = body.detail || body.message || JSON.stringify(body);
-    } catch {
-      /* ignore */
-    }
-    throw new ApiError(
-      `Request failed: ${response.status} ${detail}`,
-      response.status,
-      detail,
-    );
-  }
-
-  if (response.status === 204) return null;
-  return response.json();
-}
+import { request, ApiError, API_BASE_URL } from './client';
 
 // ----- Strategies -----
 

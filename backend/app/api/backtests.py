@@ -1,9 +1,11 @@
-"""Backtest API endpoints."""
+"""Backtest API endpoints (scoped to the authenticated user)."""
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.api.deps import get_current_user
 from app.core.logging import get_logger
 from app.db.session import get_db
+from app.models.user import User
 from app.schemas.backtest import (
     BacktestRequest,
     BacktestRunResponse,
@@ -21,9 +23,13 @@ logger = get_logger(__name__)
 
 
 @router.post("/start", response_model=BacktestRunResponse, status_code=status.HTTP_201_CREATED)
-def start_backtest(payload: BacktestRequest, db: Session = Depends(get_db)):
+def start_backtest(
+    payload: BacktestRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     try:
-        return run_backtest(db, payload)
+        return run_backtest(db, payload, current_user.id)
     except FileNotFoundError as exc:
         logger.error("Dataset not found: %s", exc)
         raise HTTPException(
@@ -39,20 +45,31 @@ def start_backtest(payload: BacktestRequest, db: Session = Depends(get_db)):
 
 
 @router.get("", response_model=list[BacktestRunSummary])
-def list_recent(db: Session = Depends(get_db)):
-    return list_backtests(db)
+def list_recent(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return list_backtests(db, current_user.id)
 
 
 @router.get("/{run_id}", response_model=BacktestRunResponse)
-def get_run(run_id: int, db: Session = Depends(get_db)):
-    run = get_backtest_by_id(db, run_id)
+def get_run(
+    run_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    run = get_backtest_by_id(db, run_id, current_user.id)
     if not run:
         raise HTTPException(status_code=404, detail="Backtest run not found")
     return run
 
 
 @router.delete("/{run_id}", status_code=status.HTTP_204_NO_CONTENT)
-def remove_run(run_id: int, db: Session = Depends(get_db)):
-    if not delete_backtest(db, run_id):
+def remove_run(
+    run_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not delete_backtest(db, run_id, current_user.id):
         raise HTTPException(status_code=404, detail="Backtest run not found")
     return None

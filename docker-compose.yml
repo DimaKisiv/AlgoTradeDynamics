@@ -24,6 +24,9 @@ services:
       CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
       LOG_LEVEL: INFO
       ENVIRONMENT: development
+      JWT_SECRET_KEY: dev-secret-change-me-0123456789abcdef0123456789abcdef
+      JWT_ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 10080
     ports:
       - "8000:8000"
     volumes:

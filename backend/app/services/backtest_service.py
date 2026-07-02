@@ -31,8 +31,8 @@ def _resolve_dataset(symbol: str) -> Path:
     return path
 
 
-def run_backtest(db: Session, payload: BacktestRequest) -> BacktestRun:
-    """Build a strategy, run a backtest and persist the result."""
+def run_backtest(db: Session, payload: BacktestRequest, user_id: int) -> BacktestRun:
+    """Build a strategy, run a backtest and persist the result for a user."""
     logger.info(
         "Starting backtest: symbol=%s strategy=%s balance=%s",
         payload.symbol, payload.strategy, payload.initial_balance,
@@ -60,6 +60,7 @@ def run_backtest(db: Session, payload: BacktestRequest) -> BacktestRun:
     result = backtester.run()
 
     run = BacktestRun(
+        user_id=user_id,
         symbol=result.symbol,
         strategy_name=result.strategy_name,
         strategy_params=result.strategy_params,
@@ -99,29 +100,34 @@ def run_backtest(db: Session, payload: BacktestRequest) -> BacktestRun:
         "Backtest completed: run_id=%s trades=%s pnl=%s%%",
         run.id, result.trades_count, result.total_pnl_percent,
     )
-    return get_backtest_by_id(db, run.id)  # type: ignore[return-value]
+    return get_backtest_by_id(db, run.id, user_id)  # type: ignore[return-value]
 
 
-def get_backtest_by_id(db: Session, run_id: int) -> BacktestRun | None:
+def get_backtest_by_id(db: Session, run_id: int, user_id: int) -> BacktestRun | None:
     return (
         db.query(BacktestRun)
         .options(selectinload(BacktestRun.trades), selectinload(BacktestRun.equity_points))
-        .filter(BacktestRun.id == run_id)
+        .filter(BacktestRun.id == run_id, BacktestRun.user_id == user_id)
         .first()
     )
 
 
-def list_backtests(db: Session, limit: int = 50) -> list[BacktestRun]:
+def list_backtests(db: Session, user_id: int, limit: int = 50) -> list[BacktestRun]:
     return (
         db.query(BacktestRun)
+        .filter(BacktestRun.user_id == user_id)
         .order_by(desc(BacktestRun.created_at))
         .limit(limit)
         .all()
     )
 
 
-def delete_backtest(db: Session, run_id: int) -> bool:
-    run = db.query(BacktestRun).filter(BacktestRun.id == run_id).first()
+def delete_backtest(db: Session, run_id: int, user_id: int) -> bool:
+    run = (
+        db.query(BacktestRun)
+        .filter(BacktestRun.id == run_id, BacktestRun.user_id == user_id)
+        .first()
+    )
     if run is None:
         return False
     db.delete(run)

@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react';
-import { Link, NavLink, useLocation } from 'react-router-dom';
-import { Activity } from 'lucide-react';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Activity, LogOut, UserCircle } from 'lucide-react';
+
+import { useAuth } from '../../../context/AuthContext';
 import styles from './Navbar.module.css';
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { isAuthenticated, user, logout } = useAuth();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -13,6 +17,11 @@ export default function Navbar() {
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/', { replace: true });
+  };
 
   return (
     <nav className={`${styles.nav} ${scrolled ? styles.navScrolled : ''}`}>
@@ -30,23 +39,44 @@ export default function Navbar() {
           <NavLink to="/" end className={({ isActive }) => `${styles.navLink} ${isActive ? styles.isActive : ''}`}>
             Огляд
           </NavLink>
-          <NavLink to="/app" className={({ isActive }) => `${styles.navLink} ${isActive ? styles.isActive : ''}`}>
-            Backtest
-          </NavLink>
-          <NavLink
-            to="/runs"
-            className={({ isActive }) =>
-              `${styles.navLink} ${isActive || location.pathname.startsWith('/runs/') ? styles.isActive : ''}`
-            }
-          >
-            Історія
-          </NavLink>
+          {isAuthenticated && (
+            <>
+              <NavLink to="/app" className={({ isActive }) => `${styles.navLink} ${isActive ? styles.isActive : ''}`}>
+                Backtest
+              </NavLink>
+              <NavLink
+                to="/runs"
+                className={({ isActive }) =>
+                  `${styles.navLink} ${isActive || location.pathname.startsWith('/runs/') ? styles.isActive : ''}`
+                }
+              >
+                Історія
+              </NavLink>
+            </>
+          )}
         </div>
 
         <div className={styles.navCta}>
-          <Link to="/app" className={styles.navCtaBtn}>
-            Запустити <span aria-hidden>→</span>
-          </Link>
+          {isAuthenticated ? (
+            <>
+              <Link to="/account" className={styles.navAccount} title={user?.email}>
+                <UserCircle size={16} />
+                <span className={styles.navAccountEmail}>{user?.email}</span>
+              </Link>
+              <button type="button" className={styles.navLogout} onClick={handleLogout} aria-label="Вийти">
+                <LogOut size={16} />
+              </button>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className={styles.navLogin}>
+                Увійти
+              </Link>
+              <Link to="/register" className={styles.navCtaBtn}>
+                Реєстрація <span aria-hidden>→</span>
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </nav>

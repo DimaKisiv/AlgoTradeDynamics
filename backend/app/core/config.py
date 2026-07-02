@@ -16,6 +16,11 @@ class Settings(BaseSettings):
 
     default_dataset: str = "data/btc_usdt_2024.csv"
 
+    # --- Auth / JWT ---
+    jwt_secret_key: str = "dev-secret-change-me-0123456789abcdef0123456789abcdef"
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 60 * 24 * 7  # 7 днів
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     @property

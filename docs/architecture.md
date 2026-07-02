@@ -93,6 +93,19 @@ SQLAlchemy 2.0 з `Mapped[]` синтаксисом. Три таблиці:
 - `components/landing/` — секції лендингу
 - `components/dashboard/` — `ControlPanel`, `EquityChart`, `TradeJournal`, `MetricCard`, `ResultsView`
 
+### Автентифікація та розмежування даних
+JWT-автентифікація (email + пароль, bcrypt-хеш через `passlib`, токен HS256 через `PyJWT`):
+
+- `POST /api/auth/register` → створює користувача; `POST /api/auth/login` → повертає access-токен;
+  `GET /api/auth/me` → поточний користувач. Захищені ендпоінти читають токен через залежність
+  `get_current_user` (FastAPI `HTTPBearer`).
+- Кожен `BacktestRun` має `user_id` (FK → `users`, `ON DELETE CASCADE`). Сервісний шар фільтрує всі
+  вибірки за `user_id`, тож користувач фізично не може отримати чужий запуск (повертається `404`).
+- Фронтенд тримає токен у `localStorage`, додає `Authorization: Bearer <token>` до кожного запиту
+  (`api/client.js`) і автоматично розлогінює на `401`. Стан сесії — у `AuthContext`; маршрути
+  захищає `ProtectedRoute` / `GuestRoute`.
+- Міграція `0002` створює `users`, додає `user_id` і засідає демо-користувача `demo@algotrade.dev`.
+
 ### State
 Локальний state через React hooks. Окремих state-менеджерів немає — MVP того не потребує.
 

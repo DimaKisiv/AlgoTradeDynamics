@@ -1,0 +1,114 @@
+.auth {
+  min-height: calc(100vh - var(--nav-height));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8) var(--space-5);
+}
+
+.card {
+  width: 100%;
+  max-width: 440px;
+  padding: var(--space-7);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.title {
+  margin-top: var(--space-2);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-top: var(--space-5);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.field span {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.field input {
+  padding: 12px 14px;
+  font-size: 15px;
+  color: var(--text-primary);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  transition: border-color var(--t-fast), background var(--t-fast);
+}
+
+.field input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--surface-strong);
+}
+
+.field input::placeholder {
+  color: var(--text-muted);
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.error {
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--danger);
+  background: var(--danger-soft);
+  border: 1px solid var(--danger-glow);
+  border-radius: var(--r-md);
+}
+
+.submit {
+  margin-top: var(--space-2);
+  padding: 14px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #062017;
+  background: var(--gradient-accent);
+  border-radius: var(--r-md);
+  transition: transform var(--t-fast), box-shadow var(--t-fast);
+}
+
+.submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-glow);
+}
+
+.submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.switch {
+  margin-top: var(--space-4);
+  font-size: 14px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.switch a {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.demo {
+  margin-top: var(--space-2);
+  font-size: 12px;
+  color: var(--text-tertiary);
+  text-align: center;
+  font-family: var(--font-mono);
+}

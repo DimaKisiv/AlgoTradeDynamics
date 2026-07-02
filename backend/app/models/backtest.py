@@ -1,11 +1,14 @@
 """ORM models for backtest runs, trades and equity points."""
 from datetime import datetime, timezone
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import JSON, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+if TYPE_CHECKING:  # уникаємо циклічного імпорту
+    from app.models.user import User
 
 
 def _utcnow() -> datetime:
@@ -16,6 +19,9 @@ class BacktestRun(Base):
     __tablename__ = "backtest_runs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
     symbol: Mapped[str] = mapped_column(String(30), default="BTC/USDT")
     strategy_name: Mapped[str] = mapped_column(String(80))
     strategy_params: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
@@ -33,6 +39,8 @@ class BacktestRun(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow, index=True
     )
+
+    user: Mapped["User"] = relationship("User", back_populates="runs")
 
     trades: Mapped[list["Trade"]] = relationship(
         "Trade", back_populates="run", cascade="all, delete-orphan"

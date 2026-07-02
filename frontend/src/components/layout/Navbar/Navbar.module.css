@@ -78,6 +78,59 @@
 .navCta {
   display: flex;
   align-items: center;
+  gap: var(--space-3);
+}
+
+.navLogin {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: color var(--t-fast);
+}
+.navLogin:hover {
+  color: var(--text-primary);
+}
+
+.navAccount {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 220px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-full);
+  transition: color var(--t-fast), border-color var(--t-fast);
+}
+.navAccount:hover {
+  color: var(--text-primary);
+  border-color: var(--line-strong);
+}
+.navAccountEmail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.navLogout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  color: var(--text-secondary);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-full);
+  transition: color var(--t-fast), background var(--t-fast), border-color var(--t-fast);
+}
+.navLogout:hover {
+  color: var(--danger);
+  border-color: var(--danger-glow);
+  background: var(--danger-soft);
 }
 
 .navCtaBtn {
@@ -104,4 +157,5 @@
 
 @media (max-width: 720px) {
   .navLinks { display: none; }
+  .navAccountEmail { display: none; }
 }

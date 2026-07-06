@@ -27,6 +27,8 @@ services:
       JWT_SECRET_KEY: dev-secret-change-me-0123456789abcdef0123456789abcdef
       JWT_ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: 10080
+      BYBIT_DEMO_API_KEY: PDdbJRKdUNhcTl1vFx
+      BYBIT_DEMO_API_SECRET: PoCPJwRV3WmfIzQoOyupNpNMROhaLAMOPUWG
     ports:
       - "8000:8000"
     volumes:

@@ -1,5 +1,6 @@
 """API integration tests using FastAPI TestClient + SQLite."""
 import pytest
+from app.api import bybit as bybit_api
 
 
 def test_health(client):
@@ -25,6 +26,19 @@ def test_list_strategies(client):
     assert "rsi" in ids
 
 
+def test_bybit_test_endpoint(client, monkeypatch):
+    monkeypatch.setattr(
+        bybit_api,
+        "test_bybit_connection",
+        lambda: {"status": "ok",
+                 "message": "Bybit API connection successful", "demo": True},
+    )
+
+    response = client.get("/api/bybit/test")
+    assert response.status_code == 200
+    assert response.json()["status"] == "ok"
+
+
 def test_backtests_require_auth(client):
     """Без токена ендпоінти бектестів мають повертати 401."""
     assert client.get("/api/backtests").status_code == 401
@@ -43,7 +57,8 @@ def test_start_and_fetch_backtest_ma(client, auth_headers):
             "max_drawdown_percent": 25,
         },
     }
-    create = client.post("/api/backtests/start", json=payload, headers=auth_headers)
+    create = client.post("/api/backtests/start",
+                         json=payload, headers=auth_headers)
     assert create.status_code == 201, create.text
     run = create.json()
     assert run["id"] > 0
@@ -67,7 +82,8 @@ def test_start_backtest_rsi(client, auth_headers):
             "max_drawdown_percent": 20,
         },
     }
-    response = client.post("/api/backtests/start", json=payload, headers=auth_headers)
+    response = client.post("/api/backtests/start",
+                           json=payload, headers=auth_headers)
     assert response.status_code == 201, response.text
     body = response.json()
     assert body["strategy_name"] == "RSI Mean Reversion"
@@ -91,7 +107,8 @@ def test_validation_error_for_bad_params(client, auth_headers):
         "initial_balance": -1,  # invalid
         "strategy": "ma_crossover",
     }
-    response = client.post("/api/backtests/start", json=payload, headers=auth_headers)
+    response = client.post("/api/backtests/start",
+                           json=payload, headers=auth_headers)
     assert response.status_code in (400, 422)
 
 
@@ -101,7 +118,8 @@ def test_delete_backtest(client, auth_headers):
         "initial_balance": 10000,
         "strategy": "ma_crossover",
     }
-    create = client.post("/api/backtests/start", json=payload, headers=auth_headers)
+    create = client.post("/api/backtests/start",
+                         json=payload, headers=auth_headers)
     assert create.status_code == 201
     run_id = create.json()["id"]
 

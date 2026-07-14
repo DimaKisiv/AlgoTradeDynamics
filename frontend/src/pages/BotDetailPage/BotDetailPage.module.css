@@ -42,6 +42,34 @@
   gap: var(--space-4);
 }
 
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.summaryCard {
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: rgba(255, 255, 255, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.summaryCard span {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-tertiary);
+}
+
+.summaryCard strong {
+  color: var(--text-primary);
+  font-size: 15px;
+}
+
 .head {
   display: flex;
   flex-direction: column;
@@ -49,7 +77,8 @@
 }
 
 .configCard,
-.ordersCard {
+.ordersCard,
+.eventsCard {
   padding: var(--space-5);
   display: flex;
   flex-direction: column;
@@ -153,13 +182,46 @@
   color: var(--text-primary);
 }
 
+.eventsList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.eventRow {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--line);
+}
+
+.eventRow:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.eventType {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+
+.eventMessage {
+  color: var(--text-primary);
+}
+
 @media (max-width: 980px) {
+  .summaryGrid,
   .configGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 640px) {
+  .summaryGrid,
   .configGrid {
     grid-template-columns: 1fr;
   }

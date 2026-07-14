@@ -1,6 +1,13 @@
 """API integration tests for trading bot CRUD endpoints."""
 
-from app.bot_engine.orders import OrderRequest
+import pytest
+
+from app.bot_engine.orders import ACTIVE_ORDER_STATUSES, OrderRequest, place_order
+from app.bot_engine.grid_runtime import tick_grid_bot
+from app.db.session import SessionLocal
+from app.models.trading_bot_event import TradingBotEvent
+from app.models.trading_bot import TradingBot
+from app.models.trading_bot_order import TradingBotOrder
 
 
 def test_bots_require_auth(client):
@@ -85,40 +92,16 @@ def test_start_sync_stop_and_list_bot_orders(client, auth_headers, monkeypatch):
     assert create.status_code == 201, create.text
     bot = create.json()
 
-    def fake_get_bybit_session(_bot):
-        return object()
-
-    monkeypatch.setattr(
-        "app.bot_engine.bot.get_bybit_session", fake_get_bybit_session)
-    monkeypatch.setattr(
-        "app.bot_engine.bot.get_open_positions", lambda *args, **kwargs: [])
-    monkeypatch.setattr("app.bot_engine.bot.get_open_orders",
-                        lambda *args, **kwargs: [])
-    monkeypatch.setattr("app.bot_engine.bot.get_last_price",
-                        lambda *args, **kwargs: 100.0)
-    monkeypatch.setattr(
-        "app.bot_engine.bot.place_order",
-        lambda *args, **kwargs: {"result": {
-            "orderId": f"oid-{kwargs['order'].order_role}", "orderStatus": "New"}},
-    )
-    monkeypatch.setattr(
-        "app.bot_engine.bot.cancel_order",
-        lambda *args, **kwargs: {"result": {
-            "orderId": kwargs["order_id"], "orderStatus": "Cancelled"}},
-    )
-    monkeypatch.setattr(
-        "app.bot_engine.bot.get_order_status",
-        lambda *args, **kwargs: {"orderId": kwargs["order_id"],
-                                 "orderStatus": "Filled", "price": "95.0"},
-    )
+    _mock_runtime(monkeypatch)
 
     started = client.post(f"/api/bots/{bot['id']}/start", headers=auth_headers)
     assert started.status_code == 200, started.text
     started_body = started.json()
-    assert started_body["action"] == "CREATE_GRID"
+    assert started_body["action"] == "STARTED"
     assert started_body["bot"]["runtime_status"] == "running"
-    assert len(started_body["orders"]) == 2
-    assert started_body["orders"][0]["order_role"] == "grid_entry_1"
+    assert started_body["orders"] == []
+
+    _tick_bot(bot["id"])
 
     orders = client.get(f"/api/bots/{bot['id']}/orders", headers=auth_headers)
     assert orders.status_code == 200
@@ -154,3 +137,576 @@ def test_inactive_bot_cannot_start(client, auth_headers):
 
     start = client.post(f"/api/bots/{bot['id']}/start", headers=auth_headers)
     assert start.status_code == 422
+
+
+def test_worker_tick_creates_grid_orders_without_duplicates(client, auth_headers, monkeypatch):
+    bot = _create_runtime_bot(client, auth_headers)
+    _mock_runtime(monkeypatch)
+
+    start = client.post(f"/api/bots/{bot['id']}/start", headers=auth_headers)
+    assert start.status_code == 200
+
+    _tick_bot(bot["id"])
+    _tick_bot(bot["id"])
+
+    orders = client.get(
+        f"/api/bots/{bot['id']}/orders", headers=auth_headers).json()
+    entry_orders = [
+        order for order in orders if order["order_role"].startswith("grid_entry_")]
+    assert len(entry_orders) == 2
+    assert len({order["order_link_id"] for order in entry_orders}) == 2
+
+
+def test_filled_entry_creates_position_take_profit_order(client, auth_headers, monkeypatch):
+    bot = _create_runtime_bot(client, auth_headers)
+    remote_positions = []
+    _mock_runtime(monkeypatch, remote_positions=remote_positions)
+    client.post(f"/api/bots/{bot['id']}/start", headers=auth_headers)
+    _tick_bot(bot["id"])
+
+    db = SessionLocal()
+    try:
+        entry = db.query(TradingBotOrder).filter(TradingBotOrder.bot_id ==
+                                                 bot["id"], TradingBotOrder.order_role == "grid_entry_1").first()
+        entry.status = "Filled"
+        entry.filled_qty = entry.qty
+        db.add(entry)
+        db.commit()
+    finally:
+        db.close()
+
+    remote_positions[:] = [{
+        "side": "Buy",
+        "size": "0.01",
+        "avgPrice": "100.0",
+    }]
+
+    _tick_bot(bot["id"])
+
+    orders = client.get(
+        f"/api/bots/{bot['id']}/orders", headers=auth_headers).json()
+    tp_orders = [
+        order for order in orders if order["order_role"] == "position_take_profit"]
+    assert len(tp_orders) == 1
+    assert tp_orders[0]["side"] == "Sell"
+    assert tp_orders[0]["order_link_id"].startswith(
+        f"bot-{bot['id']}-g1-position-tp-",
+    )
+    assert tp_orders[0]["raw_response"]["reduceOnly"] is True
+    assert not any(order["order_role"].startswith("take_profit_")
+                   for order in orders)
+
+
+def test_existing_exchange_position_tp_is_synced_without_duplicate_creation(client, auth_headers, monkeypatch):
+    bot = _create_runtime_bot(client, auth_headers)
+    remote_state = {}
+    remote_positions = []
+    _mock_runtime(monkeypatch, remote_state=remote_state,
+                  remote_positions=remote_positions)
+    client.post(f"/api/bots/{bot['id']}/start", headers=auth_headers)
+    _tick_bot(bot["id"])
+
+    db = SessionLocal()
+    try:
+        entry = db.query(TradingBotOrder).filter(
+            TradingBotOrder.bot_id == bot["id"],
+            TradingBotOrder.order_role == "grid_entry_1",
+        ).first()
+        entry.status = "Filled"
+        entry.filled_qty = entry.qty
+        db.add(entry)
+        db.commit()
+    finally:
+        db.close()
+
+    remote_positions[:] = [{
+        "side": "Buy",
+        "size": str(bot["order_qty"]),
+        "avgPrice": "100.0",
+    }]
+    existing_tp_link_id = f"bot-{bot['id']}-g1-position-tp-1700000000000"
+    remote_state[existing_tp_link_id] = {
+        "orderLinkId": existing_tp_link_id,
+        "orderId": f"oid-{existing_tp_link_id}",
+        "orderStatus": "New",
+        "side": "Sell",
+        "orderType": "Limit",
+        "qty": str(bot["order_qty"]),
+        "cumExecQty": "0",
+        "price": "101.5",
+        "reduceOnly": True,
+    }
+
+    _tick_bot(bot["id"])
+
+    orders = client.get(
+        f"/api/bots/{bot['id']}/orders", headers=auth_headers).json()
+    position_tp_orders = [
+        order for order in orders if order["order_role"] == "position_take_profit"
+    ]
+    assert len(position_tp_orders) == 1
+    assert position_tp_orders[0]["order_link_id"] == existing_tp_link_id
+    assert position_tp_orders[0]["status"] == "New"
+
+
+def test_second_filled_entry_replaces_position_take_profit_order(client, auth_headers, monkeypatch):
+    bot = _create_runtime_bot(client, auth_headers)
+    remote_state = {}
+    remote_positions = []
+    _mock_runtime(monkeypatch, remote_state=remote_state,
+                  remote_positions=remote_positions)
+    client.post(f"/api/bots/{bot['id']}/start", headers=auth_headers)
+    _tick_bot(bot["id"])
+
+    db = SessionLocal()
+    try:
+        entry_one = db.query(TradingBotOrder).filter(
+            TradingBotOrder.bot_id == bot["id"],
+            TradingBotOrder.order_role == "grid_entry_1",
+        ).first()
+        entry_one.status = "Filled"
+        entry_one.filled_qty = entry_one.qty
+        db.add(entry_one)
+        db.commit()
+    finally:
+        db.close()
+
+    remote_positions[:] = [{
+        "side": "Buy",
+        "size": "0.01",
+        "avgPrice": "100.0",
+    }]
+    _tick_bot(bot["id"])
+
+    db = SessionLocal()
+    try:
+        entry_two = db.query(TradingBotOrder).filter(
+            TradingBotOrder.bot_id == bot["id"],
+            TradingBotOrder.order_role == "grid_entry_2",
+        ).first()
+        entry_two.status = "Filled"
+        entry_two.filled_qty = entry_two.qty
+        db.add(entry_two)
+        db.commit()
+    finally:
+        db.close()
+
+    remote_positions[:] = [{
+        "side": "Buy",
+        "size": "0.02",
+        "avgPrice": "97.5",
+    }]
+    _tick_bot(bot["id"])
+
+    orders = client.get(
+        f"/api/bots/{bot['id']}/orders", headers=auth_headers).json()
+    position_tp_orders = [
+        order for order in orders if order["order_role"] == "position_take_profit"
+    ]
+    active_position_tps = [
+        order for order in position_tp_orders if order["status"] in ACTIVE_ORDER_STATUSES
+    ]
+
+    assert len(active_position_tps) == 1
+    assert active_position_tps[0]["qty"] == 0.02
+    assert active_position_tps[0]["price"] == 98.9
+    assert active_position_tps[0]["raw_response"]["reduceOnly"] is True
+    assert any(order["status"] == "Cancelled" for order in position_tp_orders)
+    assert len({order["order_link_id"] for order in position_tp_orders}) == 2
+
+
+def test_position_take_profit_fill_recreates_grid_entry(client, auth_headers, monkeypatch):
+    bot = _create_runtime_bot(client, auth_headers)
+    remote_state = {}
+    remote_positions = []
+    _mock_runtime(monkeypatch, remote_state=remote_state,
+                  remote_positions=remote_positions)
+    client.post(f"/api/bots/{bot['id']}/start", headers=auth_headers)
+    _tick_bot(bot["id"])
+
+    db = SessionLocal()
+    try:
+        entry = db.query(TradingBotOrder).filter(TradingBotOrder.bot_id ==
+                                                 bot["id"], TradingBotOrder.order_role == "grid_entry_1").first()
+        entry.status = "Filled"
+        entry.filled_qty = entry.qty
+        db.add(entry)
+        db.commit()
+    finally:
+        db.close()
+
+    remote_positions[:] = [{
+        "side": "Buy",
+        "size": str(bot["order_qty"]),
+        "avgPrice": "100.0",
+    }]
+
+    _tick_bot(bot["id"])
+
+    position_tp = next(
+        order for order in client.get(f"/api/bots/{bot['id']}/orders", headers=auth_headers).json()
+        if order["order_role"] == "position_take_profit"
+    )
+    remote_state[position_tp["order_link_id"]]["orderStatus"] = "Filled"
+    remote_state[position_tp["order_link_id"]
+                 ]["cumExecQty"] = str(position_tp["qty"])
+    remote_positions.clear()
+
+    _tick_bot(bot["id"])
+
+    orders = client.get(
+        f"/api/bots/{bot['id']}/orders", headers=auth_headers).json()
+    level_one_entries = [
+        order for order in orders if order["order_role"] == "grid_entry_1"]
+    assert len(level_one_entries) >= 2
+
+
+def test_position_take_profit_fill_logs_once(client, auth_headers, monkeypatch):
+    bot = _create_runtime_bot(client, auth_headers)
+    remote_state = {}
+    remote_positions = []
+    _mock_runtime(monkeypatch, remote_state=remote_state,
+                  remote_positions=remote_positions)
+    client.post(f"/api/bots/{bot['id']}/start", headers=auth_headers)
+    _tick_bot(bot["id"])
+
+    db = SessionLocal()
+    try:
+        entry = db.query(TradingBotOrder).filter(
+            TradingBotOrder.bot_id == bot["id"],
+            TradingBotOrder.order_role == "grid_entry_1",
+        ).first()
+        entry.status = "Filled"
+        entry.filled_qty = entry.qty
+        db.add(entry)
+        db.commit()
+    finally:
+        db.close()
+
+    remote_positions[:] = [{
+        "side": "Buy",
+        "size": str(bot["order_qty"]),
+        "avgPrice": "100.0",
+    }]
+
+    _tick_bot(bot["id"])
+
+    position_tp = next(
+        order for order in client.get(f"/api/bots/{bot['id']}/orders", headers=auth_headers).json()
+        if order["order_role"] == "position_take_profit"
+    )
+    remote_state[position_tp["order_link_id"]]["orderStatus"] = "Filled"
+    remote_state[position_tp["order_link_id"]
+                 ]["cumExecQty"] = str(position_tp["qty"])
+    remote_positions.clear()
+
+    _tick_bot(bot["id"])
+    _tick_bot(bot["id"])
+
+    db = SessionLocal()
+    try:
+        count = db.query(TradingBotEvent).filter(
+            TradingBotEvent.bot_id == bot["id"],
+            TradingBotEvent.event_type == "position_take_profit_filled",
+        ).count()
+        assert count == 1
+    finally:
+        db.close()
+
+
+def test_position_size_zero_cancels_active_position_take_profit(client, auth_headers, monkeypatch):
+    bot = _create_runtime_bot(client, auth_headers)
+    remote_state = {}
+    remote_positions = []
+    _mock_runtime(monkeypatch, remote_state=remote_state,
+                  remote_positions=remote_positions)
+    client.post(f"/api/bots/{bot['id']}/start", headers=auth_headers)
+    _tick_bot(bot["id"])
+
+    db = SessionLocal()
+    try:
+        entry = db.query(TradingBotOrder).filter(
+            TradingBotOrder.bot_id == bot["id"],
+            TradingBotOrder.order_role == "grid_entry_1",
+        ).first()
+        entry.status = "Filled"
+        entry.filled_qty = entry.qty
+        db.add(entry)
+        db.commit()
+    finally:
+        db.close()
+
+    remote_positions[:] = [{
+        "side": "Buy",
+        "size": str(bot["order_qty"]),
+        "avgPrice": "100.0",
+    }]
+
+    _tick_bot(bot["id"])
+
+    remote_positions.clear()
+
+    _tick_bot(bot["id"])
+
+    orders = client.get(
+        f"/api/bots/{bot['id']}/orders", headers=auth_headers).json()
+    position_tp_orders = [
+        order for order in orders if order["order_role"] == "position_take_profit"
+    ]
+    assert position_tp_orders
+    assert all(order["status"] == "Cancelled" for order in position_tp_orders)
+
+
+def test_position_take_profit_orders_must_be_reduce_only():
+    class FakeSession:
+        def place_order(self, **kwargs):
+            raise AssertionError("place_order should not be called")
+
+    with pytest.raises(ValueError):
+        place_order(
+            FakeSession(),
+            category="linear",
+            symbol="BTCUSDT",
+            order=OrderRequest(
+                side="Sell",
+                order_type="Limit",
+                order_role="position_take_profit",
+                order_link_id="bot-1-g1-position-tp-1700000000000",
+                qty=0.1,
+                price=101.5,
+                reduce_only=False,
+            ),
+        )
+
+
+def test_old_per_entry_take_profit_roles_are_not_created(client, auth_headers, monkeypatch):
+    bot = _create_runtime_bot(client, auth_headers)
+    remote_positions = []
+    _mock_runtime(monkeypatch, remote_positions=remote_positions)
+    client.post(f"/api/bots/{bot['id']}/start", headers=auth_headers)
+    _tick_bot(bot["id"])
+
+    db = SessionLocal()
+    try:
+        entry = db.query(TradingBotOrder).filter(
+            TradingBotOrder.bot_id == bot["id"],
+            TradingBotOrder.order_role == "grid_entry_1",
+        ).first()
+        entry.status = "Filled"
+        entry.filled_qty = entry.qty
+        db.add(entry)
+        db.commit()
+    finally:
+        db.close()
+
+    remote_positions[:] = [{
+        "side": "Buy",
+        "size": str(bot["order_qty"]),
+        "avgPrice": "100.0",
+    }]
+
+    _tick_bot(bot["id"])
+
+    orders = client.get(
+        f"/api/bots/{bot['id']}/orders", headers=auth_headers).json()
+    assert any(order["order_role"] ==
+               "position_take_profit" for order in orders)
+    assert not any(order["order_role"].startswith("take_profit_")
+                   for order in orders)
+    assert not any(order["order_role"].startswith("tp_") for order in orders)
+
+
+def test_instrument_rules_reject_too_small_qty(client, auth_headers, monkeypatch):
+    bot = _create_runtime_bot(client, auth_headers, {"order_qty": 0.001})
+    _mock_runtime(monkeypatch, min_qty=1.0)
+    client.post(f"/api/bots/{bot['id']}/start", headers=auth_headers)
+
+    _tick_bot(bot["id"])
+
+    orders = client.get(
+        f"/api/bots/{bot['id']}/orders", headers=auth_headers).json()
+    assert orders == []
+    events = client.get(
+        f"/api/bots/{bot['id']}/events", headers=auth_headers).json()
+    assert any(event["event_type"] == "error" for event in events)
+
+
+def test_stop_cancels_active_orders_when_configured(client, auth_headers, monkeypatch):
+    bot = _create_runtime_bot(client, auth_headers, {
+                              "settings": {"cancel_orders_on_stop": True}})
+    _mock_runtime(monkeypatch)
+    client.post(f"/api/bots/{bot['id']}/start", headers=auth_headers)
+    _tick_bot(bot["id"])
+
+    stopped = client.post(f"/api/bots/{bot['id']}/stop", headers=auth_headers)
+    assert stopped.status_code == 200
+    orders = client.get(
+        f"/api/bots/{bot['id']}/orders", headers=auth_headers).json()
+    assert all(order["status"] in {"Cancelled", "Filled"} for order in orders)
+
+
+def test_clear_history_increments_generation_and_blocks_old_remote_history(client, auth_headers, monkeypatch):
+    bot = _create_runtime_bot(client, auth_headers)
+    remote_state = {}
+    remote_positions = []
+    _mock_runtime(monkeypatch, remote_state=remote_state,
+                  remote_positions=remote_positions)
+    client.post(f"/api/bots/{bot['id']}/start", headers=auth_headers)
+    _tick_bot(bot["id"])
+
+    old_link_id = f"bot-{bot['id']}-g1-entry-1-1"
+    remote_state[old_link_id]["orderStatus"] = "Filled"
+    remote_state[old_link_id]["cumExecQty"] = remote_state[old_link_id]["qty"]
+
+    cleared = client.post(
+        f"/api/bots/{bot['id']}/clear-history", headers=auth_headers)
+    assert cleared.status_code == 200, cleared.text
+    assert cleared.json()["orders_deleted"] >= 1
+
+    refreshed_bot = client.get(
+        f"/api/bots/{bot['id']}", headers=auth_headers).json()
+    assert refreshed_bot["order_link_generation"] == 2
+
+    _tick_bot(bot["id"])
+
+    orders = client.get(
+        f"/api/bots/{bot['id']}/orders", headers=auth_headers).json()
+    assert orders
+    assert all(order["order_link_id"].startswith(
+        f"bot-{bot['id']}-g2-") for order in orders)
+    assert not any(order["order_link_id"] == old_link_id for order in orders)
+
+
+def _create_runtime_bot(client, auth_headers, overrides=None):
+    payload = {
+        "name": "Grid Runtime Bot",
+        "exchange": "bybit",
+        "environment": "demo",
+        "strategy_type": "grid",
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "order_qty": 0.01,
+        "grid_orders_count": 2,
+        "grid_step_percent": 5,
+        "is_active": True,
+        "settings": {
+            "take_profit_percent": 1.5,
+            "run_interval_seconds": 0,
+            "max_open_orders": 10,
+            "max_position_qty": 1,
+            "cancel_orders_on_stop": True,
+        },
+    }
+    if overrides:
+        payload.update(overrides)
+        if "settings" in overrides:
+            payload["settings"] = {
+                **{
+                    "take_profit_percent": 1.5,
+                    "run_interval_seconds": 0,
+                    "max_open_orders": 10,
+                    "max_position_qty": 1,
+                    "cancel_orders_on_stop": True,
+                },
+                **overrides["settings"],
+            }
+    response = client.post("/api/bots", json=payload, headers=auth_headers)
+    assert response.status_code == 201, response.text
+    return response.json()
+
+
+def _tick_bot(bot_id):
+    db = SessionLocal()
+    try:
+        bot = db.get(TradingBot, bot_id)
+        result = tick_grid_bot(db, bot)
+        return result
+    finally:
+        db.close()
+
+
+def _mock_runtime(monkeypatch, *, min_qty=0.001, remote_state=None, remote_positions=None):
+    if remote_state is None:
+        remote_state = {}
+    if remote_positions is None:
+        remote_positions = []
+    monkeypatch.setattr(
+        "app.bot_engine.grid_runtime.get_bybit_session", lambda _bot: object())
+    monkeypatch.setattr(
+        "app.bot_engine.grid_runtime.get_orders_by_prefix",
+        lambda *args, **kwargs: _mock_get_orders_by_prefix(
+            remote_state, kwargs["order_link_prefix"]),
+    )
+    monkeypatch.setattr(
+        "app.bot_engine.grid_runtime.get_last_price",
+        lambda *args, **kwargs: 100.0,
+    )
+    monkeypatch.setattr(
+        "app.bot_engine.grid_runtime.get_instrument_rules",
+        lambda *args, **kwargs: type("Rules", (), {
+            "min_order_qty": min_qty,
+            "qty_step": 0.001,
+            "tick_size": 0.1,
+            "min_notional_value": 0,
+        })(),
+    )
+    monkeypatch.setattr(
+        "app.bot_engine.grid_runtime.get_open_positions",
+        lambda *args, **kwargs: list(remote_positions),
+    )
+    monkeypatch.setattr(
+        "app.bot_engine.grid_runtime.get_open_orders",
+        lambda *args, **kwargs: _mock_get_open_orders(remote_state),
+    )
+    monkeypatch.setattr(
+        "app.bot_engine.grid_runtime.place_order",
+        lambda *args, **kwargs: _mock_place_order(
+            remote_state, kwargs["order"]),
+    )
+    monkeypatch.setattr(
+        "app.bot_engine.grid_runtime.cancel_order_by_link_id",
+        lambda *args, **kwargs: _mock_cancel_order(
+            remote_state, kwargs["order_link_id"]),
+    )
+
+
+def _mock_place_order(remote_state, order):
+    remote_state[order.order_link_id] = {
+        "orderLinkId": order.order_link_id,
+        "orderId": f"oid-{order.order_link_id}",
+        "orderStatus": "New",
+        "side": order.side,
+        "orderType": order.order_type,
+        "qty": str(order.qty),
+        "cumExecQty": "0",
+        "price": str(order.price) if order.price is not None else None,
+        "reduceOnly": order.reduce_only,
+    }
+    return {"result": {
+        "orderId": f"oid-{order.order_link_id}",
+        "orderStatus": "New",
+    }}
+
+
+def _mock_get_orders_by_prefix(remote_state, order_link_prefix):
+    return [
+        remote_order
+        for remote_order in remote_state.values()
+        if (remote_order.get("orderLinkId") or "").startswith(order_link_prefix)
+    ]
+
+
+def _mock_get_open_orders(remote_state):
+    return [
+        remote_order
+        for remote_order in remote_state.values()
+        if remote_order.get("orderStatus") in ACTIVE_ORDER_STATUSES
+    ]
+
+
+def _mock_cancel_order(remote_state, order_link_id):
+    remote_state.pop(order_link_id, None)
+    return {"result": {
+        "orderLinkId": order_link_id,
+        "orderStatus": "Cancelled",
+    }}

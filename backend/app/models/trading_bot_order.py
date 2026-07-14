@@ -33,14 +33,26 @@ class TradingBotOrder(Base):
     side: Mapped[str] = mapped_column(String(10), nullable=False)
     order_type: Mapped[str] = mapped_column(String(20), nullable=False)
     order_role: Mapped[str] = mapped_column(String(50), nullable=False)
+    order_link_id: Mapped[str | None] = mapped_column(
+        String(160), nullable=True, index=True)
     qty: Mapped[float] = mapped_column(Float, nullable=False)
+    filled_qty: Mapped[float] = mapped_column(Float, nullable=False, default=0)
     price: Mapped[float | None] = mapped_column(Float, nullable=True)
     exchange_order_id: Mapped[str | None] = mapped_column(
         String(120), nullable=True)
+    parent_order_id: Mapped[int | None] = mapped_column(
+        ForeignKey("trading_bot_orders.id", ondelete="SET NULL"), nullable=True
+    )
     status: Mapped[str] = mapped_column(
         String(30), nullable=False, default="New")
     raw_response: Mapped[dict[str, Any]] = mapped_column(
         JSON, default=dict, nullable=False)
+    filled_event_logged_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    cycle_completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow, nullable=False, index=True
     )
@@ -52,3 +64,6 @@ class TradingBotOrder(Base):
         "TradingBot", back_populates="orders")
     user: Mapped["User"] = relationship(
         "User", back_populates="trading_bot_orders")
+    parent_order: Mapped["TradingBotOrder | None"] = relationship(
+        "TradingBotOrder", remote_side="TradingBotOrder.id"
+    )

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 if TYPE_CHECKING:
+    from app.models.trading_bot_event import TradingBotEvent
     from app.models.trading_bot_order import TradingBotOrder
     from app.models.user import User
 
@@ -47,6 +48,8 @@ class TradingBot(Base):
     )
     settings: Mapped[dict[str, Any]] = mapped_column(
         JSON, default=dict, nullable=False)
+    order_link_generation: Mapped[int] = mapped_column(
+        Integer, default=1, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow, nullable=False, index=True
     )
@@ -64,4 +67,7 @@ class TradingBot(Base):
     user: Mapped["User"] = relationship("User", back_populates="trading_bots")
     orders: Mapped[list["TradingBotOrder"]] = relationship(
         "TradingBotOrder", back_populates="bot", cascade="all, delete-orphan"
+    )
+    events: Mapped[list["TradingBotEvent"]] = relationship(
+        "TradingBotEvent", back_populates="bot", cascade="all, delete-orphan"
     )

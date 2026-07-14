@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
     default_dataset: str = "data/btc_usdt_2024.csv"
+    bot_worker_enabled: bool = True
 
     # --- Auth / JWT ---
     jwt_secret_key: str = "dev-secret-change-me-0123456789abcdef0123456789abcdef"

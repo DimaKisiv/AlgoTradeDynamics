@@ -10,6 +10,7 @@ from app.db.base import Base
 if TYPE_CHECKING:  # уникаємо циклічного імпорту, тип потрібен лише статичному аналізатору
     from app.models.backtest import BacktestRun
     from app.models.trading_bot import TradingBot
+    from app.models.trading_bot_event import TradingBotEvent
     from app.models.trading_bot_order import TradingBotOrder
 
 
@@ -36,4 +37,7 @@ class User(Base):
     )
     trading_bot_orders: Mapped[list["TradingBotOrder"]] = relationship(
         "TradingBotOrder", back_populates="user", cascade="all, delete-orphan"
+    )
+    trading_bot_events: Mapped[list["TradingBotEvent"]] = relationship(
+        "TradingBotEvent", back_populates="user", cascade="all, delete-orphan"
     )

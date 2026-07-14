@@ -46,6 +46,7 @@ class TradingBotUpdate(BaseModel):
 class TradingBotResponse(TradingBotBase):
     id: int
     user_id: int
+    order_link_generation: int
     runtime_status: str
     created_at: datetime
     updated_at: datetime
@@ -68,13 +69,28 @@ class TradingBotOrderResponse(BaseModel):
     side: str
     order_type: str
     order_role: str
+    order_link_id: str | None
     qty: float
+    filled_qty: float
     price: float | None
     exchange_order_id: str | None
+    parent_order_id: int | None
     status: str
     raw_response: dict[str, Any]
     created_at: datetime
     updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class TradingBotEventResponse(BaseModel):
+    id: int
+    bot_id: int
+    user_id: int
+    event_type: str
+    message: str
+    payload: dict[str, Any] | None
+    created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -84,3 +100,12 @@ class TradingBotRunResponse(BaseModel):
     orders: list[TradingBotOrderResponse]
     action: str
     message: str
+
+
+class TradingBotClearHistoryResponse(BaseModel):
+    message: str
+    bot_id: int
+    orders_deleted: int
+    events_deleted: int
+    exchange_orders_cancelled: int
+    exchange_cancel_error: str | None = None

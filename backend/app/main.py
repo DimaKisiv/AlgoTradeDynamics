@@ -7,14 +7,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.auth import router as auth_router
 from app.api.backtests import router as backtests_router
 from app.api.bots import router as bots_router
-from app.api.bybit import router as bybit_router
 from app.api.health import router as health_router
 from app.api.strategies import router as strategies_router
+from app.bot_engine.runtime import start_bot_worker, stop_bot_worker
 from app.core.config import get_settings
 from app.core.logging import configure_logging, get_logger
 from app.db.base import Base
 from app.db.session import engine
-from app.models import backtest, trading_bot, trading_bot_order, user  # noqa: F401  (register models)
+from app.models import backtest, trading_bot, trading_bot_event, trading_bot_order, user  # noqa: F401  (register models)
 
 configure_logging()
 logger = get_logger(__name__)
@@ -28,8 +28,12 @@ if settings.database_url.startswith("sqlite"):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    if settings.bot_worker_enabled:
+        start_bot_worker(app)
     logger.info("API ready: env=%s", settings.environment)
     yield
+    if settings.bot_worker_enabled:
+        await stop_bot_worker(app)
     logger.info("API shutting down")
 
 
@@ -57,7 +61,6 @@ app.include_router(auth_router, prefix="/api")
 app.include_router(strategies_router, prefix="/api")
 app.include_router(backtests_router, prefix="/api")
 app.include_router(bots_router, prefix="/api")
-app.include_router(bybit_router, prefix="/api")
 
 
 @app.get("/", tags=["Root"])

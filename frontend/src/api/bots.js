@@ -49,3 +49,19 @@ export function syncBot(id) {
 export function listBotOrders(id) {
   return request(`/bots/${id}/orders`);
 }
+
+export function listBotEvents(id) {
+  return request(`/bots/${id}/events`);
+}
+
+export function cancelBotOrders(id) {
+  return request(`/bots/${id}/cancel-orders`, {
+    method: "POST",
+  });
+}
+
+export function clearBotHistory(id) {
+  return request(`/bots/${id}/clear-history`, {
+    method: "POST",
+  });
+}

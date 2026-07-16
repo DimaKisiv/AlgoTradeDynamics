@@ -12,6 +12,7 @@ from app.schemas.trading_bot import (
     TradingBotEventResponse,
     TradingBotOrderResponse,
     TradingBotPositionResponse,
+    TradingBotPerformanceResponse,
     TradingBotRiskResponse,
     TradingBotResponse,
     TradingBotRunResponse,
@@ -33,6 +34,7 @@ from app.services.trading_bot_service import (
     clear_trading_bot_history,
     close_trading_bot_position,
     get_trading_bot_position,
+    get_trading_bot_performance,
     get_trading_bot_risk,
     serialize_trading_bot,
 )
@@ -91,6 +93,18 @@ def get_bot_risk(
     if bot is None:
         raise HTTPException(status_code=404, detail="Trading bot not found")
     return get_trading_bot_risk(db, bot, current_user)
+
+
+@router.get("/{bot_id}/performance", response_model=TradingBotPerformanceResponse)
+def get_bot_performance(
+    bot_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    bot = get_trading_bot(db, bot_id, current_user.id)
+    if bot is None:
+        raise HTTPException(status_code=404, detail="Trading bot not found")
+    return get_trading_bot_performance(db, bot, current_user)
 
 
 @router.get("/{bot_id}/orders", response_model=list[TradingBotOrderResponse])

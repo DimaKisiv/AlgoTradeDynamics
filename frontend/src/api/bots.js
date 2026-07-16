@@ -74,6 +74,10 @@ export function getBotRisk(id) {
   return request(`/bots/${id}/risk`);
 }
 
+export function getBotPerformance(id) {
+  return request(`/bots/${id}/performance`);
+}
+
 export function closeBotPosition(id, payload) {
   return request(`/bots/${id}/close-position`, {
     method: "POST",

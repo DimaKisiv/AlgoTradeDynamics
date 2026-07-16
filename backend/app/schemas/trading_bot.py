@@ -153,6 +153,25 @@ class TradingBotRiskResponse(BaseModel):
     reason: str | None
 
 
+class TradingBotPerformanceResponse(BaseModel):
+    closed_cycles: int
+    winning_cycles: int
+    win_rate_percent: str | None
+    gross_realized_pnl: str | None
+    closed_fees: str | None
+    total_fees: str | None
+    net_realized_pnl: str | None
+    realized_pnl_percent: str | None
+    average_cycle_pnl: str | None
+    unrealized_pnl: str | None
+    total_pnl: str | None
+    total_pnl_percent: str | None
+    open_position_qty: str | None
+    open_position_value: str | None
+    total_buy_cost: str | None
+    total_sell_value: str | None
+
+
 class TradingBotClosePositionRequest(BaseModel):
     confirm: bool = False
 

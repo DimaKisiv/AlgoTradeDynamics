@@ -19,6 +19,7 @@ import {
   getBot,
   getBotPosition,
   getBotRisk,
+  getBotPerformance,
   listBotEvents,
   listBotOrders,
   startBot,
@@ -42,6 +43,7 @@ export default function BotDetailPage() {
   const [events, setEvents] = useState([]);
   const [position, setPosition] = useState(null);
   const [risk, setRisk] = useState(null);
+  const [performance, setPerformance] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -51,19 +53,27 @@ export default function BotDetailPage() {
     try {
       setLoading(true);
       setError("");
-      const [botData, ordersData, eventsData, positionData, riskData] =
-        await Promise.all([
-          getBot(botId),
-          listBotOrders(botId),
-          listBotEvents(botId),
-          getBotPosition(botId),
-          getBotRisk(botId),
-        ]);
+      const [
+        botData,
+        ordersData,
+        eventsData,
+        positionData,
+        riskData,
+        performanceData,
+      ] = await Promise.all([
+        getBot(botId),
+        listBotOrders(botId),
+        listBotEvents(botId),
+        getBotPosition(botId),
+        getBotRisk(botId),
+        getBotPerformance(botId),
+      ]);
       setBot(botData);
       setOrders(ordersData);
       setEvents(eventsData);
       setPosition(positionData);
       setRisk(riskData);
+      setPerformance(performanceData);
     } catch (e) {
       setError(e.detail || e.message || "Не вдалося завантажити дані бота.");
     } finally {
@@ -230,6 +240,20 @@ export default function BotDetailPage() {
   const liveDisabled = Boolean(
     risk?.is_live_environment && !risk?.allow_live_trading,
   );
+  const closedCycles = performance?.closed_cycles ?? 0;
+  const winningCycles = performance?.winning_cycles ?? 0;
+  const winRatePercent = toNumberOrNull(performance?.win_rate_percent);
+  const grossRealizedPnl = toNumberOrNull(performance?.gross_realized_pnl);
+  const closedFees = toNumberOrNull(performance?.closed_fees);
+  const totalFees = toNumberOrNull(performance?.total_fees);
+  const netRealizedPnl = toNumberOrNull(performance?.net_realized_pnl);
+  const realizedPnlPercent = toNumberOrNull(performance?.realized_pnl_percent);
+  const averageCyclePnl = toNumberOrNull(performance?.average_cycle_pnl);
+  const performanceUnrealizedPnl = toNumberOrNull(performance?.unrealized_pnl);
+  const totalPnl = toNumberOrNull(performance?.total_pnl);
+  const totalPnlPercent = toNumberOrNull(performance?.total_pnl_percent);
+  const openPositionQty = toNumberOrNull(performance?.open_position_qty);
+  const openPositionValue = toNumberOrNull(performance?.open_position_value);
 
   return (
     <main className={styles.botDetail}>
@@ -274,7 +298,98 @@ export default function BotDetailPage() {
                   label="Position TP"
                   value={String(positionTakeProfitOrders.length)}
                 />
+                <SummaryCard
+                  label="Closed cycles"
+                  value={String(closedCycles)}
+                />
+                <SummaryCard
+                  label="Total PnL"
+                  value={totalPnl == null ? "—" : fmtMoneySigned(totalPnl)}
+                />
               </div>
+
+              <Card className={styles.configCard}>
+                <CardHeader
+                  eyebrow="Trading result"
+                  title="Performance Summary"
+                  action={
+                    <span
+                      className={`${styles.statusBadge} ${
+                        totalPnl == null || totalPnl >= 0
+                          ? styles.statusOk
+                          : styles.statusLiveDisabled
+                      }`}
+                    >
+                      {totalPnl == null ? "No data" : totalPnl >= 0 ? "Profit" : "Loss"}
+                    </span>
+                  }
+                />
+
+                <dl className={styles.configGrid}>
+                  <ConfigItem label="Closed Cycles" value={String(closedCycles)} mono />
+                  <ConfigItem label="Winning Cycles" value={String(winningCycles)} mono />
+                  <ConfigItem
+                    label="Win Rate"
+                    value={winRatePercent == null ? "—" : fmtPct(winRatePercent)}
+                    mono
+                  />
+                  <ConfigItem
+                    label="Gross Realized PnL"
+                    value={grossRealizedPnl == null ? "—" : fmtMoneySigned(grossRealizedPnl)}
+                    mono
+                  />
+                  <ConfigItem
+                    label="Closed Fees"
+                    value={closedFees == null ? "—" : fmtMoney(closedFees)}
+                    mono
+                  />
+                  <ConfigItem
+                    label="Total Fees"
+                    value={totalFees == null ? "—" : fmtMoney(totalFees)}
+                    mono
+                  />
+                  <ConfigItem
+                    label="Net Realized PnL"
+                    value={netRealizedPnl == null ? "—" : fmtMoneySigned(netRealizedPnl)}
+                    mono
+                  />
+                  <ConfigItem
+                    label="Realized PnL %"
+                    value={realizedPnlPercent == null ? "—" : fmtPctSigned(realizedPnlPercent)}
+                    mono
+                  />
+                  <ConfigItem
+                    label="Average Cycle PnL"
+                    value={averageCyclePnl == null ? "—" : fmtMoneySigned(averageCyclePnl)}
+                    mono
+                  />
+                  <ConfigItem
+                    label="Open Unrealized PnL"
+                    value={performanceUnrealizedPnl == null ? "—" : fmtMoneySigned(performanceUnrealizedPnl)}
+                    mono
+                  />
+                  <ConfigItem
+                    label="Total PnL"
+                    value={totalPnl == null ? "—" : fmtMoneySigned(totalPnl)}
+                    mono
+                  />
+                  <ConfigItem
+                    label="Total PnL %"
+                    value={totalPnlPercent == null ? "—" : fmtPctSigned(totalPnlPercent)}
+                    mono
+                  />
+                  <ConfigItem
+                    label="Open Position Qty"
+                    value={openPositionQty == null ? "—" : fmtNumber(openPositionQty, 6)}
+                    mono
+                  />
+                  <ConfigItem
+                    label="Open Position Value"
+                    value={openPositionValue == null ? "—" : fmtMoney(openPositionValue)}
+                    mono
+                  />
+                </dl>
+              </Card>
 
               <Card className={styles.configCard}>
                 <CardHeader
@@ -713,6 +828,12 @@ function getRuntimeLabel(value) {
     error: "Error",
   };
   return labels[value] || value;
+}
+
+function toNumberOrNull(value) {
+  if (value == null) return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
 }
 
 function formatMaybeNumber(value, decimals = 2) {

@@ -5,6 +5,7 @@ from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
 from app.bot_engine.bot import run_grid_bot_once, stop_grid_bot_once, sync_grid_bot_orders, sync_bot_orders
+from app.bot_engine.performance import get_performance_summary
 from app.bot_engine.grid_runtime import (
     cancel_all_bot_orders,
     close_bot_position,
@@ -225,6 +226,12 @@ def get_trading_bot_risk(db: Session, bot: TradingBot, current_user: User) -> di
     if bot.user_id != current_user.id:
         raise PermissionError("Trading bot access denied")
     return get_risk_summary(db, bot)
+
+
+def get_trading_bot_performance(db: Session, bot: TradingBot, current_user: User) -> dict:
+    if bot.user_id != current_user.id:
+        raise PermissionError("Trading bot access denied")
+    return get_performance_summary(db, bot)
 
 
 def close_trading_bot_position(db: Session, bot: TradingBot, current_user: User, *, confirm: bool) -> dict:

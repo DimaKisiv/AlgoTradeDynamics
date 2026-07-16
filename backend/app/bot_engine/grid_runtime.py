@@ -8,7 +8,7 @@ from sqlalchemy import desc
 
 from app.bot_engine.bybit.client import get_bybit_session
 from app.bot_engine.events import log_bot_event
-from app.bot_engine.market_data import get_instrument_rules, get_last_price
+from app.bot_engine.market_data import get_instrument_rules, get_last_price, get_ticker_snapshot
 from app.bot_engine.orders import (
     ACTIVE_ORDER_STATUSES,
     FINAL_ORDER_STATUSES,
@@ -22,6 +22,7 @@ from app.bot_engine.orders import (
 )
 from app.bot_engine.positions import get_open_positions
 from app.models.trading_bot import TradingBot
+from app.models.trading_bot_event import TradingBotEvent
 from app.models.trading_bot_order import TradingBotOrder
 
 
@@ -55,11 +56,35 @@ TP_LINK_RE = re.compile(
 POSITION_TP_LINK_RE = re.compile(
     r"^bot-(?P<bot_id>\d+)(?:-g(?P<generation>\d+))?-position-tp(?:-(?P<timestamp_ms>\d+))?$")
 POSITION_TP_ROLE = "position_take_profit"
+POSITION_CLOSE_ROLE = "position_close"
 LEGACY_TP_ROLE_PREFIXES = ("take_profit_", "tp_")
 
 
 def _level_role(level_index: int) -> str:
     return f"grid_entry_{level_index}"
+
+
+def _close_position_link_id(bot: TradingBot) -> str:
+    timestamp_ms = int(_utcnow().timestamp() * 1000)
+    return f"{get_order_link_prefix(bot)}position-close-{timestamp_ms}"
+
+
+def is_live_environment(bot: TradingBot) -> bool:
+    return str(bot.environment).lower() == "live"
+
+
+def get_effective_bot_settings(bot: TradingBot) -> dict:
+    max_position_qty = bot.order_qty * bot.grid_orders_count
+    return {
+        "max_position_qty": float(get_bot_setting(bot, "max_position_qty", max_position_qty)),
+        "max_open_orders": int(get_bot_setting(bot, "max_open_orders", bot.grid_orders_count + 1)),
+        "max_notional_usdt": get_bot_setting(bot, "max_notional_usdt", None),
+        "max_grid_levels": int(get_bot_setting(bot, "max_grid_levels", bot.grid_orders_count)),
+        "allow_live_trading": bool(get_bot_setting(bot, "allow_live_trading", False)),
+        "stop_bot_on_error": bool(get_bot_setting(bot, "stop_bot_on_error", True)),
+        "cancel_orders_on_stop": bool(get_bot_setting(bot, "cancel_orders_on_stop", True)),
+        **(bot.settings or {}),
+    }
 
 
 def _position_tp_link_prefix(bot: TradingBot) -> str:
@@ -101,6 +126,19 @@ def _is_position_tp_link_id_for_bot(bot: TradingBot, order_link_id: str | None) 
 
 def _is_current_generation_position_tp_link_id(bot: TradingBot, order_link_id: str | None) -> bool:
     return bool(order_link_id) and order_link_id.startswith(_position_tp_link_prefix(bot))
+
+
+def _safe_float(value, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _format_optional_number(value) -> str | None:
+    if value is None:
+        return None
+    return str(value)
 
 
 def _next_cycle_id(db, bot: TradingBot, order_role: str) -> int:
@@ -170,7 +208,7 @@ def _record_order(db, bot: TradingBot, order: OrderRequest, response: dict, *, s
     record.exchange_order_id = result.get(
         "orderId") or record.exchange_order_id
     record.status = status_override or result.get(
-        "orderStatus") or response.get("retMsg") or record.status or "New"
+        "orderStatus") or record.status or "New"
     payload = dict(response or {})
     payload.update({
         "orderLinkId": order.order_link_id,
@@ -286,6 +324,18 @@ def _build_position_take_profit_order(bot: TradingBot, position_size: float, avg
     )
 
 
+def _build_close_position_order(bot: TradingBot, position_size: float) -> OrderRequest:
+    return OrderRequest(
+        side="Sell",
+        order_type="Market",
+        order_role=POSITION_CLOSE_ROLE,
+        order_link_id=_close_position_link_id(bot),
+        qty=position_size,
+        price=None,
+        reduce_only=True,
+    )
+
+
 def _active_orders_by_role(db, bot: TradingBot, order_role: str) -> list[TradingBotOrder]:
     return (
         db.query(TradingBotOrder)
@@ -305,6 +355,13 @@ def _active_position_take_profit_orders(db, bot: TradingBot) -> list[TradingBotO
         for order in _active_orders_by_role(db, bot, POSITION_TP_ROLE)
         if _is_position_tp_link_id_for_bot(bot, order.order_link_id)
     ]
+
+
+def _latest_bot_event(db, bot: TradingBot, event_type: str | None = None) -> object | None:
+    query = db.query(TradingBotEvent).filter(TradingBotEvent.bot_id == bot.id)
+    if event_type is not None:
+        query = query.filter(TradingBotEvent.event_type == event_type)
+    return query.order_by(desc(TradingBotEvent.created_at), desc(TradingBotEvent.id)).first()
 
 
 def _active_legacy_take_profit_orders(db, bot: TradingBot) -> list[TradingBotOrder]:
@@ -331,6 +388,264 @@ def _attach_position_take_profit_snapshot(record: TradingBotOrder, position: dic
         "tpPrice": order.price,
     })
     record.raw_response = payload
+
+
+def _active_local_orders(db, bot: TradingBot) -> list[TradingBotOrder]:
+    return (
+        db.query(TradingBotOrder)
+        .filter(
+            TradingBotOrder.bot_id == bot.id,
+            TradingBotOrder.status.in_(ACTIVE_ORDER_STATUSES),
+        )
+        .order_by(desc(TradingBotOrder.created_at), desc(TradingBotOrder.id))
+        .all()
+    )
+
+
+def _current_generation_open_orders(session, bot: TradingBot) -> list[dict]:
+    return [
+        order
+        for order in get_open_orders(session, category=bot.category, symbol=bot.symbol)
+        if _is_current_generation_link_id(bot, order.get("orderLinkId"))
+    ]
+
+
+def _risk_block_payload(bot: TradingBot, *, current_position_qty: float, pending_buy_qty: float, current_open_orders: int, current_price: float | None) -> dict:
+    settings = get_effective_bot_settings(bot)
+    potential_total_qty = current_position_qty + pending_buy_qty
+    estimated_notional = None if current_price is None else potential_total_qty * current_price
+    return {
+        "max_position_qty": settings["max_position_qty"],
+        "current_position_qty": current_position_qty,
+        "pending_buy_qty": pending_buy_qty,
+        "potential_total_qty": potential_total_qty,
+        "max_open_orders": settings["max_open_orders"],
+        "current_open_orders": current_open_orders,
+        "max_notional_usdt": settings["max_notional_usdt"],
+        "estimated_notional_usdt": estimated_notional,
+        "allow_live_trading": settings["allow_live_trading"],
+        "is_live_environment": is_live_environment(bot),
+    }
+
+
+def _log_risk_blocked(db, bot: TradingBot, message: str, payload: dict) -> None:
+    latest = _latest_bot_event(db, bot, "risk_blocked")
+    if latest is not None and latest.message == message and latest.payload == payload:
+        return
+    log_bot_event(db, bot, "risk_blocked", message, payload)
+
+
+def ensure_live_trading_allowed(db, bot: TradingBot) -> str | None:
+    settings = get_effective_bot_settings(bot)
+    if is_live_environment(bot) and not settings["allow_live_trading"]:
+        payload = {
+            "allow_live_trading": settings["allow_live_trading"],
+            "is_live_environment": True,
+        }
+        _log_risk_blocked(
+            db, bot, "Live trading is disabled for this bot", payload)
+        return "Live trading is disabled for this bot"
+    return None
+
+
+def _find_active_position_take_profit_order(db, bot: TradingBot, session=None) -> TradingBotOrder | None:
+    if session is not None:
+        _sync_exchange_open_position_take_profit_orders(db, bot, session)
+    active_tps = _active_position_take_profit_orders(db, bot)
+    return active_tps[0] if active_tps else None
+
+
+def get_position_snapshot(db, bot: TradingBot) -> dict:
+    session = get_bybit_session(bot)
+    ticker = get_ticker_snapshot(
+        session, category=bot.category, symbol=bot.symbol)
+    position = _get_current_long_position(
+        session, category=bot.category, symbol=bot.symbol)
+    active_tp = _find_active_position_take_profit_order(db, bot, session)
+    mark_price_value = ticker.get("markPrice") or ticker.get("lastPrice")
+    mark_price = _safe_float(
+        mark_price_value, 0.0) if mark_price_value is not None else None
+
+    if position is None:
+        return {
+            "symbol": bot.symbol,
+            "category": bot.category,
+            "side": None,
+            "size": "0",
+            "avg_entry_price": None,
+            "mark_price": _format_optional_number(mark_price_value),
+            "liq_price": None,
+            "unrealized_pnl": None,
+            "unrealized_pnl_percent": None,
+            "leverage": None,
+            "margin_mode": None,
+            "position_value": None,
+            "take_profit": None,
+        }
+
+    raw = position["raw"]
+    size = position["size"]
+    avg_entry_price = position["avg_entry_price"]
+    unrealized_pnl = _safe_float(
+        raw.get("unrealisedPnl") or raw.get("unrealizedPnl"), 0.0)
+    position_value = _safe_float(
+        raw.get("positionValue"), size * (mark_price or avg_entry_price))
+    unrealized_pnl_percent = None
+    if position_value > 0:
+        unrealized_pnl_percent = (unrealized_pnl / position_value) * 100
+
+    take_profit = None
+    if active_tp is not None:
+        take_profit = {
+            "order_id": active_tp.exchange_order_id,
+            "order_link_id": active_tp.order_link_id,
+            "price": _format_optional_number(active_tp.price),
+            "qty": _format_optional_number(active_tp.qty),
+            "status": active_tp.status,
+            "reduce_only": bool((active_tp.raw_response or {}).get("reduceOnly")),
+        }
+
+    return {
+        "symbol": bot.symbol,
+        "category": bot.category,
+        "side": raw.get("side") or "Buy",
+        "size": _format_optional_number(size),
+        "avg_entry_price": _format_optional_number(avg_entry_price),
+        "mark_price": _format_optional_number(mark_price_value),
+        "liq_price": _format_optional_number(raw.get("liqPrice")),
+        "unrealized_pnl": _format_optional_number(unrealized_pnl),
+        "unrealized_pnl_percent": _format_optional_number(unrealized_pnl_percent),
+        "leverage": _format_optional_number(raw.get("leverage")),
+        "margin_mode": raw.get("tradeMode") or raw.get("marginMode"),
+        "position_value": _format_optional_number(position_value),
+        "take_profit": take_profit,
+    }
+
+
+def get_risk_summary(db, bot: TradingBot) -> dict:
+    session = get_bybit_session(bot)
+    settings = get_effective_bot_settings(bot)
+    position = _get_current_long_position(
+        session, category=bot.category, symbol=bot.symbol)
+    current_position_qty = position["size"] if position is not None else 0.0
+    open_orders = _current_generation_open_orders(session, bot)
+    pending_buy_qty = sum(
+        _safe_float(order.get("qty"))
+        for order in open_orders
+        if order.get("side") == "Buy"
+    )
+    current_open_orders = len(open_orders)
+    current_price = get_last_price(
+        session, category=bot.category, symbol=bot.symbol)
+    potential_total_qty = current_position_qty + pending_buy_qty
+    estimated_notional = potential_total_qty * current_price
+
+    blocked = False
+    reason = None
+    if is_live_environment(bot) and not settings["allow_live_trading"]:
+        blocked = True
+        reason = "Live trading is disabled for this bot"
+    elif potential_total_qty > settings["max_position_qty"]:
+        blocked = True
+        reason = "Max position quantity exceeded"
+    elif current_open_orders > settings["max_open_orders"]:
+        blocked = True
+        reason = "Max open orders exceeded"
+    elif settings["max_notional_usdt"] is not None and estimated_notional > float(settings["max_notional_usdt"]):
+        blocked = True
+        reason = "Max notional exposure exceeded"
+    elif potential_total_qty == settings["max_position_qty"]:
+        blocked = False
+        reason = "At max planned exposure"
+    elif current_open_orders == settings["max_open_orders"]:
+        blocked = False
+        reason = "At max open orders limit"
+    elif settings["max_notional_usdt"] is not None and estimated_notional == float(settings["max_notional_usdt"]):
+        blocked = False
+        reason = "At max notional limit"
+
+    return {
+        "max_position_qty": _format_optional_number(settings["max_position_qty"]),
+        "current_position_qty": _format_optional_number(current_position_qty),
+        "pending_buy_qty": _format_optional_number(pending_buy_qty),
+        "potential_total_qty": _format_optional_number(potential_total_qty),
+        "max_open_orders": settings["max_open_orders"],
+        "current_open_orders": current_open_orders,
+        "max_notional_usdt": _format_optional_number(settings["max_notional_usdt"]),
+        "estimated_notional_usdt": _format_optional_number(estimated_notional),
+        "allow_live_trading": settings["allow_live_trading"],
+        "is_live_environment": is_live_environment(bot),
+        "blocked": blocked,
+        "reason": reason,
+    }
+
+
+def get_runtime_state(db, bot: TradingBot) -> tuple[str, str | None]:
+    latest_event = _latest_bot_event(db, bot)
+    last_risk_message = None
+    if latest_event is not None and latest_event.event_type == "risk_blocked":
+        last_risk_message = latest_event.message
+
+    if bot.runtime_status != "running":
+        return "stopped", last_risk_message
+    if bot.last_error:
+        return "error", last_risk_message
+    if latest_event is not None and latest_event.event_type == "risk_blocked":
+        return "risk_blocked", latest_event.message
+
+    active_orders = _active_local_orders(db, bot)
+    has_active_tp = any(order.order_role ==
+                        POSITION_TP_ROLE for order in active_orders)
+    has_active_entries = any(order.order_role.startswith(
+        "grid_entry_") for order in active_orders)
+    has_filled_entries = (
+        db.query(TradingBotOrder)
+        .filter(
+            TradingBotOrder.bot_id == bot.id,
+            TradingBotOrder.order_role.like("grid_entry_%"),
+            TradingBotOrder.status == "Filled",
+        )
+        .first()
+        is not None
+    )
+
+    if has_active_tp:
+        return "tp_active", last_risk_message
+    if has_filled_entries:
+        return "position_open", last_risk_message
+    if has_active_entries:
+        return "waiting_for_entry", last_risk_message
+    return "running", last_risk_message
+
+
+def _evaluate_new_buy_order_risk(db, bot: TradingBot, *, session, current_price: float, current_position_size: float, pending_buy_qty: float, current_open_orders: int, new_order_qty: float) -> tuple[str | None, dict]:
+    settings = get_effective_bot_settings(bot)
+    potential_total_qty = current_position_size + pending_buy_qty + new_order_qty
+    estimated_notional = potential_total_qty * current_price
+    payload = {
+        **_risk_block_payload(
+            bot,
+            current_position_qty=current_position_size,
+            pending_buy_qty=pending_buy_qty,
+            current_open_orders=current_open_orders,
+            current_price=current_price,
+        ),
+        "candidate_order_qty": new_order_qty,
+        "potential_total_qty_after_order": potential_total_qty,
+        "estimated_notional_usdt_after_order": estimated_notional,
+    }
+
+    live_message = ensure_live_trading_allowed(db, bot)
+    if live_message is not None:
+        return live_message, payload
+    if potential_total_qty > settings["max_position_qty"]:
+        return "Max position quantity reached", payload
+    if current_open_orders >= settings["max_open_orders"]:
+        return "Max open orders reached", payload
+    max_notional = settings["max_notional_usdt"]
+    if max_notional is not None and estimated_notional > float(max_notional):
+        return "Max notional exposure reached", payload
+    return None, payload
 
 
 def _cancel_local_order(db, bot: TradingBot, session, order: TradingBotOrder, *, event_type: str, message: str) -> TradingBotOrder:
@@ -466,6 +781,15 @@ def sync_position_take_profit(db, bot: TradingBot) -> tuple[list[TradingBotOrder
             bot, position["size"], position["avg_entry_price"]),
         rules,
     )
+    if target_order.qty > position["size"]:
+        payload = {
+            "position_size": position["size"],
+            "tp_qty": target_order.qty,
+            "order_link_id": target_order.order_link_id,
+        }
+        _log_risk_blocked(
+            db, bot, "Position TP quantity exceeds current long position size", payload)
+        return changed_orders, position["size"]
     validation_error = validate_order_request(target_order, rules)
     if validation_error:
         log_bot_event(db, bot, "error", validation_error, {
@@ -575,9 +899,7 @@ def create_missing_grid_entries(db, bot: TradingBot, current_position_size: floa
         session, category=bot.category, symbol=bot.symbol)
     rules = get_instrument_rules(
         session, category=bot.category, symbol=bot.symbol)
-
-    max_open_orders = int(get_bot_setting(bot, "max_open_orders", 10))
-    max_position_qty = float(get_bot_setting(bot, "max_position_qty", 0.3))
+    settings = get_effective_bot_settings(bot)
     active_local_orders = (
         db.query(TradingBotOrder)
         .filter(
@@ -586,10 +908,16 @@ def create_missing_grid_entries(db, bot: TradingBot, current_position_size: floa
         )
         .all()
     )
-    current_active_qty = sum(
-        order.qty for order in active_local_orders if order.side == "Buy")
+    open_exchange_orders = _current_generation_open_orders(session, bot)
+    pending_buy_qty = sum(
+        _safe_float(order.get("qty"))
+        for order in open_exchange_orders
+        if order.get("side") == "Buy"
+    )
+    current_open_orders = len(open_exchange_orders)
+    max_grid_levels = min(bot.grid_orders_count, settings["max_grid_levels"])
 
-    for level_index in range(1, bot.grid_orders_count + 1):
+    for level_index in range(1, max_grid_levels + 1):
         role = _level_role(level_index)
         last_entry = (
             db.query(TradingBotOrder)
@@ -604,13 +932,21 @@ def create_missing_grid_entries(db, bot: TradingBot, current_position_size: floa
             if current_position_size > 0:
                 continue
 
-        if len(active_local_orders) + len(created_orders) >= max_open_orders:
-            break
-        if current_active_qty + bot.order_qty > max_position_qty:
-            break
-
         order = normalize_order_request(_build_grid_entry_order(
             db, bot, level_index, current_price), rules)
+        risk_message, risk_payload = _evaluate_new_buy_order_risk(
+            db,
+            bot,
+            session=session,
+            current_price=current_price,
+            current_position_size=current_position_size,
+            pending_buy_qty=pending_buy_qty,
+            current_open_orders=current_open_orders,
+            new_order_qty=order.qty,
+        )
+        if risk_message is not None:
+            _log_risk_blocked(db, bot, risk_message, risk_payload)
+            break
         validation_error = validate_order_request(order, rules)
         if validation_error:
             log_bot_event(db, bot, "error", validation_error, {
@@ -623,7 +959,8 @@ def create_missing_grid_entries(db, bot: TradingBot, current_position_size: floa
             session, category=bot.category, symbol=bot.symbol, order=order)
         created = _record_order(db, bot, order, response)
         created_orders.append(created)
-        current_active_qty += created.qty
+        pending_buy_qty += created.qty
+        current_open_orders += 1
         log_bot_event(db, bot, "grid_entry_created", "Created grid entry order", {
                       "order_link_id": order.order_link_id})
 
@@ -658,6 +995,54 @@ def cancel_all_bot_orders(db, bot: TradingBot) -> list[TradingBotOrder]:
     return cancelled
 
 
+def close_bot_position(db, bot: TradingBot) -> dict:
+    session = get_bybit_session(bot)
+    rules = get_instrument_rules(
+        session, category=bot.category, symbol=bot.symbol)
+    position = _get_current_long_position(
+        session, category=bot.category, symbol=bot.symbol)
+    if position is None:
+        return {"message": "No open position to close", "order": None}
+
+    for active_tp in _active_position_take_profit_orders(db, bot):
+        _cancel_local_order(
+            db,
+            bot,
+            session,
+            active_tp,
+            event_type="position_take_profit_cancelled",
+            message="Cancelled position take-profit order before closing position",
+        )
+
+    close_order = normalize_order_request(
+        _build_close_position_order(bot, position["size"]),
+        rules,
+    )
+    if close_order.qty > position["size"]:
+        raise ValueError(
+            "Close position order quantity exceeds current long position size")
+
+    validation_error = validate_order_request(close_order, rules)
+    if validation_error:
+        raise ValueError(validation_error)
+
+    log_bot_event(db, bot, "position_close_requested", "Requested manual position close", {
+        "order_link_id": close_order.order_link_id,
+        "position_size": position["size"],
+    })
+    response = place_order(session, category=bot.category,
+                           symbol=bot.symbol, order=close_order)
+    created = _record_order(db, bot, close_order, response)
+    if created.exchange_order_id is not None:
+        log_bot_event(db, bot, "position_closed", "Submitted reduce-only market close order", {
+            "order_link_id": close_order.order_link_id,
+            "exchange_order_id": created.exchange_order_id,
+        })
+    db.add(created)
+    db.flush()
+    return {"message": "Position close order submitted", "order": created}
+
+
 def tick_grid_bot(db, bot: TradingBot) -> dict:
     if bot.runtime_status != "running":
         return {"orders": [], "events": 0, "message": "Bot is not running"}
@@ -671,35 +1056,53 @@ def tick_grid_bot(db, bot: TradingBot) -> dict:
     if not _should_tick(bot):
         return {"orders": [], "events": 0, "message": "Tick skipped by interval"}
 
-    synced = sync_bot_orders(db, bot)
-    tp_changes, current_position_size = sync_position_take_profit(db, bot)
-    created_entries = create_missing_grid_entries(
-        db, bot, current_position_size)
+    live_message = ensure_live_trading_allowed(db, bot)
+    if live_message is not None:
+        bot.last_run_at = _utcnow()
+        bot.last_error = None
+        db.add(bot)
+        db.commit()
+        return {"orders": [], "events": 1, "message": live_message}
 
-    for change in synced:
-        order = change["order"]
-        if change["became_filled"] and order.order_role.startswith("grid_entry_"):
-            if order.filled_event_logged_at is None:
-                log_bot_event(db, bot, "grid_entry_filled", "Grid entry filled", {
+    try:
+        synced = sync_bot_orders(db, bot)
+        tp_changes, current_position_size = sync_position_take_profit(db, bot)
+        created_entries = create_missing_grid_entries(
+            db, bot, current_position_size)
+
+        for change in synced:
+            order = change["order"]
+            if change["became_filled"] and order.order_role.startswith("grid_entry_"):
+                if order.filled_event_logged_at is None:
+                    log_bot_event(db, bot, "grid_entry_filled", "Grid entry filled", {
+                                  "order_link_id": order.order_link_id})
+                    _mark_order_filled_logged(order)
+                    db.add(order)
+            if change["became_filled"] and order.order_role == POSITION_TP_ROLE:
+                if order.filled_event_logged_at is None:
+                    log_bot_event(db, bot, "position_take_profit_filled",
+                                  "Position take-profit filled", {"order_link_id": order.order_link_id})
+                    _mark_order_filled_logged(order)
+                    db.add(order)
+            if change["status_changed"] and change["new_status"] == "Rejected":
+                log_bot_event(db, bot, "order_rejected", "Order rejected", {
                               "order_link_id": order.order_link_id})
-                _mark_order_filled_logged(order)
-                db.add(order)
-        if change["became_filled"] and order.order_role == POSITION_TP_ROLE:
-            if order.filled_event_logged_at is None:
-                log_bot_event(db, bot, "position_take_profit_filled",
-                              "Position take-profit filled", {"order_link_id": order.order_link_id})
-                _mark_order_filled_logged(order)
-                db.add(order)
-        if change["status_changed"] and change["new_status"] == "Rejected":
-            log_bot_event(db, bot, "order_rejected", "Order rejected", {
-                          "order_link_id": order.order_link_id})
 
-    bot.last_run_at = _utcnow()
-    bot.last_error = None
-    db.add(bot)
-    db.commit()
-    return {
-        "orders": tp_changes + created_entries,
-        "events": len(synced),
-        "message": "Tick completed",
-    }
+        bot.last_run_at = _utcnow()
+        bot.last_error = None
+        db.add(bot)
+        db.commit()
+        return {
+            "orders": tp_changes + created_entries,
+            "events": len(synced),
+            "message": "Tick completed",
+        }
+    except Exception as exc:  # noqa: BLE001
+        bot.last_run_at = _utcnow()
+        bot.last_error = str(exc)
+        if get_effective_bot_settings(bot)["stop_bot_on_error"]:
+            bot.runtime_status = "stopped"
+        log_bot_event(db, bot, "error", str(exc))
+        db.add(bot)
+        db.commit()
+        return {"orders": [], "events": 1, "message": str(exc)}

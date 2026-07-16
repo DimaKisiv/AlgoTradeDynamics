@@ -65,3 +65,18 @@ export function clearBotHistory(id) {
     method: "POST",
   });
 }
+
+export function getBotPosition(id) {
+  return request(`/bots/${id}/position`);
+}
+
+export function getBotRisk(id) {
+  return request(`/bots/${id}/risk`);
+}
+
+export function closeBotPosition(id, payload) {
+  return request(`/bots/${id}/close-position`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}

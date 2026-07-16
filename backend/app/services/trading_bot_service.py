@@ -5,7 +5,14 @@ from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
 from app.bot_engine.bot import run_grid_bot_once, stop_grid_bot_once, sync_grid_bot_orders, sync_bot_orders
-from app.bot_engine.grid_runtime import cancel_all_bot_orders
+from app.bot_engine.grid_runtime import (
+    cancel_all_bot_orders,
+    close_bot_position,
+    get_effective_bot_settings,
+    get_position_snapshot,
+    get_risk_summary,
+    get_runtime_state,
+)
 from app.models.trading_bot import TradingBot
 from app.models.trading_bot_event import TradingBotEvent
 from app.models.trading_bot_order import TradingBotOrder
@@ -17,14 +24,48 @@ def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _serialize_trading_bot(db: Session, bot: TradingBot) -> dict:
+    runtime_state, last_risk_message = get_runtime_state(db, bot)
+    return {
+        "id": bot.id,
+        "user_id": bot.user_id,
+        "name": bot.name,
+        "exchange": bot.exchange,
+        "environment": bot.environment,
+        "strategy_type": bot.strategy_type,
+        "category": bot.category,
+        "symbol": bot.symbol,
+        "order_qty": bot.order_qty,
+        "grid_orders_count": bot.grid_orders_count,
+        "grid_step_percent": bot.grid_step_percent,
+        "is_active": bot.is_active,
+        "settings": get_effective_bot_settings(bot),
+        "order_link_generation": bot.order_link_generation,
+        "runtime_status": bot.runtime_status,
+        "runtime_state": runtime_state,
+        "last_risk_message": last_risk_message,
+        "created_at": bot.created_at,
+        "updated_at": bot.updated_at,
+        "started_at": bot.started_at,
+        "stopped_at": bot.stopped_at,
+        "last_run_at": bot.last_run_at,
+        "last_error": bot.last_error,
+    }
+
+
+def serialize_trading_bot(db: Session, bot: TradingBot) -> dict:
+    return _serialize_trading_bot(db, bot)
+
+
 def list_trading_bots(db: Session, user_id: int, limit: int = 100) -> list[TradingBot]:
-    return (
+    bots = (
         db.query(TradingBot)
         .filter(TradingBot.user_id == user_id)
         .order_by(desc(TradingBot.updated_at), desc(TradingBot.id))
         .limit(limit)
         .all()
     )
+    return [_serialize_trading_bot(db, bot) for bot in bots]
 
 
 def get_trading_bot(db: Session, bot_id: int, user_id: int) -> TradingBot | None:
@@ -40,7 +81,7 @@ def create_trading_bot(db: Session, payload: TradingBotCreate, user_id: int) -> 
     db.add(bot)
     db.commit()
     db.refresh(bot)
-    return bot
+    return _serialize_trading_bot(db, bot)
 
 
 def update_trading_bot(
@@ -54,7 +95,7 @@ def update_trading_bot(
     db.add(bot)
     db.commit()
     db.refresh(bot)
-    return bot
+    return _serialize_trading_bot(db, bot)
 
 
 def delete_trading_bot(db: Session, bot: TradingBot) -> None:
@@ -82,11 +123,16 @@ def list_trading_bot_events(db: Session, bot_id: int, user_id: int, limit: int =
 
 
 def start_trading_bot_cycle(db: Session, bot: TradingBot, current_user: User) -> dict:
-    return run_grid_bot_once(db, bot, current_user)
+    result = run_grid_bot_once(db, bot, current_user)
+    return {
+        **result,
+        "bot": _serialize_trading_bot(db, result["bot"]),
+    }
 
 
 def stop_trading_bot_cycle(db: Session, bot: TradingBot, current_user: User) -> TradingBot:
-    return stop_grid_bot_once(db, bot, current_user)
+    stopped = stop_grid_bot_once(db, bot, current_user)
+    return _serialize_trading_bot(db, stopped)
 
 
 def sync_trading_bot_orders(db: Session, bot: TradingBot, current_user: User) -> list[TradingBotOrder]:
@@ -96,7 +142,16 @@ def sync_trading_bot_orders(db: Session, bot: TradingBot, current_user: User) ->
 def cancel_trading_bot_orders(db: Session, bot: TradingBot, current_user: User) -> list[TradingBotOrder]:
     if bot.user_id != current_user.id:
         raise PermissionError("Trading bot access denied")
+
+    # Stop bot first so the worker does not recreate cancelled orders.
+    bot.runtime_status = "stopped"
+    bot.stopped_at = _utcnow()
+    bot.last_error = None
+    db.add(bot)
+    db.flush()
+
     cancelled = cancel_all_bot_orders(db, bot)
+
     db.commit()
     return cancelled
 
@@ -158,3 +213,25 @@ def clear_trading_bot_history(db: Session, bot: TradingBot, current_user: User) 
         "exchange_orders_cancelled": exchange_orders_cancelled,
         "exchange_cancel_error": exchange_cancel_error,
     }
+
+
+def get_trading_bot_position(db: Session, bot: TradingBot, current_user: User) -> dict:
+    if bot.user_id != current_user.id:
+        raise PermissionError("Trading bot access denied")
+    return get_position_snapshot(db, bot)
+
+
+def get_trading_bot_risk(db: Session, bot: TradingBot, current_user: User) -> dict:
+    if bot.user_id != current_user.id:
+        raise PermissionError("Trading bot access denied")
+    return get_risk_summary(db, bot)
+
+
+def close_trading_bot_position(db: Session, bot: TradingBot, current_user: User, *, confirm: bool) -> dict:
+    if bot.user_id != current_user.id:
+        raise PermissionError("Trading bot access denied")
+    if not confirm:
+        raise ValueError("Position close requires confirm=true")
+    result = close_bot_position(db, bot)
+    db.commit()
+    return result

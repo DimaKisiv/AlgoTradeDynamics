@@ -1,20 +1,38 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Play, RefreshCw, Square, Ban, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Play,
+  RefreshCw,
+  Square,
+  Ban,
+  Trash2,
+  ShieldAlert,
+} from "lucide-react";
 
 import Button from "../../components/ui/Button/Button";
 import Card, { CardHeader } from "../../components/ui/Card/Card";
 import {
   cancelBotOrders,
   clearBotHistory,
+  closeBotPosition,
   getBot,
+  getBotPosition,
+  getBotRisk,
   listBotEvents,
   listBotOrders,
   startBot,
   stopBot,
   syncBot,
 } from "../../api/bots";
-import { fmtDateTime, fmtNumber } from "../../lib/format";
+import {
+  fmtDateTime,
+  fmtMoney,
+  fmtMoneySigned,
+  fmtNumber,
+  fmtPct,
+  fmtPctSigned,
+} from "../../lib/format";
 import styles from "./BotDetailPage.module.css";
 
 export default function BotDetailPage() {
@@ -22,6 +40,8 @@ export default function BotDetailPage() {
   const [bot, setBot] = useState(null);
   const [orders, setOrders] = useState([]);
   const [events, setEvents] = useState([]);
+  const [position, setPosition] = useState(null);
+  const [risk, setRisk] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -31,18 +51,43 @@ export default function BotDetailPage() {
     try {
       setLoading(true);
       setError("");
-      const [botData, ordersData, eventsData] = await Promise.all([
-        getBot(botId),
-        listBotOrders(botId),
-        listBotEvents(botId),
-      ]);
+      const [botData, ordersData, eventsData, positionData, riskData] =
+        await Promise.all([
+          getBot(botId),
+          listBotOrders(botId),
+          listBotEvents(botId),
+          getBotPosition(botId),
+          getBotRisk(botId),
+        ]);
       setBot(botData);
       setOrders(ordersData);
       setEvents(eventsData);
+      setPosition(positionData);
+      setRisk(riskData);
     } catch (e) {
       setError(e.detail || e.message || "Не вдалося завантажити дані бота.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleClosePosition = async () => {
+    const confirmed = window.confirm(
+      "This will close the current exchange position with a reduce-only market order. It will not delete bot history. Continue?",
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setAction("close-position");
+      setError("");
+      const result = await closeBotPosition(botId, { confirm: true });
+      await load();
+      setMessage(result.message || "Position close order submitted.");
+    } catch (e) {
+      setError(e.detail || e.message || "Не вдалося закрити позицію.");
+    } finally {
+      setAction("");
     }
   };
 
@@ -150,18 +195,41 @@ export default function BotDetailPage() {
   const positionTakeProfitOrders = orders.filter(
     (order) => order.order_role === "position_take_profit",
   );
-  const activePositionTakeProfit = positionTakeProfitOrders.find((order) =>
-    ["New", "Created", "PartiallyFilled", "PendingNew", "Untriggered"].includes(
-      order.status,
-    ),
+  const positionSize = Number(position?.size || 0);
+  const avgEntryPrice =
+    position?.avg_entry_price == null ? null : Number(position.avg_entry_price);
+  const markPrice =
+    position?.mark_price == null ? null : Number(position.mark_price);
+  const positionValue =
+    position?.position_value == null ? null : Number(position.position_value);
+  const unrealizedPnl =
+    position?.unrealized_pnl == null ? null : Number(position.unrealized_pnl);
+  const unrealizedPnlPercent =
+    position?.unrealized_pnl_percent == null
+      ? null
+      : Number(position.unrealized_pnl_percent);
+  const tpPrice =
+    position?.take_profit?.price == null
+      ? null
+      : Number(position.take_profit.price);
+  const tpQty =
+    position?.take_profit?.qty == null
+      ? null
+      : Number(position.take_profit.qty);
+  const tpDistancePercent =
+    avgEntryPrice && tpPrice
+      ? ((tpPrice - avgEntryPrice) / avgEntryPrice) * 100
+      : null;
+  const runtimeState = bot?.runtime_state || bot?.runtime_status || "stopped";
+  const runtimeLabel = getRuntimeLabel(runtimeState);
+  const riskBlocked = Boolean(risk?.blocked);
+  const riskAtLimit =
+    !riskBlocked &&
+    typeof risk?.reason === "string" &&
+    risk.reason.toLowerCase().startsWith("at ");
+  const liveDisabled = Boolean(
+    risk?.is_live_environment && !risk?.allow_live_trading,
   );
-  const positionSnapshot = activePositionTakeProfit?.raw_response || {};
-  const positionSize = positionSnapshot.positionSize ?? null;
-  const avgEntryPrice = positionSnapshot.avgEntryPrice ?? null;
-  const positionTpPrice =
-    activePositionTakeProfit?.price ?? positionSnapshot.tpPrice ?? null;
-  const positionTpQty =
-    activePositionTakeProfit?.qty ?? positionSnapshot.tpQty ?? null;
 
   return (
     <main className={styles.botDetail}>
@@ -209,40 +277,197 @@ export default function BotDetailPage() {
               </div>
 
               <Card className={styles.configCard}>
-                <CardHeader eyebrow="Current position" title="Position TP" />
+                <CardHeader
+                  eyebrow="Exchange snapshot"
+                  title="Current Position"
+                />
+
+                {positionSize > 0 ? (
+                  <dl className={styles.configGrid}>
+                    <ConfigItem label="Side" value={position?.side || "—"} />
+                    <ConfigItem
+                      label="Size"
+                      value={fmtNumber(positionSize, 6)}
+                      mono
+                    />
+                    <ConfigItem
+                      label="Avg Entry Price"
+                      value={
+                        avgEntryPrice == null
+                          ? "—"
+                          : fmtNumber(avgEntryPrice, 4)
+                      }
+                      mono
+                    />
+                    <ConfigItem
+                      label="Mark Price"
+                      value={markPrice == null ? "—" : fmtNumber(markPrice, 4)}
+                      mono
+                    />
+                    <ConfigItem
+                      label="Unrealized PnL"
+                      value={
+                        unrealizedPnl == null
+                          ? "—"
+                          : fmtMoneySigned(unrealizedPnl)
+                      }
+                      mono
+                    />
+                    <ConfigItem
+                      label="Unrealized PnL %"
+                      value={
+                        unrealizedPnlPercent == null
+                          ? "—"
+                          : fmtPctSigned(unrealizedPnlPercent)
+                      }
+                      mono
+                    />
+                    <ConfigItem
+                      label="Liquidation Price"
+                      value={
+                        position?.liq_price == null
+                          ? "—"
+                          : fmtNumber(Number(position.liq_price), 4)
+                      }
+                      mono
+                    />
+                    <ConfigItem
+                      label="Leverage"
+                      value={position?.leverage || "—"}
+                      mono
+                    />
+                    <ConfigItem
+                      label="Margin Mode"
+                      value={position?.margin_mode || "—"}
+                    />
+                    <ConfigItem
+                      label="Position Value"
+                      value={
+                        positionValue == null ? "—" : fmtMoney(positionValue)
+                      }
+                      mono
+                    />
+                    <ConfigItem
+                      label="Active TP Price"
+                      value={tpPrice == null ? "—" : fmtNumber(tpPrice, 4)}
+                      mono
+                    />
+                    <ConfigItem
+                      label="Active TP Qty"
+                      value={tpQty == null ? "—" : fmtNumber(tpQty, 6)}
+                      mono
+                    />
+                    <ConfigItem
+                      label="TP Distance %"
+                      value={
+                        tpDistancePercent == null
+                          ? "—"
+                          : fmtPct(tpDistancePercent)
+                      }
+                      mono
+                    />
+                  </dl>
+                ) : (
+                  <div className={styles.emptyOrders}>No open position</div>
+                )}
+              </Card>
+
+              <Card className={styles.configCard}>
+                <CardHeader
+                  eyebrow="Safety"
+                  title="Risk Management"
+                  action={
+                    <div className={styles.badgeRow}>
+                      <span
+                        className={`${styles.statusBadge} ${
+                          riskBlocked
+                            ? styles.statusBlocked
+                            : riskAtLimit
+                              ? styles.statusAtLimit
+                              : styles.statusOk
+                        }`}
+                      >
+                        {riskBlocked
+                          ? "Blocked"
+                          : riskAtLimit
+                            ? "At limit"
+                            : "OK"}
+                      </span>
+                      {liveDisabled ? (
+                        <span
+                          className={`${styles.statusBadge} ${styles.statusLiveDisabled}`}
+                        >
+                          Live disabled
+                        </span>
+                      ) : null}
+                    </div>
+                  }
+                />
 
                 <dl className={styles.configGrid}>
                   <ConfigItem
-                    label="Position Size"
-                    value={
-                      positionSize == null ? "—" : fmtNumber(positionSize, 6)
-                    }
+                    label="Max Position Qty"
+                    value={formatMaybeNumber(risk?.max_position_qty, 6)}
                     mono
                   />
                   <ConfigItem
-                    label="Avg Entry Price"
-                    value={
-                      avgEntryPrice == null ? "—" : fmtNumber(avgEntryPrice, 4)
-                    }
+                    label="Current Position Qty"
+                    value={formatMaybeNumber(risk?.current_position_qty, 6)}
                     mono
                   />
                   <ConfigItem
-                    label="TP Price"
+                    label="Pending Buy Qty"
+                    value={formatMaybeNumber(risk?.pending_buy_qty, 6)}
+                    mono
+                  />
+                  <ConfigItem
+                    label="Potential Total Qty"
+                    value={formatMaybeNumber(risk?.potential_total_qty, 6)}
+                    mono
+                  />
+                  <ConfigItem
+                    label="Max Open Orders"
                     value={
-                      positionTpPrice == null
+                      risk?.max_open_orders == null
                         ? "—"
-                        : fmtNumber(positionTpPrice, 4)
+                        : String(risk.max_open_orders)
                     }
                     mono
                   />
                   <ConfigItem
-                    label="TP Qty"
+                    label="Current Open Orders"
                     value={
-                      positionTpQty == null ? "—" : fmtNumber(positionTpQty, 6)
+                      risk?.current_open_orders == null
+                        ? "—"
+                        : String(risk.current_open_orders)
                     }
                     mono
+                  />
+                  <ConfigItem
+                    label="Max Notional"
+                    value={formatMaybeMoney(risk?.max_notional_usdt)}
+                    mono
+                  />
+                  <ConfigItem
+                    label="Estimated Notional"
+                    value={formatMaybeMoney(risk?.estimated_notional_usdt)}
+                    mono
+                  />
+                  <ConfigItem
+                    label="Live Trading Allowed"
+                    value={risk?.allow_live_trading ? "Yes" : "No"}
+                  />
+                  <ConfigItem
+                    label="Risk Status"
+                    value={
+                      riskBlocked ? "Blocked" : riskAtLimit ? "At limit" : "OK"
+                    }
                   />
                 </dl>
+
+                {risk?.reason ? (
+                  <p className={styles.riskMessage}>{risk.reason}</p>
+                ) : null}
               </Card>
 
               <Card className={styles.configCard}>
@@ -251,9 +476,9 @@ export default function BotDetailPage() {
                   title="Поточні параметри"
                   action={
                     <span
-                      className={`${styles.runtimeBadge} ${styles[`runtime${capitalize(bot.runtime_status)}`] || ""}`}
+                      className={`${styles.runtimeBadge} ${styles[`runtime${capitalizeRuntimeState(runtimeState)}`] || ""}`}
                     >
-                      {bot.runtime_status}
+                      {runtimeLabel}
                     </span>
                   }
                 />
@@ -305,6 +530,11 @@ export default function BotDetailPage() {
                     Last error: {bot.last_error}
                   </p>
                 ) : null}
+                {bot.last_risk_message ? (
+                  <p className={styles.riskMessage}>
+                    Risk: {bot.last_risk_message}
+                  </p>
+                ) : null}
 
                 <div className={styles.actions}>
                   <Button
@@ -329,6 +559,15 @@ export default function BotDetailPage() {
                     loading={action === "sync"}
                   >
                     Sync orders
+                  </Button>
+                  <Button
+                    variant="danger"
+                    icon={<ShieldAlert size={16} />}
+                    onClick={handleClosePosition}
+                    loading={action === "close-position"}
+                    disabled={action !== "" || positionSize <= 0}
+                  >
+                    Close position
                   </Button>
                   <Button
                     variant="danger"
@@ -453,4 +692,35 @@ function ConfigItem({ label, value, mono = false }) {
 function capitalize(value) {
   if (!value) return "";
   return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function capitalizeRuntimeState(value) {
+  if (!value) return "Stopped";
+  return value
+    .split("_")
+    .map((part) => capitalize(part))
+    .join("");
+}
+
+function getRuntimeLabel(value) {
+  const labels = {
+    stopped: "Stopped",
+    running: "Running",
+    waiting_for_entry: "Waiting for entry",
+    position_open: "Position open",
+    tp_active: "TP active",
+    risk_blocked: "Risk blocked",
+    error: "Error",
+  };
+  return labels[value] || value;
+}
+
+function formatMaybeNumber(value, decimals = 2) {
+  if (value == null) return "—";
+  return fmtNumber(Number(value), decimals);
+}
+
+function formatMaybeMoney(value) {
+  if (value == null) return "—";
+  return fmtMoney(Number(value));
 }

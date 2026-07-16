@@ -6,9 +6,13 @@ from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.trading_bot import (
+    TradingBotClosePositionRequest,
+    TradingBotClosePositionResponse,
     TradingBotCreate,
     TradingBotEventResponse,
     TradingBotOrderResponse,
+    TradingBotPositionResponse,
+    TradingBotRiskResponse,
     TradingBotResponse,
     TradingBotRunResponse,
     TradingBotUpdate,
@@ -26,7 +30,11 @@ from app.services.trading_bot_service import (
     stop_trading_bot_cycle,
     sync_trading_bot_orders,
     update_trading_bot,
-    clear_trading_bot_history
+    clear_trading_bot_history,
+    close_trading_bot_position,
+    get_trading_bot_position,
+    get_trading_bot_risk,
+    serialize_trading_bot,
 )
 
 router = APIRouter(prefix="/bots", tags=["Bots"])
@@ -58,7 +66,31 @@ def get_bot(
     bot = get_trading_bot(db, bot_id, current_user.id)
     if bot is None:
         raise HTTPException(status_code=404, detail="Trading bot not found")
-    return bot
+    return serialize_trading_bot(db, bot)
+
+
+@router.get("/{bot_id}/position", response_model=TradingBotPositionResponse)
+def get_bot_position(
+    bot_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    bot = get_trading_bot(db, bot_id, current_user.id)
+    if bot is None:
+        raise HTTPException(status_code=404, detail="Trading bot not found")
+    return get_trading_bot_position(db, bot, current_user)
+
+
+@router.get("/{bot_id}/risk", response_model=TradingBotRiskResponse)
+def get_bot_risk(
+    bot_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    bot = get_trading_bot(db, bot_id, current_user.id)
+    if bot is None:
+        raise HTTPException(status_code=404, detail="Trading bot not found")
+    return get_trading_bot_risk(db, bot, current_user)
 
 
 @router.get("/{bot_id}/orders", response_model=list[TradingBotOrderResponse])
@@ -97,7 +129,9 @@ def start_bot(
     try:
         return start_trading_bot_cycle(db, bot, current_user)
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
+        status_code = 400 if str(
+            exc) == "Live trading is disabled for this bot" else 422
+        raise HTTPException(status_code=status_code, detail=str(exc)) from exc
 
 
 @router.post("/{bot_id}/stop", response_model=TradingBotResponse)
@@ -159,6 +193,22 @@ def clear_bot_history(
     if bot is None:
         raise HTTPException(status_code=404, detail="Trading bot not found")
     return clear_trading_bot_history(db, bot, current_user)
+
+
+@router.post("/{bot_id}/close-position", response_model=TradingBotClosePositionResponse)
+def close_position(
+    bot_id: int,
+    payload: TradingBotClosePositionRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    bot = get_trading_bot(db, bot_id, current_user.id)
+    if bot is None:
+        raise HTTPException(status_code=404, detail="Trading bot not found")
+    try:
+        return close_trading_bot_position(db, bot, current_user, confirm=payload.confirm)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.delete("/{bot_id}", status_code=status.HTTP_204_NO_CONTENT)

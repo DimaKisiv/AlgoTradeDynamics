@@ -139,6 +139,18 @@ def test_inactive_bot_cannot_start(client, auth_headers):
     assert start.status_code == 422
 
 
+def test_live_environment_cannot_start_when_disabled(client, auth_headers, monkeypatch):
+    bot = _create_runtime_bot(client, auth_headers, {
+        "environment": "live",
+        "settings": {"allow_live_trading": False},
+    })
+    _mock_runtime(monkeypatch)
+
+    start = client.post(f"/api/bots/{bot['id']}/start", headers=auth_headers)
+    assert start.status_code == 400
+    assert start.json()["detail"] == "Live trading is disabled for this bot"
+
+
 def test_worker_tick_creates_grid_orders_without_duplicates(client, auth_headers, monkeypatch):
     bot = _create_runtime_bot(client, auth_headers)
     _mock_runtime(monkeypatch)
@@ -247,6 +259,62 @@ def test_existing_exchange_position_tp_is_synced_without_duplicate_creation(clie
     assert len(position_tp_orders) == 1
     assert position_tp_orders[0]["order_link_id"] == existing_tp_link_id
     assert position_tp_orders[0]["status"] == "New"
+
+
+def test_risk_blocks_new_buy_when_max_position_qty_exceeded(client, auth_headers, monkeypatch):
+    bot = _create_runtime_bot(client, auth_headers, {
+        "settings": {"max_position_qty": 0.015},
+    })
+    remote_positions = [{
+        "side": "Buy",
+        "size": "0.01",
+        "avgPrice": "100.0",
+    }]
+    _mock_runtime(monkeypatch, remote_positions=remote_positions)
+    client.post(f"/api/bots/{bot['id']}/start", headers=auth_headers)
+
+    _tick_bot(bot["id"])
+
+    events = client.get(
+        f"/api/bots/{bot['id']}/events", headers=auth_headers).json()
+    assert any(event["event_type"] == "risk_blocked" for event in events)
+    orders = client.get(
+        f"/api/bots/{bot['id']}/orders", headers=auth_headers).json()
+    assert not any(order["order_role"].startswith("grid_entry_")
+                   for order in orders)
+
+
+def test_risk_blocks_new_buy_when_max_open_orders_exceeded(client, auth_headers, monkeypatch):
+    bot = _create_runtime_bot(client, auth_headers, {
+        "settings": {"max_open_orders": 1},
+    })
+    _mock_runtime(monkeypatch, remote_state={}, remote_positions=[])
+    client.post(f"/api/bots/{bot['id']}/start", headers=auth_headers)
+
+    _tick_bot(bot["id"])
+    _tick_bot(bot["id"])
+
+    events = client.get(
+        f"/api/bots/{bot['id']}/events", headers=auth_headers).json()
+    assert any(event["event_type"] == "risk_blocked" for event in events)
+
+
+def test_risk_blocks_new_buy_when_max_notional_exceeded(client, auth_headers, monkeypatch):
+    bot = _create_runtime_bot(client, auth_headers, {
+        "settings": {"max_notional_usdt": 0.5},
+    })
+    _mock_runtime(monkeypatch, current_price=100.0)
+    client.post(f"/api/bots/{bot['id']}/start", headers=auth_headers)
+
+    _tick_bot(bot["id"])
+
+    events = client.get(
+        f"/api/bots/{bot['id']}/events", headers=auth_headers).json()
+    assert any(event["message"] ==
+               "Max notional exposure reached" for event in events)
+    orders = client.get(
+        f"/api/bots/{bot['id']}/orders", headers=auth_headers).json()
+    assert orders == []
 
 
 def test_second_filled_entry_replaces_position_take_profit_order(client, auth_headers, monkeypatch):
@@ -479,6 +547,144 @@ def test_position_take_profit_orders_must_be_reduce_only():
         )
 
 
+def test_position_endpoint_returns_no_position_response(client, auth_headers, monkeypatch):
+    bot = _create_runtime_bot(client, auth_headers)
+    _mock_runtime(monkeypatch, remote_positions=[])
+
+    response = client.get(
+        f"/api/bots/{bot['id']}/position", headers=auth_headers)
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload["symbol"] == bot["symbol"]
+    assert payload["side"] is None
+    assert payload["size"] == "0"
+    assert payload["take_profit"] is None
+
+
+def test_position_endpoint_returns_position_and_tp_data(client, auth_headers, monkeypatch):
+    bot = _create_runtime_bot(client, auth_headers)
+    remote_state = {
+        f"bot-{bot['id']}-g1-position-tp-1700000000000": {
+            "orderLinkId": f"bot-{bot['id']}-g1-position-tp-1700000000000",
+            "orderId": "oid-position-tp",
+            "orderStatus": "New",
+            "side": "Sell",
+            "orderType": "Limit",
+            "qty": "0.01",
+            "cumExecQty": "0",
+            "price": "101.5",
+            "reduceOnly": True,
+        }
+    }
+    remote_positions = [{
+        "side": "Buy",
+        "size": "0.01",
+        "avgPrice": "100.0",
+        "liqPrice": "80.0",
+        "unrealisedPnl": "1.2",
+        "leverage": "10",
+        "tradeMode": "Cross",
+        "positionValue": "100.0",
+    }]
+    _mock_runtime(monkeypatch, remote_state=remote_state,
+                  remote_positions=remote_positions, current_price=101.0)
+
+    response = client.get(
+        f"/api/bots/{bot['id']}/position", headers=auth_headers)
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload["side"] == "Buy"
+    assert payload["size"] == "0.01"
+    assert payload["avg_entry_price"] == "100.0"
+    assert payload["mark_price"] == "101.0"
+    assert payload["take_profit"]["reduce_only"] is True
+    assert payload["take_profit"]["price"] == "101.5"
+
+
+def test_risk_endpoint_returns_calculated_exposure(client, auth_headers, monkeypatch):
+    bot = _create_runtime_bot(client, auth_headers)
+    remote_state = {
+        f"bot-{bot['id']}-g1-entry-1-1": {
+            "orderLinkId": f"bot-{bot['id']}-g1-entry-1-1",
+            "orderId": "oid-entry-1",
+            "orderStatus": "New",
+            "side": "Buy",
+            "orderType": "Limit",
+            "qty": "0.01",
+            "cumExecQty": "0",
+            "price": "95.0",
+            "reduceOnly": False,
+        },
+        f"bot-{bot['id']}-g1-position-tp-1700000000000": {
+            "orderLinkId": f"bot-{bot['id']}-g1-position-tp-1700000000000",
+            "orderId": "oid-tp",
+            "orderStatus": "New",
+            "side": "Sell",
+            "orderType": "Limit",
+            "qty": "0.01",
+            "cumExecQty": "0",
+            "price": "101.5",
+            "reduceOnly": True,
+        },
+    }
+    remote_positions = [{
+        "side": "Buy",
+        "size": "0.02",
+        "avgPrice": "100.0",
+    }]
+    _mock_runtime(monkeypatch, remote_state=remote_state,
+                  remote_positions=remote_positions, current_price=100.0)
+
+    response = client.get(f"/api/bots/{bot['id']}/risk", headers=auth_headers)
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload["current_position_qty"] == "0.02"
+    assert payload["pending_buy_qty"] == "0.01"
+    assert payload["potential_total_qty"] == "0.03"
+    assert payload["current_open_orders"] == 2
+    assert payload["estimated_notional_usdt"] == "3.0"
+
+
+def test_close_position_requires_confirm_true(client, auth_headers, monkeypatch):
+    bot = _create_runtime_bot(client, auth_headers)
+    _mock_runtime(monkeypatch)
+
+    response = client.post(
+        f"/api/bots/{bot['id']}/close-position",
+        json={"confirm": False},
+        headers=auth_headers,
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Position close requires confirm=true"
+
+
+def test_close_position_creates_reduce_only_market_sell(client, auth_headers, monkeypatch):
+    bot = _create_runtime_bot(client, auth_headers)
+    remote_positions = [{
+        "side": "Buy",
+        "size": "0.03",
+        "avgPrice": "100.0",
+    }]
+    order_log = []
+    _mock_runtime(monkeypatch, remote_positions=remote_positions,
+                  order_log=order_log)
+
+    response = client.post(
+        f"/api/bots/{bot['id']}/close-position",
+        json={"confirm": True},
+        headers=auth_headers,
+    )
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload["message"] == "Position close order submitted"
+    assert payload["order"]["order_role"] == "position_close"
+    assert payload["order"]["side"] == "Sell"
+    assert payload["order"]["order_type"] == "Market"
+    assert payload["order"]["raw_response"]["reduceOnly"] is True
+    assert any(order["order_role"] == "position_close" and order["reduce_only"]
+               is True for order in order_log)
+
+
 def test_old_per_entry_take_profit_roles_are_not_created(client, auth_headers, monkeypatch):
     bot = _create_runtime_bot(client, auth_headers)
     remote_positions = []
@@ -625,11 +831,13 @@ def _tick_bot(bot_id):
         db.close()
 
 
-def _mock_runtime(monkeypatch, *, min_qty=0.001, remote_state=None, remote_positions=None):
+def _mock_runtime(monkeypatch, *, min_qty=0.001, remote_state=None, remote_positions=None, current_price=100.0, order_log=None):
     if remote_state is None:
         remote_state = {}
     if remote_positions is None:
         remote_positions = []
+    if order_log is None:
+        order_log = []
     monkeypatch.setattr(
         "app.bot_engine.grid_runtime.get_bybit_session", lambda _bot: object())
     monkeypatch.setattr(
@@ -639,7 +847,14 @@ def _mock_runtime(monkeypatch, *, min_qty=0.001, remote_state=None, remote_posit
     )
     monkeypatch.setattr(
         "app.bot_engine.grid_runtime.get_last_price",
-        lambda *args, **kwargs: 100.0,
+        lambda *args, **kwargs: current_price,
+    )
+    monkeypatch.setattr(
+        "app.bot_engine.grid_runtime.get_ticker_snapshot",
+        lambda *args, **kwargs: {
+            "lastPrice": str(current_price),
+            "markPrice": str(current_price),
+        },
     )
     monkeypatch.setattr(
         "app.bot_engine.grid_runtime.get_instrument_rules",
@@ -661,7 +876,7 @@ def _mock_runtime(monkeypatch, *, min_qty=0.001, remote_state=None, remote_posit
     monkeypatch.setattr(
         "app.bot_engine.grid_runtime.place_order",
         lambda *args, **kwargs: _mock_place_order(
-            remote_state, kwargs["order"]),
+            remote_state, kwargs["order"], order_log),
     )
     monkeypatch.setattr(
         "app.bot_engine.grid_runtime.cancel_order_by_link_id",
@@ -670,7 +885,14 @@ def _mock_runtime(monkeypatch, *, min_qty=0.001, remote_state=None, remote_posit
     )
 
 
-def _mock_place_order(remote_state, order):
+def _mock_place_order(remote_state, order, order_log):
+    order_log.append({
+        "order_role": order.order_role,
+        "side": order.side,
+        "order_type": order.order_type,
+        "reduce_only": order.reduce_only,
+        "qty": order.qty,
+    })
     remote_state[order.order_link_id] = {
         "orderLinkId": order.order_link_id,
         "orderId": f"oid-{order.order_link_id}",

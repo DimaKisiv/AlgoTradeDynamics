@@ -48,6 +48,8 @@ class TradingBotResponse(TradingBotBase):
     user_id: int
     order_link_generation: int
     runtime_status: str
+    runtime_state: str | None = None
+    last_risk_message: str | None = None
     created_at: datetime
     updated_at: datetime
     started_at: datetime | None
@@ -109,3 +111,52 @@ class TradingBotClearHistoryResponse(BaseModel):
     events_deleted: int
     exchange_orders_cancelled: int
     exchange_cancel_error: str | None = None
+
+
+class TradingBotPositionTakeProfitResponse(BaseModel):
+    order_id: str | None
+    order_link_id: str | None
+    price: str | None
+    qty: str | None
+    status: str | None
+    reduce_only: bool
+
+
+class TradingBotPositionResponse(BaseModel):
+    symbol: str
+    category: str
+    side: str | None
+    size: str
+    avg_entry_price: str | None
+    mark_price: str | None
+    liq_price: str | None = None
+    unrealized_pnl: str | None = None
+    unrealized_pnl_percent: str | None = None
+    leverage: str | None = None
+    margin_mode: str | None = None
+    position_value: str | None = None
+    take_profit: TradingBotPositionTakeProfitResponse | None = None
+
+
+class TradingBotRiskResponse(BaseModel):
+    max_position_qty: str | None
+    current_position_qty: str | None
+    pending_buy_qty: str | None
+    potential_total_qty: str | None
+    max_open_orders: int
+    current_open_orders: int
+    max_notional_usdt: str | None
+    estimated_notional_usdt: str | None
+    allow_live_trading: bool
+    is_live_environment: bool
+    blocked: bool
+    reason: str | None
+
+
+class TradingBotClosePositionRequest(BaseModel):
+    confirm: bool = False
+
+
+class TradingBotClosePositionResponse(BaseModel):
+    message: str
+    order: TradingBotOrderResponse | None = None

@@ -105,9 +105,67 @@
   color: var(--accent);
 }
 
+.runtimeWaitingForEntry {
+  background: rgba(109, 176, 255, 0.16);
+  color: #7db9ff;
+}
+
+.runtimePositionOpen {
+  background: rgba(255, 170, 77, 0.16);
+  color: #ffb866;
+}
+
+.runtimeTpActive {
+  background: rgba(74, 222, 128, 0.16);
+  color: #67e8a5;
+}
+
+.runtimeRiskBlocked {
+  background: rgba(255, 211, 94, 0.18);
+  color: #ffd65e;
+}
+
 .runtimeError {
   background: var(--danger-soft);
   color: var(--danger);
+}
+
+.badgeRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  border-radius: var(--r-full);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.statusOk {
+  background: rgba(74, 222, 128, 0.16);
+  color: #67e8a5;
+}
+
+.statusBlocked {
+  background: rgba(255, 211, 94, 0.18);
+  color: #ffd65e;
+}
+
+.statusAtLimit {
+  background: rgba(109, 176, 255, 0.16);
+  color: #7db9ff;
+}
+
+.statusLiveDisabled {
+  background: rgba(255, 93, 108, 0.18);
+  color: #ff7d88;
 }
 
 .configGrid {
@@ -139,6 +197,10 @@
 
 .lastError {
   color: var(--danger);
+}
+
+.riskMessage {
+  color: #ffd65e;
 }
 
 .actions {

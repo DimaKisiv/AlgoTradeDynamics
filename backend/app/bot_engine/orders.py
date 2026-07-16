@@ -93,7 +93,7 @@ def normalize_order_request(order: OrderRequest, rules: InstrumentRules) -> Orde
 
 
 def _requires_reduce_only(order: OrderRequest) -> bool:
-    return order.order_role == "position_take_profit" or order.order_role.startswith(("take_profit_", "tp_")) or order.order_role == "take_profit_recovered"
+    return order.order_role in {"position_take_profit", "position_close"} or order.order_role.startswith(("take_profit_", "tp_")) or order.order_role == "take_profit_recovered"
 
 
 def validate_order_request(order: OrderRequest, rules: InstrumentRules) -> str | None:

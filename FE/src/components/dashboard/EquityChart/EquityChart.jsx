@@ -70,7 +70,7 @@ export default function EquityChart({ points, initialBalance }) {
 }
 
 function CustomTooltip({ active, payload, label }) {
-  if (!active || !payload?.length) return null;
+  if (!active || !payload?.length) {return null;}
   return (
     <div className={`${styles.chartTooltip} glass`}>
       <p className={`${styles.chartTooltipDate} mono`}>{label}</p>

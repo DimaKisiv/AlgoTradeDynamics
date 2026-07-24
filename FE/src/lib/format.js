@@ -19,16 +19,16 @@ export const fmtNumber = (n, decimals = 2) =>
   }).format(n ?? 0);
 
 export const fmtDate = (iso) => {
-  if (!iso) return '—';
+  if (!iso) {return '—';}
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
+  if (Number.isNaN(d.getTime())) {return iso;}
   return d.toLocaleDateString('uk-UA', { year: 'numeric', month: 'short', day: '2-digit' });
 };
 
 export const fmtDateTime = (iso) => {
-  if (!iso) return '—';
+  if (!iso) {return '—';}
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
+  if (Number.isNaN(d.getTime())) {return iso;}
   return d.toLocaleString('uk-UA', { dateStyle: 'medium', timeStyle: 'short' });
 };
 

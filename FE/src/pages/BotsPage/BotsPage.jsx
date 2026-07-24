@@ -52,7 +52,7 @@ const SELECT_OPTIONS = {
 };
 
 function toFormState(bot) {
-  if (!bot) return INITIAL_FORM;
+  if (!bot) {return INITIAL_FORM;}
   return {
     name: bot.name,
     exchange: bot.exchange,
@@ -164,13 +164,13 @@ export default function BotsPage() {
   };
 
   const handleDelete = async (botId) => {
-    if (!window.confirm("Видалити цього бота?")) return;
+    if (!window.confirm("Видалити цього бота?")) {return;}
     try {
       setError("");
       setSuccessMessage("");
       await deleteBot(botId);
       await loadBots();
-      if (editingBotId === botId) closeForm();
+      if (editingBotId === botId) {closeForm();}
     } catch (e) {
       setError(e.detail || e.message || "Не вдалося видалити бота.");
     }

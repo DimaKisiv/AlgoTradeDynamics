@@ -10,7 +10,7 @@ export function useScrollReveal(options = {}) {
 
   useEffect(() => {
     const node = ref.current;
-    if (!node) return;
+    if (!node) {return;}
 
     if (typeof IntersectionObserver === 'undefined') {
       node.classList.add('is-visible');
@@ -22,7 +22,7 @@ export function useScrollReveal(options = {}) {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             entry.target.classList.add('is-visible');
-            if (once) observer.unobserve(entry.target);
+            if (once) {observer.unobserve(entry.target);}
           } else if (!once) {
             entry.target.classList.remove('is-visible');
           }

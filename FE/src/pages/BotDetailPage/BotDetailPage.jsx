@@ -51,7 +51,7 @@ export default function BotDetailPage() {
   }, [botId]);
 
   useEffect(() => {
-    if (!bot || bot.runtime_status !== "running") return undefined;
+    if (!bot || bot.runtime_status !== "running") {return undefined;}
     const intervalId = window.setInterval(() => {
       load();
     }, 7000);
@@ -121,7 +121,7 @@ export default function BotDetailPage() {
       "This will stop the bot, cancel open bot orders, and delete local order/event history. It will NOT close existing Bybit positions. Continue?",
     );
 
-    if (!confirmed) return;
+    if (!confirmed) {return;}
 
     try {
       setAction("clear");
@@ -451,6 +451,6 @@ function ConfigItem({ label, value, mono = false }) {
 }
 
 function capitalize(value) {
-  if (!value) return "";
+  if (!value) {return "";}
   return value.charAt(0).toUpperCase() + value.slice(1);
 }

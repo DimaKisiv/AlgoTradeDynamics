@@ -25,7 +25,7 @@ export function useBacktest(initialForm = DEFAULT_FORM) {
       const next = structuredClone(prev);
       const keys = path.split('.');
       let target = next;
-      for (let i = 0; i < keys.length - 1; i += 1) target = target[keys[i]];
+      for (let i = 0; i < keys.length - 1; i += 1) {target = target[keys[i]];}
       target[keys.at(-1)] = value;
       return next;
     });

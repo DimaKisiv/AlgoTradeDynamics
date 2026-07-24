@@ -13,8 +13,8 @@ export function getToken() {
 }
 
 export function setToken(token) {
-  if (token) localStorage.setItem(TOKEN_KEY, token);
-  else localStorage.removeItem(TOKEN_KEY);
+  if (token) {localStorage.setItem(TOKEN_KEY, token);}
+  else {localStorage.removeItem(TOKEN_KEY);}
 }
 
 class ApiError extends Error {
@@ -40,13 +40,13 @@ export async function request(path, options = {}) {
     'Content-Type': 'application/json',
     ...(options.headers || {}),
   };
-  if (token) headers.Authorization = `Bearer ${token}`;
+  if (token) {headers.Authorization = `Bearer ${token}`;}
 
   const response = await fetch(url, { ...options, headers });
 
   if (response.status === 401) {
     setToken(null);
-    if (unauthorizedHandler) unauthorizedHandler();
+    if (unauthorizedHandler) {unauthorizedHandler();}
   }
 
   if (!response.ok) {
@@ -64,7 +64,7 @@ export async function request(path, options = {}) {
     );
   }
 
-  if (response.status === 204) return null;
+  if (response.status === 204) {return null;}
   return response.json();
 }
 

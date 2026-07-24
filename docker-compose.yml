@@ -17,7 +17,7 @@ services:
       retries: 10
 
   backend:
-    build: ./backend
+    build: ./BE
     container_name: algotrade_backend
     environment:
       DATABASE_URL: postgresql+psycopg2://postgres:postgres@db:5432/algotrade
@@ -32,25 +32,25 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./backend/app:/app/app
-      - ./backend/data:/app/data
-      - ./backend/alembic:/app/alembic
+      - ./BE/app:/app/app
+      - ./BE/data:/app/data
+      - ./BE/alembic:/app/alembic
     depends_on:
       db:
         condition: service_healthy
 
   frontend:
-    build: ./frontend
+    build: ./FE
     container_name: algotrade_frontend
     environment:
       VITE_API_BASE_URL: http://localhost:8000/api
     ports:
       - "5173:5173"
     volumes:
-      - ./frontend/src:/app/src
-      - ./frontend/public:/app/public
-      - ./frontend/index.html:/app/index.html
-      - ./frontend/vite.config.js:/app/vite.config.js
+      - ./FE/src:/app/src
+      - ./FE/public:/app/public
+      - ./FE/index.html:/app/index.html
+      - ./FE/vite.config.js:/app/vite.config.js
     depends_on:
       - backend
 

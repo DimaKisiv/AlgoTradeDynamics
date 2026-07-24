@@ -7,7 +7,7 @@ const AuthContext = createContext(null);
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within <AuthProvider>');
+  if (!ctx) {throw new Error('useAuth must be used within <AuthProvider>');}
   return ctx;
 }
 
@@ -32,12 +32,12 @@ export function AuthProvider({ children }) {
       }
       try {
         const me = await authApi.fetchMe();
-        if (active) setUser(me);
+        if (active) {setUser(me);}
       } catch {
         setToken(null);
-        if (active) setUser(null);
+        if (active) {setUser(null);}
       } finally {
-        if (active) setLoading(false);
+        if (active) {setLoading(false);}
       }
     })();
 

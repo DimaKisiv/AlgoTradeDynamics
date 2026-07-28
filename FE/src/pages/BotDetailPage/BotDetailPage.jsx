@@ -13,6 +13,14 @@ import {
 import Button from "../../components/ui/Button/Button";
 import Card, { CardHeader } from "../../components/ui/Card/Card";
 import {
+  EventBadge,
+  OrderTypeBadge,
+  PnlValue,
+  RoleBadge,
+  SideBadge,
+  StatusBadge,
+} from "../../components/trading/TradingBadges/TradingBadges";
+import {
   cancelBotOrders,
   clearBotHistory,
   closeBotPosition,
@@ -48,6 +56,8 @@ export default function BotDetailPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [action, setAction] = useState("");
+  const [orderFilter, setOrderFilter] = useState("open");
+  const [showAllEvents, setShowAllEvents] = useState(false);
 
   const load = async () => {
     try {
@@ -196,18 +206,12 @@ export default function BotDetailPage() {
     }
   };
 
-  const openOrders = orders.filter((order) =>
-    ["New", "Created", "PartiallyFilled", "PendingNew", "Untriggered"].includes(
-      order.status,
-    ),
-  );
+  const openOrders = orders.filter((order) => isOpenOrderStatus(order.status));
   const filledOrders = orders.filter((order) => order.status === "Filled");
   const activePositionTakeProfitOrders = orders.filter(
     (order) =>
       order.order_role === "position_take_profit" &&
-      ["New", "Created", "PartiallyFilled", "PendingNew", "Untriggered"].includes(
-        order.status,
-      ),
+      isOpenOrderStatus(order.status),
   );
   const positionSize = Number(position?.size || 0);
   const avgEntryPrice =
@@ -258,6 +262,26 @@ export default function BotDetailPage() {
   const totalPnlPercent = toNumberOrNull(performance?.total_pnl_percent);
   const openPositionQty = toNumberOrNull(performance?.open_position_qty);
   const openPositionValue = toNumberOrNull(performance?.open_position_value);
+  const cancelledOrders = orders.filter((order) =>
+    ["Cancelled", "Canceled", "Deactivated"].includes(order.status),
+  );
+  const rejectedOrders = orders.filter((order) =>
+    ["Rejected", "Failed", "Error"].includes(order.status),
+  );
+  const orderFilters = [
+    { value: "open", label: "Open", count: openOrders.length },
+    { value: "filled", label: "Filled", count: filledOrders.length },
+    { value: "cancelled", label: "Cancelled", count: cancelledOrders.length },
+    { value: "all", label: "All", count: orders.length },
+  ];
+  const visibleOrders = orderFilter === "open"
+    ? openOrders
+    : orderFilter === "filled"
+      ? filledOrders
+      : orderFilter === "cancelled"
+        ? cancelledOrders
+        : orders;
+  const visibleEvents = showAllEvents ? events : events.slice(0, 12);
 
   return (
     <main className={styles.botDetail}>
@@ -293,14 +317,17 @@ export default function BotDetailPage() {
                 <SummaryCard
                   label="Open orders"
                   value={String(openOrders.length)}
+                  tone={openOrders.length > 0 ? "open" : "neutral"}
                 />
                 <SummaryCard
                   label="Filled orders"
                   value={String(filledOrders.length)}
+                  tone={filledOrders.length > 0 ? "positive" : "neutral"}
                 />
                 <SummaryCard
                   label="Active Position TP"
                   value={String(activePositionTakeProfitOrders.length)}
+                  tone={activePositionTakeProfitOrders.length > 0 ? "tp" : "neutral"}
                 />
                 <SummaryCard
                   label="Closed cycles"
@@ -308,7 +335,8 @@ export default function BotDetailPage() {
                 />
                 <SummaryCard
                   label="Total PnL"
-                  value={totalPnl == null ? "—" : fmtMoneySigned(totalPnl)}
+                  value={<PnlValue value={totalPnl}>{totalPnl == null ? "—" : fmtMoneySigned(totalPnl)}</PnlValue>}
+                  tone={totalPnl == null ? "neutral" : totalPnl >= 0 ? "positive" : "negative"}
                 />
               </div>
 
@@ -339,7 +367,7 @@ export default function BotDetailPage() {
                   />
                   <ConfigItem
                     label="Gross Realized PnL"
-                    value={grossRealizedPnl == null ? "—" : fmtMoneySigned(grossRealizedPnl)}
+                    value={<PnlValue value={grossRealizedPnl}>{grossRealizedPnl == null ? "—" : fmtMoneySigned(grossRealizedPnl)}</PnlValue>}
                     mono
                   />
                   <ConfigItem
@@ -354,32 +382,32 @@ export default function BotDetailPage() {
                   />
                   <ConfigItem
                     label="Net Realized PnL"
-                    value={netRealizedPnl == null ? "—" : fmtMoneySigned(netRealizedPnl)}
+                    value={<PnlValue value={netRealizedPnl}>{netRealizedPnl == null ? "—" : fmtMoneySigned(netRealizedPnl)}</PnlValue>}
                     mono
                   />
                   <ConfigItem
                     label="Realized PnL %"
-                    value={realizedPnlPercent == null ? "—" : fmtPctSigned(realizedPnlPercent)}
+                    value={<PnlValue value={realizedPnlPercent}>{realizedPnlPercent == null ? "—" : fmtPctSigned(realizedPnlPercent)}</PnlValue>}
                     mono
                   />
                   <ConfigItem
                     label="Average Cycle PnL"
-                    value={averageCyclePnl == null ? "—" : fmtMoneySigned(averageCyclePnl)}
+                    value={<PnlValue value={averageCyclePnl}>{averageCyclePnl == null ? "—" : fmtMoneySigned(averageCyclePnl)}</PnlValue>}
                     mono
                   />
                   <ConfigItem
                     label="Open Unrealized PnL"
-                    value={performanceUnrealizedPnl == null ? "—" : fmtMoneySigned(performanceUnrealizedPnl)}
+                    value={<PnlValue value={performanceUnrealizedPnl}>{performanceUnrealizedPnl == null ? "—" : fmtMoneySigned(performanceUnrealizedPnl)}</PnlValue>}
                     mono
                   />
                   <ConfigItem
                     label="Total PnL"
-                    value={totalPnl == null ? "—" : fmtMoneySigned(totalPnl)}
+                    value={<PnlValue value={totalPnl}>{totalPnl == null ? "—" : fmtMoneySigned(totalPnl)}</PnlValue>}
                     mono
                   />
                   <ConfigItem
                     label="Total PnL %"
-                    value={totalPnlPercent == null ? "—" : fmtPctSigned(totalPnlPercent)}
+                    value={<PnlValue value={totalPnlPercent}>{totalPnlPercent == null ? "—" : fmtPctSigned(totalPnlPercent)}</PnlValue>}
                     mono
                   />
                   <ConfigItem
@@ -403,7 +431,7 @@ export default function BotDetailPage() {
 
                 {positionSize > 0 ? (
                   <dl className={styles.configGrid}>
-                    <ConfigItem label="Side" value={position?.side || "—"} />
+                    <ConfigItem label="Side" value={<SideBadge side={position?.side || "Buy"} />} />
                     <ConfigItem
                       label="Size"
                       value={fmtNumber(positionSize, 6)}
@@ -425,20 +453,12 @@ export default function BotDetailPage() {
                     />
                     <ConfigItem
                       label="Unrealized PnL"
-                      value={
-                        unrealizedPnl == null
-                          ? "—"
-                          : fmtMoneySigned(unrealizedPnl)
-                      }
+                      value={<PnlValue value={unrealizedPnl}>{unrealizedPnl == null ? "—" : fmtMoneySigned(unrealizedPnl)}</PnlValue>}
                       mono
                     />
                     <ConfigItem
                       label="Unrealized PnL %"
-                      value={
-                        unrealizedPnlPercent == null
-                          ? "—"
-                          : fmtPctSigned(unrealizedPnlPercent)
-                      }
+                      value={<PnlValue value={unrealizedPnlPercent}>{unrealizedPnlPercent == null ? "—" : fmtPctSigned(unrealizedPnlPercent)}</PnlValue>}
                       mono
                     />
                     <ConfigItem
@@ -711,10 +731,34 @@ export default function BotDetailPage() {
 
             <section>
               <Card className={styles.ordersCard}>
-                <CardHeader eyebrow="Orders / Trades" title="Історія ордерів" />
+                <CardHeader
+                  eyebrow="Orders / Trades"
+                  title="Order history"
+                  action={
+                    <div className={styles.orderTotals}>
+                      <span><b>{openOrders.length}</b> open</span>
+                      <span><b>{filledOrders.length}</b> filled</span>
+                      {rejectedOrders.length > 0 ? <span><b>{rejectedOrders.length}</b> rejected</span> : null}
+                    </div>
+                  }
+                />
 
-                {orders.length === 0 ? (
-                  <div className={styles.emptyOrders}>Ордерів ще немає.</div>
+                <div className={styles.orderTabs} role="tablist" aria-label="Order status filter">
+                  {orderFilters.map((filter) => (
+                    <button
+                      key={filter.value}
+                      type="button"
+                      className={orderFilter === filter.value ? styles.orderTabActive : ""}
+                      onClick={() => setOrderFilter(filter.value)}
+                    >
+                      {filter.label}
+                      <span>{filter.count}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {visibleOrders.length === 0 ? (
+                  <div className={styles.emptyOrders}>No {orderFilter} orders.</div>
                 ) : (
                   <div className={styles.tableWrap}>
                     <table className={styles.table}>
@@ -723,35 +767,29 @@ export default function BotDetailPage() {
                           <th>Created</th>
                           <th>Symbol</th>
                           <th>Side</th>
-                          <th>Type</th>
                           <th>Role</th>
-                          <th>Qty</th>
-                          <th>Price</th>
+                          <th>Type</th>
+                          <th className={styles.numericHeader}>Qty</th>
+                          <th className={styles.numericHeader}>Price</th>
                           <th>Status</th>
                           <th>Exchange ID</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {orders.map((order) => (
-                          <tr key={order.id}>
-                            <td>{fmtDateTime(order.created_at)}</td>
-                            <td className="mono">{order.symbol}</td>
-                            <td>{order.side}</td>
-                            <td>{order.order_type}</td>
-                            <td>
-                              {order.order_role === "position_take_profit"
-                                ? "position_take_profit (Position TP)"
-                                : order.order_role}
+                        {visibleOrders.map((order) => (
+                          <tr key={order.id} className={getOrderRowClass(order)}>
+                            <td className={styles.dateCell}>{fmtDateTime(order.created_at)}</td>
+                            <td className={`${styles.symbolCell} mono`}>{order.symbol}</td>
+                            <td><SideBadge side={order.side} /></td>
+                            <td><RoleBadge role={order.order_role} /></td>
+                            <td><OrderTypeBadge type={order.order_type} /></td>
+                            <td className={`${styles.numberCell} mono`}>{fmtNumber(order.qty, 6)}</td>
+                            <td className={`${styles.numberCell} mono`}>
+                              {order.price == null ? "—" : fmtNumber(order.price, 4)}
                             </td>
-                            <td className="mono">{fmtNumber(order.qty, 6)}</td>
-                            <td className="mono">
-                              {order.price == null
-                                ? "—"
-                                : fmtNumber(order.price, 4)}
-                            </td>
-                            <td>{order.status}</td>
-                            <td className="mono">
-                              {order.exchange_order_id || "—"}
+                            <td><StatusBadge status={order.status} /></td>
+                            <td className={`${styles.exchangeId} mono`} title={order.exchange_order_id || ""}>
+                              {shortId(order.exchange_order_id)}
                             </td>
                           </tr>
                         ))}
@@ -762,24 +800,40 @@ export default function BotDetailPage() {
               </Card>
 
               <Card className={styles.eventsCard}>
-                <CardHeader eyebrow="Worker events" title="Журнал подій бота" />
+                <CardHeader
+                  eyebrow="Worker events"
+                  title="Bot activity"
+                  action={<span className={styles.eventCount}>{events.length} events</span>}
+                />
 
                 {events.length === 0 ? (
-                  <div className={styles.emptyOrders}>Подій ще немає.</div>
+                  <div className={styles.emptyOrders}>No events yet.</div>
                 ) : (
-                  <div className={styles.eventsList}>
-                    {events.map((event) => (
-                      <article key={event.id} className={styles.eventRow}>
-                        <div>
-                          <p className={styles.eventType}>{event.event_type}</p>
-                          <p className={styles.eventMessage}>{event.message}</p>
-                        </div>
-                        <time className="mono">
-                          {fmtDateTime(event.created_at)}
-                        </time>
-                      </article>
-                    ))}
-                  </div>
+                  <>
+                    <div className={styles.eventsList}>
+                      {visibleEvents.map((event) => (
+                        <article key={event.id} className={styles.eventRow}>
+                          <span className={styles.eventRail} aria-hidden="true" />
+                          <div className={styles.eventBody}>
+                            <div className={styles.eventMeta}>
+                              <EventBadge type={event.event_type} />
+                              <time className="mono">{fmtDateTime(event.created_at)}</time>
+                            </div>
+                            <p className={styles.eventMessage}>{event.message}</p>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                    {events.length > 12 ? (
+                      <button
+                        type="button"
+                        className={styles.showMoreButton}
+                        onClick={() => setShowAllEvents((value) => !value)}
+                      >
+                        {showAllEvents ? "Show latest 12" : `Show all ${events.length} events`}
+                      </button>
+                    ) : null}
+                  </>
                 )}
               </Card>
             </section>
@@ -790,9 +844,9 @@ export default function BotDetailPage() {
   );
 }
 
-function SummaryCard({ label, value }) {
+function SummaryCard({ label, value, tone = "neutral" }) {
   return (
-    <div className={styles.summaryCard}>
+    <div className={`${styles.summaryCard} ${styles[`summary${capitalize(tone)}`] || ""}`}>
       <span>{label}</span>
       <strong className="mono">{value}</strong>
     </div>
@@ -803,9 +857,27 @@ function ConfigItem({ label, value, mono = false }) {
   return (
     <div className={styles.configItem}>
       <dt>{label}</dt>
-      <dd className={mono ? "mono" : ""}>{value || "—"}</dd>
+      <dd className={mono ? "mono" : ""}>{value ?? "—"}</dd>
     </div>
   );
+}
+
+function isOpenOrderStatus(status) {
+  return ["New", "Created", "PartiallyFilled", "PendingNew", "Untriggered"].includes(status);
+}
+
+function getOrderRowClass(order) {
+  const classes = [];
+  if (order.side === "Buy") classes.push(styles.orderRowBuy);
+  if (order.side === "Sell") classes.push(styles.orderRowSell);
+  if (isOpenOrderStatus(order.status)) classes.push(styles.orderRowOpen);
+  return classes.join(" ");
+}
+
+function shortId(value) {
+  if (!value) return "—";
+  const text = String(value);
+  return text.length > 14 ? `${text.slice(0, 7)}…${text.slice(-5)}` : text;
 }
 
 function capitalize(value) {

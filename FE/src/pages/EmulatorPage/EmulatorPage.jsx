@@ -27,6 +27,14 @@ import {
 
 import Button from "../../components/ui/Button/Button";
 import Card, { CardHeader } from "../../components/ui/Card/Card";
+import {
+  EventBadge,
+  OrderTypeBadge,
+  PnlValue,
+  RoleBadge,
+  SideBadge,
+  StatusBadge,
+} from "../../components/trading/TradingBadges/TradingBadges";
 import { emulatorApi } from "../../api/emulator";
 import styles from "./EmulatorPage.module.css";
 
@@ -54,16 +62,16 @@ const toLocalInput = (timestamp) => {
 
 const fromLocalInput = (value) => new Date(value).getTime();
 
-function Metric({ label, value, suffix = "" }) {
+function Metric({ label, value, suffix = "", tone = "neutral" }) {
   return (
-    <div className={styles.metric}>
+    <div className={`${styles.metric} ${styles[`metric${capitalize(tone)}`] || ""}`}>
       <span>{label}</span>
       <strong>{value}{suffix}</strong>
     </div>
   );
 }
 
-function DataTable({ columns, rows, empty = "Немає даних" }) {
+function DataTable({ columns, rows, empty = "Немає даних", rowClassName }) {
   return (
     <div className={styles.tableWrap}>
       <table className={styles.table}>
@@ -74,7 +82,10 @@ function DataTable({ columns, rows, empty = "Немає даних" }) {
           {rows.length === 0 ? (
             <tr><td colSpan={columns.length} className={styles.emptyCell}>{empty}</td></tr>
           ) : rows.map((row, index) => (
-            <tr key={row.id || row.orderId || row.execId || index}>
+            <tr
+              key={row.id || row.orderId || row.execId || index}
+              className={rowClassName ? rowClassName(row) : ""}
+            >
               {columns.map((column) => <td key={column.key}>{column.render ? column.render(row) : row[column.key]}</td>)}
             </tr>
           ))}
@@ -252,6 +263,10 @@ export default function EmulatorPage() {
 
   const filteredScenarios = scenarios.filter((item) => item.symbol === symbol);
   const filteredDatasets = datasets.filter((item) => item.symbol === symbol);
+  const activeOrders = orders.filter((order) => isOpenOrderStatus(order.orderStatus));
+  const historicalOrders = orders.filter((order) => !isOpenOrderStatus(order.orderStatus));
+  const totalOpenPnl = positions.reduce((sum, item) => sum + numberValue(item.unrealisedPnl), 0);
+  const totalClosedPnl = executions.reduce((sum, item) => sum + numberValue(item.closedPnl), 0);
 
   return (
     <main className={styles.page}>
@@ -294,8 +309,12 @@ export default function EmulatorPage() {
           <Metric label="Market price" value={`$${fmt(currentMarket?.last_price)}`} />
           <Metric label="Wallet balance" value={`$${fmt(dashboard?.account?.balance)}`} />
           <Metric label="Equity" value={`$${fmt(dashboard?.account?.equity)}`} />
-          <Metric label="Open PnL" value={`$${fmt(dashboard?.account?.unrealized_pnl)}`} />
-          <Metric label="Open orders" value={dashboard?.open_orders || 0} />
+          <Metric
+            label="Open PnL"
+            value={`$${fmt(dashboard?.account?.unrealized_pnl)}`}
+            tone={numberValue(dashboard?.account?.unrealized_pnl) > 0 ? "positive" : numberValue(dashboard?.account?.unrealized_pnl) < 0 ? "negative" : "neutral"}
+          />
+          <Metric label="Open orders" value={dashboard?.open_orders || 0} tone={(dashboard?.open_orders || 0) > 0 ? "open" : "neutral"} />
           <Metric label="Mode" value={`${currentMarket?.mode || "—"} / ${currentMarket?.status || "—"}`} />
         </section>
 
@@ -475,51 +494,154 @@ export default function EmulatorPage() {
 
         {tab === "activity" && (
           <section className={styles.activityGrid}>
-            <Card>
-              <CardHeader eyebrow="Exchange" title="Orders" />
-              <DataTable columns={[
-                { key: "orderStatus", label: "Status" },
-                { key: "side", label: "Side" },
-                { key: "orderType", label: "Type" },
-                { key: "price", label: "Price" },
-                { key: "qty", label: "Qty" },
-                { key: "cumExecQty", label: "Filled" },
-                { key: "orderLinkId", label: "Link ID" },
-              ]} rows={orders} />
+            <div className={styles.activityOverview}>
+              <Metric label="Active orders" value={activeOrders.length} tone={activeOrders.length > 0 ? "open" : "neutral"} />
+              <Metric label="Order history" value={historicalOrders.length} />
+              <Metric label="Open positions" value={positions.length} tone={positions.length > 0 ? "positive" : "neutral"} />
+              <Metric
+                label="Open PnL"
+                value={`$${fmt(totalOpenPnl)}`}
+                tone={totalOpenPnl > 0 ? "positive" : totalOpenPnl < 0 ? "negative" : "neutral"}
+              />
+              <Metric
+                label="Closed PnL"
+                value={`$${fmt(totalClosedPnl)}`}
+                tone={totalClosedPnl > 0 ? "positive" : totalClosedPnl < 0 ? "negative" : "neutral"}
+              />
+            </div>
+
+            <div className={styles.activityPrimary}>
+              <Card className={styles.activityCard}>
+                <CardHeader
+                  eyebrow="Account"
+                  title="Open positions"
+                  action={<span className={styles.sectionCount}>{positions.length}</span>}
+                />
+                <DataTable
+                  columns={[
+                    { key: "symbol", label: "Symbol", render: (row) => <strong className="mono">{row.symbol}</strong> },
+                    { key: "side", label: "Side", render: (row) => <SideBadge side={row.side || "Buy"} /> },
+                    { key: "size", label: "Size", render: (row) => <span className="mono">{fmt(row.size, 6)}</span> },
+                    { key: "avgPrice", label: "Avg entry", render: (row) => <span className="mono">${fmt(row.avgPrice, 4)}</span> },
+                    { key: "markPrice", label: "Mark", render: (row) => <span className="mono">${fmt(row.markPrice, 4)}</span> },
+                    { key: "unrealisedPnl", label: "Open PnL", render: (row) => <PnlValue value={row.unrealisedPnl}>${fmt(row.unrealisedPnl)}</PnlValue> },
+                    { key: "leverage", label: "Lev.", render: (row) => <span className="mono">{fmt(row.leverage)}x</span> },
+                  ]}
+                  rows={positions}
+                  empty="No open position"
+                  rowClassName={(row) => numberValue(row.unrealisedPnl) >= 0 ? styles.positiveRow : styles.negativeRow}
+                />
+              </Card>
+
+              <Card className={styles.activityCard}>
+                <CardHeader
+                  eyebrow="Exchange"
+                  title="Active orders"
+                  action={<span className={styles.sectionCount}>{activeOrders.length}</span>}
+                />
+                <DataTable
+                  columns={[
+                    { key: "side", label: "Side", render: (row) => <SideBadge side={row.side} /> },
+                    { key: "role", label: "Role", render: (row) => <RoleBadge linkId={row.orderLinkId} /> },
+                    { key: "orderType", label: "Type", render: (row) => <OrderTypeBadge type={row.orderType} reduceOnly={row.reduceOnly} /> },
+                    { key: "price", label: "Price", render: (row) => <span className="mono">${fmt(row.price, 4)}</span> },
+                    { key: "qty", label: "Qty", render: (row) => <span className="mono">{fmt(row.qty, 6)}</span> },
+                    { key: "cumExecQty", label: "Filled", render: (row) => <span className="mono">{fmt(row.cumExecQty, 6)}</span> },
+                    { key: "orderStatus", label: "Status", render: (row) => <StatusBadge status={row.orderStatus} /> },
+                    { key: "orderLinkId", label: "Link ID", render: (row) => <span className={styles.compactId} title={row.orderLinkId}>{shortId(row.orderLinkId)}</span> },
+                  ]}
+                  rows={activeOrders}
+                  empty="No active orders"
+                  rowClassName={(row) => row.side === "Buy" ? styles.buyRow : styles.sellRow}
+                />
+              </Card>
+            </div>
+
+            <Card className={styles.activityCard}>
+              <CardHeader
+                eyebrow="Orders"
+                title="Order history"
+                action={<span className={styles.sectionCount}>{historicalOrders.length}</span>}
+              />
+              <DataTable
+                columns={[
+                  { key: "createdTime", label: "Created", render: (row) => <span className={styles.dateText}>{new Date(Number(row.createdTime)).toLocaleString()}</span> },
+                  { key: "side", label: "Side", render: (row) => <SideBadge side={row.side} /> },
+                  { key: "role", label: "Role", render: (row) => <RoleBadge linkId={row.orderLinkId} /> },
+                  { key: "orderType", label: "Type", render: (row) => <OrderTypeBadge type={row.orderType} reduceOnly={row.reduceOnly} /> },
+                  { key: "price", label: "Price", render: (row) => <span className="mono">${fmt(row.price, 4)}</span> },
+                  { key: "qty", label: "Qty", render: (row) => <span className="mono">{fmt(row.qty, 6)}</span> },
+                  { key: "orderStatus", label: "Status", render: (row) => <StatusBadge status={row.orderStatus} /> },
+                  { key: "orderLinkId", label: "Link ID", render: (row) => <span className={styles.compactId} title={row.orderLinkId}>{shortId(row.orderLinkId)}</span> },
+                ]}
+                rows={historicalOrders}
+                empty="No completed or cancelled orders"
+                rowClassName={(row) => row.side === "Buy" ? styles.buyRow : styles.sellRow}
+              />
             </Card>
-            <Card>
-              <CardHeader eyebrow="Account" title="Positions" />
-              <DataTable columns={[
-                { key: "symbol", label: "Symbol" },
-                { key: "size", label: "Size" },
-                { key: "avgPrice", label: "Avg entry" },
-                { key: "markPrice", label: "Mark" },
-                { key: "unrealisedPnl", label: "Open PnL" },
-                { key: "leverage", label: "Leverage" },
-              ]} rows={positions} />
-            </Card>
-            <Card>
-              <CardHeader eyebrow="Fills" title="Executions" />
-              <DataTable columns={[
-                { key: "side", label: "Side" },
-                { key: "execPrice", label: "Price" },
-                { key: "execQty", label: "Qty" },
-                { key: "execFee", label: "Fee" },
-                { key: "closedPnl", label: "Closed PnL" },
-                { key: "execTime", label: "Time", render: (row) => new Date(row.execTime).toLocaleString() },
-              ]} rows={executions} />
-            </Card>
-            <Card>
-              <CardHeader eyebrow="Runtime" title="Event log" />
-              <DataTable columns={[
-                { key: "created_at", label: "Time", render: (row) => new Date(row.created_at).toLocaleTimeString() },
-                { key: "event_type", label: "Type" },
-                { key: "message", label: "Message" },
-              ]} rows={events} />
-            </Card>
+
+            <div className={styles.activitySecondary}>
+              <Card className={styles.activityCard}>
+                <CardHeader
+                  eyebrow="Fills"
+                  title="Executions"
+                  action={<span className={styles.sectionCount}>{executions.length}</span>}
+                />
+                <DataTable
+                  columns={[
+                    { key: "execTime", label: "Time", render: (row) => <span className={styles.dateText}>{new Date(row.execTime).toLocaleString()}</span> },
+                    { key: "side", label: "Side", render: (row) => <SideBadge side={row.side} /> },
+                    { key: "execPrice", label: "Price", render: (row) => <span className="mono">${fmt(row.execPrice, 4)}</span> },
+                    { key: "execQty", label: "Qty", render: (row) => <span className="mono">{fmt(row.execQty, 6)}</span> },
+                    { key: "execFee", label: "Fee", render: (row) => <span className={styles.mutedNumber}>${fmt(row.execFee, 6)}</span> },
+                    { key: "closedPnl", label: "Closed PnL", render: (row) => <PnlValue value={row.closedPnl}>${fmt(row.closedPnl)}</PnlValue> },
+                  ]}
+                  rows={executions}
+                />
+              </Card>
+
+              <Card className={styles.activityCard}>
+                <CardHeader
+                  eyebrow="Runtime"
+                  title="Event log"
+                  action={<span className={styles.sectionCount}>{events.length}</span>}
+                />
+                <DataTable
+                  columns={[
+                    { key: "created_at", label: "Time", render: (row) => <span className={styles.dateText}>{new Date(row.created_at).toLocaleTimeString()}</span> },
+                    { key: "event_type", label: "Type", render: (row) => <EventBadge type={row.event_type} /> },
+                    { key: "message", label: "Message", render: (row) => <span className={styles.eventMessage}>{row.message}</span> },
+                  ]}
+                  rows={events.slice(0, 50)}
+                />
+              </Card>
+            </div>
           </section>
         )}
       </div>
     </main>
   );
+}
+
+
+function isOpenOrderStatus(status) {
+  return ["new", "created", "partiallyfilled", "pendingnew", "untriggered"].includes(
+    String(status || "").toLowerCase(),
+  );
+}
+
+function numberValue(value) {
+  const number = Number(value || 0);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function shortId(value) {
+  if (!value) return "—";
+  const text = String(value);
+  return text.length > 16 ? `${text.slice(0, 8)}…${text.slice(-5)}` : text;
+}
+
+function capitalize(value) {
+  const text = String(value || "");
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : "";
 }

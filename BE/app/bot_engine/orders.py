@@ -154,5 +154,36 @@ def get_order_status(session, *, category: str, symbol: str, order_id: str) -> d
     return {}
 
 
+def get_order_status_by_link_id(
+    session, *, category: str, symbol: str, order_link_id: str
+) -> dict:
+    """Return the exact exchange order matching an orderLinkId, if it still exists.
+
+    This targeted lookup is used during reconciliation when an active local order is
+    absent from the regular open/history page. It avoids treating pagination as an
+    exchange reset.
+    """
+    response = session.get_open_orders(
+        category=category,
+        symbol=symbol,
+        orderLinkId=order_link_id,
+        openOnly=0,
+    )
+    items = response.get("result", {}).get("list", [])
+    if items:
+        return items[0]
+
+    history = session.get_order_history(
+        category=category,
+        symbol=symbol,
+        orderLinkId=order_link_id,
+        limit=1,
+    )
+    history_items = history.get("result", {}).get("list", [])
+    if history_items:
+        return history_items[0]
+    return {}
+
+
 def cancel_order_by_link_id(session, *, category: str, symbol: str, order_link_id: str) -> dict:
     return session.cancel_order(category=category, symbol=symbol, orderLinkId=order_link_id)

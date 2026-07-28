@@ -202,8 +202,12 @@ export default function BotDetailPage() {
     ),
   );
   const filledOrders = orders.filter((order) => order.status === "Filled");
-  const positionTakeProfitOrders = orders.filter(
-    (order) => order.order_role === "position_take_profit",
+  const activePositionTakeProfitOrders = orders.filter(
+    (order) =>
+      order.order_role === "position_take_profit" &&
+      ["New", "Created", "PartiallyFilled", "PendingNew", "Untriggered"].includes(
+        order.status,
+      ),
   );
   const positionSize = Number(position?.size || 0);
   const avgEntryPrice =
@@ -295,8 +299,8 @@ export default function BotDetailPage() {
                   value={String(filledOrders.length)}
                 />
                 <SummaryCard
-                  label="Position TP"
-                  value={String(positionTakeProfitOrders.length)}
+                  label="Active Position TP"
+                  value={String(activePositionTakeProfitOrders.length)}
                 />
                 <SummaryCard
                   label="Closed cycles"

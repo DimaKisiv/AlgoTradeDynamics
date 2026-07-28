@@ -383,50 +383,259 @@ def test_second_filled_entry_replaces_position_take_profit_order(client, auth_he
     assert len({order["order_link_id"] for order in position_tp_orders}) == 2
 
 
-def test_position_take_profit_fill_recreates_grid_entry(client, auth_headers, monkeypatch):
+def test_position_take_profit_fill_cancels_old_grid_and_rebuilds_from_current_price(
+    client, auth_headers, monkeypatch
+):
     bot = _create_runtime_bot(client, auth_headers)
     remote_state = {}
     remote_positions = []
-    _mock_runtime(monkeypatch, remote_state=remote_state,
-                  remote_positions=remote_positions)
+    _mock_runtime(
+        monkeypatch,
+        remote_state=remote_state,
+        remote_positions=remote_positions,
+        current_price=100.0,
+    )
     client.post(f"/api/bots/{bot['id']}/start", headers=auth_headers)
     _tick_bot(bot["id"])
 
-    db = SessionLocal()
-    try:
-        entry = db.query(TradingBotOrder).filter(TradingBotOrder.bot_id ==
-                                                 bot["id"], TradingBotOrder.order_role == "grid_entry_1").first()
-        entry.status = "Filled"
-        entry.filled_qty = entry.qty
-        db.add(entry)
-        db.commit()
-    finally:
-        db.close()
+    orders = client.get(
+        f"/api/bots/{bot['id']}/orders", headers=auth_headers
+    ).json()
+    old_entry_one = next(
+        order for order in orders if order["order_role"] == "grid_entry_1"
+    )
+    old_entry_two = next(
+        order for order in orders if order["order_role"] == "grid_entry_2"
+    )
 
+    remote_state[old_entry_one["order_link_id"]]["orderStatus"] = "Filled"
+    remote_state[old_entry_one["order_link_id"]]["cumExecQty"] = str(
+        old_entry_one["qty"]
+    )
     remote_positions[:] = [{
         "side": "Buy",
         "size": str(bot["order_qty"]),
         "avgPrice": "100.0",
     }]
-
     _tick_bot(bot["id"])
 
     position_tp = next(
-        order for order in client.get(f"/api/bots/{bot['id']}/orders", headers=auth_headers).json()
+        order
+        for order in client.get(
+            f"/api/bots/{bot['id']}/orders", headers=auth_headers
+        ).json()
         if order["order_role"] == "position_take_profit"
     )
     remote_state[position_tp["order_link_id"]]["orderStatus"] = "Filled"
-    remote_state[position_tp["order_link_id"]
-                 ]["cumExecQty"] = str(position_tp["qty"])
+    remote_state[position_tp["order_link_id"]]["cumExecQty"] = str(
+        position_tp["qty"]
+    )
     remote_positions.clear()
 
+    monkeypatch.setattr(
+        "app.bot_engine.grid_runtime.get_last_price",
+        lambda *args, **kwargs: 105.0,
+    )
+    monkeypatch.setattr(
+        "app.bot_engine.grid_runtime.get_ticker_snapshot",
+        lambda *args, **kwargs: {"lastPrice": "105.0", "markPrice": "105.0"},
+    )
+
+    result = _tick_bot(bot["id"])
+    assert result["message"] == "Tick completed; take-profit cycle rolled over"
+
+    orders = client.get(
+        f"/api/bots/{bot['id']}/orders", headers=auth_headers
+    ).json()
+    old_entry_two_after = next(
+        order for order in orders if order["order_link_id"] == old_entry_two["order_link_id"]
+    )
+    assert old_entry_two_after["status"] == "Cancelled"
+
+    new_entries = [
+        order
+        for order in orders
+        if order["order_role"].startswith("grid_entry_")
+        and order["order_link_id"] not in {
+            old_entry_one["order_link_id"],
+            old_entry_two["order_link_id"],
+        }
+    ]
+    assert len(new_entries) == 2
+    assert {order["order_role"] for order in new_entries} == {
+        "grid_entry_1",
+        "grid_entry_2",
+    }
+    assert next(
+        order["price"] for order in new_entries if order["order_role"] == "grid_entry_1"
+    ) == 105.0
+    assert next(
+        order["price"] for order in new_entries if order["order_role"] == "grid_entry_2"
+    ) == 99.7
+
+    events = client.get(
+        f"/api/bots/{bot['id']}/events", headers=auth_headers
+    ).json()
+    assert any(event["event_type"] == "grid_cycle_completed" for event in events)
+
+
+def test_new_grid_waits_until_old_grid_cancellation_is_confirmed(
+    client, auth_headers, monkeypatch
+):
+    bot = _create_runtime_bot(client, auth_headers)
+    remote_state = {}
+    remote_positions = []
+    _mock_runtime(
+        monkeypatch,
+        remote_state=remote_state,
+        remote_positions=remote_positions,
+    )
+    client.post(f"/api/bots/{bot['id']}/start", headers=auth_headers)
     _tick_bot(bot["id"])
 
     orders = client.get(
-        f"/api/bots/{bot['id']}/orders", headers=auth_headers).json()
-    level_one_entries = [
-        order for order in orders if order["order_role"] == "grid_entry_1"]
-    assert len(level_one_entries) >= 2
+        f"/api/bots/{bot['id']}/orders", headers=auth_headers
+    ).json()
+    entry_one = next(
+        order for order in orders if order["order_role"] == "grid_entry_1"
+    )
+    entry_two = next(
+        order for order in orders if order["order_role"] == "grid_entry_2"
+    )
+    remote_state[entry_one["order_link_id"]]["orderStatus"] = "Filled"
+    remote_state[entry_one["order_link_id"]]["cumExecQty"] = str(entry_one["qty"])
+    remote_positions[:] = [{
+        "side": "Buy",
+        "size": str(bot["order_qty"]),
+        "avgPrice": "100.0",
+    }]
+    _tick_bot(bot["id"])
+
+    position_tp = next(
+        order
+        for order in client.get(
+            f"/api/bots/{bot['id']}/orders", headers=auth_headers
+        ).json()
+        if order["order_role"] == "position_take_profit"
+    )
+    remote_state[position_tp["order_link_id"]]["orderStatus"] = "Filled"
+    remote_state[position_tp["order_link_id"]]["cumExecQty"] = str(
+        position_tp["qty"]
+    )
+    remote_positions.clear()
+
+    monkeypatch.setattr(
+        "app.bot_engine.grid_runtime.cancel_order_by_link_id",
+        lambda *args, **kwargs: {
+            "result": {
+                "orderLinkId": kwargs["order_link_id"],
+                "orderStatus": "Cancelled",
+            }
+        },
+    )
+
+    result = _tick_bot(bot["id"])
+    assert result["message"] == "Waiting for previous grid cancellation confirmation"
+
+    orders = client.get(
+        f"/api/bots/{bot['id']}/orders", headers=auth_headers
+    ).json()
+    grid_entries = [
+        order for order in orders if order["order_role"].startswith("grid_entry_")
+    ]
+    assert len(grid_entries) == 2
+    assert next(
+        order for order in grid_entries if order["order_link_id"] == entry_two["order_link_id"]
+    )["status"] == "New"
+
+
+
+def test_exchange_reset_reconciles_missing_orders_and_rebuilds_clean_grid(
+    client, auth_headers, monkeypatch
+):
+    bot = _create_runtime_bot(client, auth_headers)
+    remote_state = {}
+    remote_positions = []
+    _mock_runtime(
+        monkeypatch,
+        remote_state=remote_state,
+        remote_positions=remote_positions,
+        current_price=100.0,
+    )
+    client.post(f"/api/bots/{bot['id']}/start", headers=auth_headers)
+    _tick_bot(bot["id"])
+
+    original_orders = client.get(
+        f"/api/bots/{bot['id']}/orders", headers=auth_headers
+    ).json()
+    original_entries = [
+        order for order in original_orders
+        if order["order_role"].startswith("grid_entry_")
+    ]
+    original_link_ids = {order["order_link_id"] for order in original_entries}
+    assert len(original_link_ids) == 2
+    assert len(remote_state) == 2
+
+    # The emulator reset removes the account's order and position records entirely.
+    remote_state.clear()
+    remote_positions.clear()
+    monkeypatch.setattr(
+        "app.bot_engine.grid_runtime.get_last_price",
+        lambda *args, **kwargs: 120.0,
+    )
+
+    result = _tick_bot(bot["id"])
+    assert result["message"] == "Tick completed"
+
+    orders = client.get(
+        f"/api/bots/{bot['id']}/orders", headers=auth_headers
+    ).json()
+    stale_orders = [
+        order for order in orders if order["order_link_id"] in original_link_ids
+    ]
+    assert len(stale_orders) == 2
+    assert all(order["status"] == "Cancelled" for order in stale_orders)
+    assert all(
+        order["raw_response"]["reconciliation"]["reason"]
+        == "missing_from_exchange"
+        for order in stale_orders
+    )
+
+    replacement_entries = [
+        order
+        for order in orders
+        if order["order_role"].startswith("grid_entry_")
+        and order["order_link_id"] not in original_link_ids
+        and order["status"] in ACTIVE_ORDER_STATUSES
+    ]
+    assert len(replacement_entries) == 2
+    assert next(
+        order["price"]
+        for order in replacement_entries
+        if order["order_role"] == "grid_entry_1"
+    ) == 120.0
+    assert next(
+        order["price"]
+        for order in replacement_entries
+        if order["order_role"] == "grid_entry_2"
+    ) == 114.0
+    assert set(remote_state) == {
+        order["order_link_id"] for order in replacement_entries
+    }
+
+    events = client.get(
+        f"/api/bots/{bot['id']}/events", headers=auth_headers
+    ).json()
+    reconciled_events = [
+        event for event in events
+        if event["event_type"] == "order_reconciled_missing"
+    ]
+    assert len(reconciled_events) == 2
+
+    refreshed_bot = client.get(
+        f"/api/bots/{bot['id']}", headers=auth_headers
+    ).json()
+    assert refreshed_bot["runtime_state"] == "waiting_for_entry"
 
 
 def test_position_take_profit_fill_logs_once(client, auth_headers, monkeypatch):
@@ -844,6 +1053,12 @@ def _mock_runtime(monkeypatch, *, min_qty=0.001, remote_state=None, remote_posit
         "app.bot_engine.grid_runtime.get_orders_by_prefix",
         lambda *args, **kwargs: _mock_get_orders_by_prefix(
             remote_state, kwargs["order_link_prefix"]),
+    )
+    monkeypatch.setattr(
+        "app.bot_engine.grid_runtime.get_order_status_by_link_id",
+        lambda *args, **kwargs: dict(
+            remote_state.get(kwargs["order_link_id"], {})
+        ),
     )
     monkeypatch.setattr(
         "app.bot_engine.grid_runtime.get_last_price",

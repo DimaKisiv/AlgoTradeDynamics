@@ -15,6 +15,7 @@ from app.bot_engine.orders import (
     OrderRequest,
     cancel_order_by_link_id,
     get_open_orders,
+    get_order_status_by_link_id,
     get_orders_by_prefix,
     normalize_order_request,
     place_order,
@@ -402,6 +403,31 @@ def _active_local_orders(db, bot: TradingBot) -> list[TradingBotOrder]:
     )
 
 
+def _active_grid_entry_orders(db, bot: TradingBot) -> list[TradingBotOrder]:
+    return [
+        order
+        for order in _active_local_orders(db, bot)
+        if order.order_role.startswith("grid_entry_")
+        and _is_current_generation_link_id(bot, order.order_link_id)
+    ]
+
+
+def _pending_completed_position_take_profit_orders(db, bot: TradingBot) -> list[TradingBotOrder]:
+    return [
+        order
+        for order in db.query(TradingBotOrder)
+        .filter(
+            TradingBotOrder.bot_id == bot.id,
+            TradingBotOrder.order_role == POSITION_TP_ROLE,
+            TradingBotOrder.status == "Filled",
+            TradingBotOrder.cycle_completed_at.is_(None),
+        )
+        .order_by(TradingBotOrder.created_at, TradingBotOrder.id)
+        .all()
+        if _is_current_generation_position_tp_link_id(bot, order.order_link_id)
+    ]
+
+
 def _current_generation_open_orders(session, bot: TradingBot) -> list[dict]:
     return [
         order
@@ -598,21 +624,8 @@ def get_runtime_state(db, bot: TradingBot) -> tuple[str, str | None]:
                         POSITION_TP_ROLE for order in active_orders)
     has_active_entries = any(order.order_role.startswith(
         "grid_entry_") for order in active_orders)
-    has_filled_entries = (
-        db.query(TradingBotOrder)
-        .filter(
-            TradingBotOrder.bot_id == bot.id,
-            TradingBotOrder.order_role.like("grid_entry_%"),
-            TradingBotOrder.status == "Filled",
-        )
-        .first()
-        is not None
-    )
-
     if has_active_tp:
         return "tp_active", last_risk_message
-    if has_filled_entries:
-        return "position_open", last_risk_message
     if has_active_entries:
         return "waiting_for_entry", last_risk_message
     return "running", last_risk_message
@@ -663,6 +676,91 @@ def _cancel_local_order(db, bot: TradingBot, session, order: TradingBotOrder, *,
     log_bot_event(db, bot, event_type, message, {
                   "order_link_id": order.order_link_id})
     return order
+
+
+def _rollover_completed_take_profit_cycle(
+    db,
+    bot: TradingBot,
+) -> tuple[list[TradingBotOrder], bool, bool]:
+    """Cancel the previous grid after a filled position TP before starting a new cycle.
+
+    Returns (changed_orders, rollover_triggered, cancellation_confirmed).
+    A filled TP remains pending until every active grid entry from the old cycle is
+    absent from the exchange open-order list. This prevents a new grid from being
+    created while an old averaging order can still fill.
+    """
+    completed_tps = _pending_completed_position_take_profit_orders(db, bot)
+    if not completed_tps:
+        return [], False, True
+
+    session = get_bybit_session(bot)
+    stale_entries = _active_grid_entry_orders(db, bot)
+    changed_orders: list[TradingBotOrder] = []
+
+    for entry in stale_entries:
+        changed_orders.append(
+            _cancel_local_order(
+                db,
+                bot,
+                session,
+                entry,
+                event_type="grid_entry_cancelled_after_take_profit",
+                message="Cancelled stale grid entry after position take-profit",
+            )
+        )
+
+    cancelled_link_ids = {
+        entry.order_link_id for entry in stale_entries if entry.order_link_id
+    }
+    remaining_open_orders = {
+        remote.get("orderLinkId"): remote
+        for remote in _current_generation_open_orders(session, bot)
+        if remote.get("orderLinkId") in cancelled_link_ids
+        and (remote.get("orderStatus") or "") in ACTIVE_ORDER_STATUSES
+    }
+
+    if remaining_open_orders:
+        for entry in stale_entries:
+            remote = remaining_open_orders.get(entry.order_link_id)
+            if remote is not None:
+                _update_local_order_from_exchange(entry, remote)
+                db.add(entry)
+
+        payload = {
+            "take_profit_order_link_ids": [
+                order.order_link_id for order in completed_tps
+            ],
+            "remaining_grid_order_link_ids": sorted(remaining_open_orders),
+        }
+        latest = _latest_bot_event(db, bot, "grid_cycle_rollover_waiting")
+        if latest is None or latest.payload != payload:
+            log_bot_event(
+                db,
+                bot,
+                "grid_cycle_rollover_waiting",
+                "Waiting for stale grid order cancellation confirmation",
+                payload,
+            )
+        return changed_orders, True, False
+
+    completed_at = _utcnow()
+    for take_profit in completed_tps:
+        take_profit.cycle_completed_at = completed_at
+        db.add(take_profit)
+
+    log_bot_event(
+        db,
+        bot,
+        "grid_cycle_completed",
+        "Completed take-profit cycle and cleared the previous grid",
+        {
+            "take_profit_order_link_ids": [
+                order.order_link_id for order in completed_tps
+            ],
+            "cancelled_grid_order_link_ids": sorted(cancelled_link_ids),
+        },
+    )
+    return changed_orders, True, True
 
 
 def _order_matches_target(order: TradingBotOrder, target: OrderRequest) -> bool:
@@ -848,6 +946,52 @@ def _should_tick(bot: TradingBot) -> bool:
     return (_utcnow() - last_run_at).total_seconds() >= interval
 
 
+def _is_reconciliation_candidate(
+    bot: TradingBot, order: TradingBotOrder, *, include_legacy: bool
+) -> bool:
+    if not order.order_link_id or order.status not in ACTIVE_ORDER_STATUSES:
+        return False
+    if _is_current_generation_link_id(bot, order.order_link_id):
+        return True
+    return include_legacy and order.order_link_id.startswith(
+        get_legacy_order_link_prefix(bot)
+    )
+
+
+def _mark_order_missing_from_exchange(
+    db, bot: TradingBot, order: TradingBotOrder
+) -> dict:
+    old_status = order.status
+    reconciled_at = _utcnow()
+    order.status = "Cancelled"
+    payload = dict(order.raw_response or {})
+    payload.update(
+        {
+            "orderStatus": "Cancelled",
+            "reconciliation": {
+                "reason": "missing_from_exchange",
+                "previousStatus": old_status,
+                "reconciledAt": reconciled_at.isoformat(),
+            },
+        }
+    )
+    order.raw_response = payload
+    db.add(order)
+    log_bot_event(
+        db,
+        bot,
+        "order_reconciled_missing",
+        "Marked local active order as cancelled because it is missing from the exchange",
+        {
+            "order_link_id": order.order_link_id,
+            "order_role": order.order_role,
+            "previous_status": old_status,
+            "new_status": order.status,
+        },
+    )
+    return _status_change_payload(order, old_status, order.status)
+
+
 def sync_bot_orders(db, bot: TradingBot, *, include_legacy: bool = False) -> list[dict]:
     session = get_bybit_session(bot)
     prefixes = [get_order_link_prefix(bot)]
@@ -868,11 +1012,18 @@ def sync_bot_orders(db, bot: TradingBot, *, include_legacy: bool = False) -> lis
             if not include_legacy and not _is_current_generation_link_id(bot, order_link_id):
                 continue
             remote_by_link[order_link_id] = remote
+
+    local_orders = (
+        db.query(TradingBotOrder)
+        .filter(
+            TradingBotOrder.bot_id == bot.id,
+            TradingBotOrder.user_id == bot.user_id,
+        )
+        .all()
+    )
     local_by_link = {
         order.order_link_id: order
-        for order in db.query(TradingBotOrder)
-        .filter(TradingBotOrder.bot_id == bot.id, TradingBotOrder.user_id == bot.user_id)
-        .all()
+        for order in local_orders
         if order.order_link_id
     }
 
@@ -890,6 +1041,37 @@ def sync_bot_orders(db, bot: TradingBot, *, include_legacy: bool = False) -> lis
         new_status = record.status
         db.add(record)
         changes.append(_status_change_payload(record, old_status, new_status))
+
+    # An emulator account reset deletes orders instead of leaving cancelled history.
+    # Reconcile any locally active order that is absent from both exchange open orders
+    # and exact order history. Once marked final, the running worker can safely build
+    # a clean replacement grid in the same tick.
+    for record in local_orders:
+        if not _is_reconciliation_candidate(
+            bot, record, include_legacy=include_legacy
+        ):
+            continue
+        order_link_id = record.order_link_id
+        if order_link_id in remote_by_link:
+            continue
+
+        exact_remote = get_order_status_by_link_id(
+            session,
+            category=bot.category,
+            symbol=bot.symbol,
+            order_link_id=order_link_id,
+        )
+        if exact_remote:
+            old_status = record.status
+            _update_local_order_from_exchange(record, exact_remote)
+            db.add(record)
+            remote_by_link[order_link_id] = exact_remote
+            changes.append(
+                _status_change_payload(record, old_status, record.status)
+            )
+            continue
+
+        changes.append(_mark_order_missing_from_exchange(db, bot, record))
 
     db.flush()
     return changes
@@ -1069,9 +1251,6 @@ def tick_grid_bot(db, bot: TradingBot) -> dict:
 
     try:
         synced = sync_bot_orders(db, bot)
-        tp_changes, current_position_size = sync_position_take_profit(db, bot)
-        created_entries = create_missing_grid_entries(
-            db, bot, current_position_size)
 
         for change in synced:
             order = change["order"]
@@ -1091,14 +1270,36 @@ def tick_grid_bot(db, bot: TradingBot) -> dict:
                 log_bot_event(db, bot, "order_rejected", "Order rejected", {
                               "order_link_id": order.order_link_id})
 
+        rollover_changes, rollover_triggered, cancellation_confirmed = (
+            _rollover_completed_take_profit_cycle(db, bot)
+        )
+        if rollover_triggered and not cancellation_confirmed:
+            bot.last_run_at = _utcnow()
+            bot.last_error = None
+            db.add(bot)
+            db.commit()
+            return {
+                "orders": rollover_changes,
+                "events": len(synced),
+                "message": "Waiting for previous grid cancellation confirmation",
+            }
+
+        tp_changes, current_position_size = sync_position_take_profit(db, bot)
+        created_entries = create_missing_grid_entries(
+            db, bot, current_position_size)
+
         bot.last_run_at = _utcnow()
         bot.last_error = None
         db.add(bot)
         db.commit()
         return {
-            "orders": tp_changes + created_entries,
+            "orders": rollover_changes + tp_changes + created_entries,
             "events": len(synced),
-            "message": "Tick completed",
+            "message": (
+                "Tick completed; take-profit cycle rolled over"
+                if rollover_triggered
+                else "Tick completed"
+            ),
         }
     except Exception as exc:  # noqa: BLE001
         bot.last_run_at = _utcnow()

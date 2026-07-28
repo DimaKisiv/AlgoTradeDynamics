@@ -337,3 +337,14 @@ personal/перша літера імʼя та прізвища у моєму в
 
 8. **Після merge видалити branch**, якщо вона більше не використовується.
 
+
+## Exchange reset reconciliation
+
+If an emulator account is reset while a bot is still running, the backend now reconciles its local order state on the next worker tick:
+
+- locally active orders missing from both exchange open orders and exact order history are marked `Cancelled`;
+- the reconciliation reason is stored in `raw_response.reconciliation`;
+- a bot event `order_reconciled_missing` is written;
+- the running grid bot creates a clean replacement grid from the current market price;
+- filled/cancelled order history and closed-cycle performance remain available;
+- the bot summary shows only active Position TP orders.

@@ -16,6 +16,26 @@ services:
       timeout: 5s
       retries: 10
 
+  exchange-emulator:
+    build: ./EXCHANGE_EMULATOR
+    container_name: algotrade_exchange_emulator
+    environment:
+      EMULATOR_DATABASE_URL: sqlite:////data/emulator.db
+      EMULATOR_CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173,http://localhost:8000
+      BYBIT_PUBLIC_API_URL: https://api.bybit.com
+      EMULATOR_SEED_DATA_DIR: /seed-data
+    ports:
+      - "8001:8001"
+    volumes:
+      - emulator_data:/data
+      - ./EXCHANGE_EMULATOR/app:/app/app
+      - ./BE/data:/seed-data:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   backend:
     build: ./BE
     container_name: algotrade_backend
@@ -27,8 +47,10 @@ services:
       JWT_SECRET_KEY: dev-secret-change-me-0123456789abcdef0123456789abcdef
       JWT_ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: 10080
-      BYBIT_DEMO_API_KEY: PDdbJRKdUNhcTl1vFx
-      BYBIT_DEMO_API_SECRET: PoCPJwRV3WmfIzQoOyupNpNMROhaLAMOPUWG
+      EXCHANGE_EMULATOR_URL: http://exchange-emulator:8001
+      EXCHANGE_EMULATOR_DEFAULT_API_KEY: emulator-default-key
+      BYBIT_DEMO_API_KEY: ${BYBIT_DEMO_API_KEY:-}
+      BYBIT_DEMO_API_SECRET: ${BYBIT_DEMO_API_SECRET:-}
     ports:
       - "8000:8000"
     volumes:
@@ -38,12 +60,15 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      exchange-emulator:
+        condition: service_healthy
 
   frontend:
     build: ./FE
     container_name: algotrade_frontend
     environment:
       VITE_API_BASE_URL: http://localhost:8000/api
+      VITE_EMULATOR_BASE_URL: http://localhost:8001
     ports:
       - "5173:5173"
     volumes:
@@ -53,6 +78,8 @@ services:
       - ./FE/vite.config.js:/app/vite.config.js
     depends_on:
       - backend
+      - exchange-emulator
 
 volumes:
   pgdata:
+  emulator_data:

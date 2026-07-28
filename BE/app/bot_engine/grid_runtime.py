@@ -842,7 +842,10 @@ def _should_tick(bot: TradingBot) -> bool:
     interval = int(get_bot_setting(bot, "run_interval_seconds", 10))
     if bot.last_run_at is None:
         return True
-    return (_utcnow() - bot.last_run_at).total_seconds() >= interval
+    last_run_at = bot.last_run_at
+    if last_run_at.tzinfo is None:
+        last_run_at = last_run_at.replace(tzinfo=timezone.utc)
+    return (_utcnow() - last_run_at).total_seconds() >= interval
 
 
 def sync_bot_orders(db, bot: TradingBot, *, include_legacy: bool = False) -> list[dict]:

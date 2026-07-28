@@ -16,6 +16,8 @@ class Settings(BaseSettings):
 
     default_dataset: str = "data/btc_usdt_2024.csv"
     bot_worker_enabled: bool = True
+    exchange_emulator_url: str = "http://exchange-emulator:8001"
+    exchange_emulator_default_api_key: str = "emulator-default-key"
 
     # --- Auth / JWT ---
     jwt_secret_key: str = "dev-secret-change-me-0123456789abcdef0123456789abcdef"

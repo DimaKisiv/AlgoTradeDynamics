@@ -1,0 +1,302 @@
+.page {
+  min-height: 100vh;
+  padding: 9rem 0 5rem;
+}
+
+.hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.hero h1 { margin: .5rem 0 1rem; }
+.hero p { max-width: 760px; }
+
+.selectorGroup {
+  display: flex;
+  align-items: flex-end;
+  gap: .75rem;
+  flex-wrap: wrap;
+  min-width: 420px;
+}
+
+.selectorGroup label,
+.formStack label {
+  display: flex;
+  flex-direction: column;
+  gap: .45rem;
+  color: var(--text-secondary);
+  font-size: .78rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.selectorGroup select,
+.formStack input,
+.formStack select,
+.stepRow input {
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .035);
+  color: var(--text-primary);
+  padding: .65rem .8rem;
+}
+
+.notice {
+  margin-bottom: 1rem;
+  padding: .85rem 1rem;
+  border: 1px solid rgba(95, 255, 181, .25);
+  border-radius: 12px;
+  background: rgba(95, 255, 181, .06);
+}
+
+.error {
+  border-color: rgba(255, 91, 91, .3);
+  background: rgba(255, 91, 91, .08);
+  color: #ffb0b0;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: .8rem;
+  margin-bottom: 1rem;
+}
+
+.metric {
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .025);
+}
+
+.metric span {
+  display: block;
+  margin-bottom: .45rem;
+  color: var(--text-secondary);
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.metric strong {
+  font-size: 1.08rem;
+  overflow-wrap: anywhere;
+}
+
+.chartCard { margin-bottom: 1rem; }
+.chart { height: 300px; }
+.chartEmpty {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: var(--text-secondary);
+}
+
+.tabs {
+  display: flex;
+  gap: .4rem;
+  margin: 1rem 0;
+  padding: .35rem;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  width: fit-content;
+  background: rgba(255,255,255,.02);
+}
+
+.tabs button {
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  padding: .65rem 1rem;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.tabs button:hover,
+.tabs .activeTab {
+  background: rgba(255,255,255,.08);
+  color: var(--text-primary);
+}
+
+.twoColumns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.formStack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.fieldGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .75rem;
+}
+
+.actionRow,
+.quickButtons,
+.importRow {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  flex-wrap: wrap;
+}
+
+.quickButtons button,
+.datasetList button,
+.iconDanger,
+.stepRow button {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: rgba(255,255,255,.04);
+  color: var(--text-primary);
+  min-height: 36px;
+  padding: .4rem .75rem;
+  cursor: pointer;
+}
+
+.iconDanger,
+.stepRow button {
+  color: #ff8b8b;
+  display: grid;
+  place-items: center;
+}
+
+.steps,
+.scenarioList,
+.datasetList {
+  display: flex;
+  flex-direction: column;
+  gap: .65rem;
+}
+
+.stepRow {
+  display: grid;
+  grid-template-columns: 35px 1fr 1fr 42px;
+  gap: .55rem;
+  align-items: center;
+}
+
+.scenarioItem,
+.datasetList > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: .85rem;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: rgba(255,255,255,.025);
+}
+
+.scenarioItem > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+}
+
+.scenarioItem span,
+.datasetList small {
+  color: var(--text-secondary);
+  font-size: .78rem;
+}
+
+.datasetList > div {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.importRow input { max-width: 260px; }
+
+.progressBox {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: .5rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.progressBox progress {
+  width: 100%;
+  grid-column: 1 / -1;
+}
+
+.credential {
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+}
+
+.credential span {
+  color: var(--text-secondary);
+  font-size: .78rem;
+  text-transform: uppercase;
+}
+
+.credential code {
+  padding: .8rem;
+  border-radius: 10px;
+  background: rgba(255,255,255,.05);
+  overflow-wrap: anywhere;
+}
+
+.activityGrid {
+  display: grid;
+  gap: 1rem;
+}
+
+.tableWrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 680px;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: .7rem .6rem;
+  border-bottom: 1px solid var(--line);
+  font-size: .82rem;
+}
+
+.table th {
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  font-size: .7rem;
+}
+
+.emptyCell {
+  text-align: center !important;
+  color: var(--text-secondary);
+  padding: 2rem !important;
+}
+
+@media (max-width: 1100px) {
+  .metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .hero { align-items: flex-start; flex-direction: column; }
+  .selectorGroup { min-width: 0; }
+}
+
+@media (max-width: 760px) {
+  .page { padding-top: 7rem; }
+  .metrics,
+  .twoColumns,
+  .fieldGrid { grid-template-columns: 1fr; }
+  .tabs { width: 100%; overflow-x: auto; }
+  .stepRow { grid-template-columns: 30px 1fr; }
+  .stepRow input, .stepRow button { grid-column: 2; }
+}

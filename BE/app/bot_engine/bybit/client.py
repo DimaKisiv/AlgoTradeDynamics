@@ -3,9 +3,14 @@ from __future__ import annotations
 
 import os
 
-from pybit.unified_trading import HTTP
+try:
+    from pybit.unified_trading import HTTP
+except ImportError:  # Allows emulator-only development without pybit installed.
+    HTTP = None  # type: ignore[assignment]
 
 from app.models.trading_bot import TradingBot
+from app.core.config import get_settings
+from app.bot_engine.bybit.emulator_client import EmulatorHTTP
 
 
 def _load_credentials(environment: str) -> tuple[str | None, str | None]:
@@ -20,7 +25,22 @@ def _load_credentials(environment: str) -> tuple[str | None, str | None]:
     return api_key, api_secret
 
 
-def get_bybit_session(bot: TradingBot) -> HTTP:
+def get_bybit_session(bot: TradingBot):
+    if bot.environment == "emulator":
+        settings = get_settings()
+        bot_settings = bot.settings or {}
+        api_key = str(
+            bot_settings.get("emulator_api_key")
+            or settings.exchange_emulator_default_api_key
+        )
+        return EmulatorHTTP(
+            base_url=settings.exchange_emulator_url,
+            api_key=api_key,
+        )
+
+    if HTTP is None:
+        raise RuntimeError("pybit is required for Bybit demo, testnet, or live environments")
+
     api_key, api_secret = _load_credentials(bot.environment)
     if not api_key or not api_secret:
         raise ValueError(

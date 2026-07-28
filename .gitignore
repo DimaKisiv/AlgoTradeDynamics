@@ -36,3 +36,7 @@ htmlcov/
 *.tmp
 *.temp
 *.swp
+EXCHANGE_EMULATOR/__pycache__/
+EXCHANGE_EMULATOR/**/*.py[cod]
+EXCHANGE_EMULATOR/.pytest_cache/
+EXCHANGE_EMULATOR/*.db

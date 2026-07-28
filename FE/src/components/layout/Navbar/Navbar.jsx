@@ -68,6 +68,14 @@ export default function Navbar() {
                 Боти
               </NavLink>
               <NavLink
+                to="/emulator"
+                className={({ isActive }) =>
+                  `${styles.navLink} ${isActive ? styles.isActive : ""}`
+                }
+              >
+                Emulator
+              </NavLink>
+              <NavLink
                 to="/runs"
                 className={({ isActive }) =>
                   `${styles.navLink} ${isActive || location.pathname.startsWith("/runs/") ? styles.isActive : ""}`

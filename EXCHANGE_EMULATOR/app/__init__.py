@@ -1,0 +1,1 @@
+"""AlgoTradeDynamics exchange emulator."""

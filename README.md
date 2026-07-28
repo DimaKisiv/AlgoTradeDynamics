@@ -12,8 +12,9 @@ RSI Mean Reversion), запустити її на історичних дани�
 - Історію усіх запусків з можливістю порівняння
 - Персональний обліковий запис — кожен користувач працює лише зі своїми даними
 
-Симуляція використовує реальні історичні OHLCV-дані. **Жодних реальних ордерів** і жодних
-підключень до бірж — це навчальний backtester.
+Платформа містить окремий локальний **Exchange Emulator**. Він приймає Bybit-сумісні
+запити від grid-бота, але не відправляє ордери на реальну біржу. Для Bybit Demo/Testnet/Live
+залишена окрема конфігурація, яку слід вмикати лише свідомо.
 
 ---
 
@@ -86,16 +87,85 @@ docker compose up --build
 - **Frontend (SPA):** http://localhost:5173
 - **Backend (API):** http://localhost:8000
 - **Swagger UI:** http://localhost:8000/docs
+- **Exchange Emulator API / Swagger:** http://localhost:8001/docs
 - **PostgreSQL:** localhost:5432 (user `postgres` / db `algotrade`)
 
 Alembic міграції виконуються автоматично при старті backend-контейнера.
+
+
+## Exchange Emulator
+
+Після `docker compose up --build` відкрийте frontend, увійдіть і перейдіть у
+**Emulator** (`/emulator`). Сервіс біржі працює окремо на `http://localhost:8001`,
+а його SQLite-база зберігається в Docker volume `emulator_data`.
+
+### Що реалізовано
+
+- постійні тестові акаунти з API key, балансом, equity та available balance;
+- Bybit-сумісні endpoints для ticker, instrument info, create/cancel/query orders,
+  order history, positions, wallet balance, executions і leverage;
+- повне виконання limit/market ордерів, reduce-only закриття, average entry,
+  realized/unrealized PnL та maker/taker fees;
+- режими **Manual**, **Scenario** та **Historical Replay**;
+- завантаження OHLCV через публічний Bybit Kline API;
+- автоматично підготовлені bundled daily datasets BTCUSDT та ETHUSDT за 2024 рік;
+- імпорт CSV з колонками `date|timestamp|open_time, open, high, low, close, volume`;
+- журнал подій, orders, positions та executions;
+- вибір emulator-акаунта безпосередньо у формі створення бота.
+
+### Перший тест бота
+
+1. Відкрийте `/emulator` → **Accounts**. Можна використати `Default Emulator Account`
+   з балансом 10,000 USDT або створити новий.
+2. Відкрийте `/bots` і створіть бота:
+   - Environment: `Local Emulator`;
+   - Emulator account: потрібний тестовий акаунт;
+   - Symbol: наприклад `ETHUSDT`;
+   - Order Qty: наприклад `0.01`;
+   - Grid Orders: `2`;
+   - Grid Step: `5`.
+3. Натисніть **Start**. Worker створить grid-ордери через локальний Bybit-compatible API.
+4. Поверніться в `/emulator` → **Manual** і зменште ціну. Ордери, позиція та PnL
+   з'являться у вкладці **Activity**.
+5. Підніміть ціну вище take-profit, щоб перевірити закриття циклу.
+6. Перед новим незалежним тестом натисніть **Reset account**.
+
+### Historical Replay
+
+1. У вкладці **Historical** виберіть symbol, діапазон дат та interval.
+2. Натисніть **Download from Bybit** або імпортуйте CSV.
+3. Виберіть швидкість та intrabar path:
+   - `Open → High → Low → Close`;
+   - `Open → Low → High → Close`;
+   - `Close only`.
+4. Використовуйте **Start / Pause / Resume / Next candle / Stop**.
+
+`speed` означає кількість свічок за секунду, а не реальний часовий масштаб.
+Для повторюваних тестів використовуйте той самий акаунт після reset або окремий акаунт.
+
+### Сервіси Docker Compose
+
+```text
+frontend          http://localhost:5173
+backend           http://localhost:8000
+exchange-emulator http://localhost:8001
+postgres          localhost:5432
+```
+
+### Тести емулятора
+
+```bash
+cd EXCHANGE_EMULATOR
+pip install -r requirements.txt
+PYTHONPATH=. pytest -q
+```
 
 ## Локальний запуск без Docker
 
 ### Backend
 
 ```bash
-cd backend
+cd BE
 python -m venv .venv
 source .venv/bin/activate         # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
@@ -110,7 +180,7 @@ uvicorn app.main:app --reload
 У новому терміналі:
 
 ```bash
-cd frontend
+cd FE
 cp .env.example .env
 npm install
 npm run dev
@@ -119,7 +189,7 @@ npm run dev
 ## Тестування
 
 ```bash
-cd backend
+cd BE
 pytest -v
 ```
 
@@ -127,7 +197,7 @@ pytest -v
 drawdown halt), HTTP API (POST/GET/DELETE, validation errors), автентифікацію
 (register / login / me) та ізоляцію даних між користувачами.
 
-Очікуваний результат: **30 passed**.
+Кількість тестів може змінюватися разом із функціональністю; усі тести мають завершитися без помилок.
 
 ## API стисло
 
@@ -184,8 +254,8 @@ password: demo1234
 
 ## Безпека та обмеження
 
-Це навчальний MVP. **Жодних реальних ордерів не виконується.** Усі ціни — історичні; вся
-торгівля — умовна симуляція. Платформа не призначена для прийняття інвестиційних рішень
+Це навчальний MVP. **Жодних реальних ордерів в emulator-режимі не виконується.** Ціни можуть
+задаватися вручну, сценарієм або історичними свічками; вся emulator-торгівля — умовна симуляція. Платформа не призначена для прийняття інвестиційних рішень
 без додаткового аналізу.
 
 

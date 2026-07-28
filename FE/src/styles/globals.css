@@ -48,6 +48,17 @@ body::after {
 a { color: inherit; text-decoration: none; }
 button { font: inherit; cursor: pointer; background: none; border: none; color: inherit; }
 input, select, textarea { font: inherit; color: inherit; }
+
+/* Keep native dropdown popups readable in the dark theme.
+   On Windows/Chromium the opened <option> list otherwise uses a white
+   system background while inheriting our light text color. */
+select { color-scheme: dark; }
+select option,
+select optgroup {
+  background-color: var(--bg-2);
+  color: var(--text-primary);
+}
+
 img, svg { display: block; max-width: 100%; }
 
 ::selection { background: var(--accent-soft); color: var(--text-primary); }

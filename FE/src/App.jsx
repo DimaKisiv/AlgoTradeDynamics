@@ -14,6 +14,7 @@ import RunDetailPage from "./pages/RunDetailPage/RunDetailPage";
 import LoginPage from "./pages/LoginPage/LoginPage";
 import RegisterPage from "./pages/RegisterPage/RegisterPage";
 import AccountPage from "./pages/AccountPage/AccountPage";
+import EmulatorPage from "./pages/EmulatorPage/EmulatorPage";
 
 export default function App() {
   return (
@@ -61,6 +62,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <BotDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/emulator"
+            element={
+              <ProtectedRoute>
+                <EmulatorPage />
               </ProtectedRoute>
             }
           />

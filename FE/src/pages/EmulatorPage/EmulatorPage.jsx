@@ -346,7 +346,7 @@ export default function EmulatorPage() {
             <Card>
               <CardHeader eyebrow="Immediate" title="Встановити ціну" />
               <div className={styles.formStack}>
-                <label><span>New price</span><input type="number" value={manualPrice} onChange={(e) => setManualPrice(e.target.value)} /></label>
+                <label><span>New price</span><input type="number" min="0.01" step="0.01" value={manualPrice} onChange={(e) => setManualPrice(e.target.value)} /></label>
                 <Button icon={<Gauge size={16} />} disabled={busy} onClick={() => runAction(() => emulatorApi.setPrice(symbol, Number(manualPrice)), "Ціну встановлено.")}>Set price</Button>
                 <div className={styles.quickButtons}>
                   {[-5, -1, 1, 5].map((value) => <button key={value} type="button" onClick={() => setPercent(value)}>{value > 0 ? "+" : ""}{value}%</button>)}
@@ -356,8 +356,8 @@ export default function EmulatorPage() {
             <Card>
               <CardHeader eyebrow="Smooth move" title="Плавний рух" />
               <div className={styles.formStack}>
-                <label><span>Target price</span><input type="number" value={moveTarget} onChange={(e) => setMoveTarget(e.target.value)} /></label>
-                <label><span>Duration, seconds</span><input type="number" min="0" value={moveDuration} onChange={(e) => setMoveDuration(e.target.value)} /></label>
+                <label><span>Target price</span><input type="number" min="0.01" step="0.01" value={moveTarget} onChange={(e) => setMoveTarget(e.target.value)} /></label>
+                <label><span>Duration, seconds</span><input type="number" min="0" step="1" value={moveDuration} onChange={(e) => setMoveDuration(e.target.value)} /></label>
                 <div className={styles.actionRow}>
                   <Button icon={<Play size={16} />} disabled={busy} onClick={() => runAction(() => emulatorApi.movePrice(symbol, Number(moveTarget), Number(moveDuration)), "Рух ціни запущено.")}>Move</Button>
                   <Button variant="ghost" icon={<Pause size={16} />} onClick={() => runAction(() => emulatorApi.pauseMarket(symbol), "Поставлено на паузу.")}>Pause</Button>
@@ -378,8 +378,8 @@ export default function EmulatorPage() {
                   {scenarioSteps.map((step, index) => (
                     <div className={styles.stepRow} key={index}>
                       <span>#{index + 1}</span>
-                      <input type="number" placeholder="Price" value={step.price} onChange={(e) => setScenarioSteps((items) => items.map((item, i) => i === index ? { ...item, price: e.target.value } : item))} />
-                      <input type="number" min="0" placeholder="Seconds" value={step.duration_seconds} onChange={(e) => setScenarioSteps((items) => items.map((item, i) => i === index ? { ...item, duration_seconds: e.target.value } : item))} />
+                      <input type="number" min="0.01" step="0.01" placeholder="Price" value={step.price} onChange={(e) => setScenarioSteps((items) => items.map((item, i) => i === index ? { ...item, price: e.target.value } : item))} />
+                      <input type="number" min="0" step="1" placeholder="Seconds" value={step.duration_seconds} onChange={(e) => setScenarioSteps((items) => items.map((item, i) => i === index ? { ...item, duration_seconds: e.target.value } : item))} />
                       <button type="button" onClick={() => setScenarioSteps((items) => items.filter((_, i) => i !== index))}><Trash2 size={15} /></button>
                     </div>
                   ))}
@@ -471,7 +471,7 @@ export default function EmulatorPage() {
               <CardHeader eyebrow="New account" title="Створити тестовий акаунт" />
               <div className={styles.formStack}>
                 <label><span>Name</span><input value={newAccountName} onChange={(e) => setNewAccountName(e.target.value)} /></label>
-                <label><span>Initial USDT balance</span><input type="number" value={newAccountBalance} onChange={(e) => setNewAccountBalance(e.target.value)} /></label>
+                <label><span>Initial USDT balance</span><input type="number" min="0.01" step="0.01" value={newAccountBalance} onChange={(e) => setNewAccountBalance(e.target.value)} /></label>
                 <Button icon={<Plus size={16} />} onClick={() => runAction(() => emulatorApi.createAccount({ name: newAccountName, initial_balance: Number(newAccountBalance) }), "Акаунт створено.")}>Create account</Button>
               </div>
             </Card>
@@ -480,7 +480,7 @@ export default function EmulatorPage() {
               {selectedAccount && (
                 <div className={styles.formStack}>
                   <div className={styles.credential}><span>API key</span><code>{selectedAccount.api_key}</code></div>
-                  <label><span>Add/remove funds</span><input type="number" value={fundAmount} onChange={(e) => setFundAmount(e.target.value)} /></label>
+                  <label><span>Add/remove funds</span><input type="number" step="0.01" value={fundAmount} onChange={(e) => setFundAmount(e.target.value)} /></label>
                   <div className={styles.actionRow}>
                     <Button icon={<Banknote size={16} />} onClick={() => runAction(() => emulatorApi.fundAccount(selectedAccount.id, Number(fundAmount)), "Баланс змінено.")}>Apply</Button>
                     <Button variant="ghost" icon={<RotateCcw size={16} />} onClick={() => runAction(() => emulatorApi.resetAccount(selectedAccount.id), "Акаунт очищено та скинуто.")}>Reset account</Button>

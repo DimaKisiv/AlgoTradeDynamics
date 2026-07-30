@@ -212,7 +212,7 @@ export default function BacktestsPage() {
               <label><span>Dataset interval</span><select value={form.interval} onChange={(e) => setForm({ ...form, interval: e.target.value })}>
                 {botDatasets.map((item) => <option key={`${item.exchange}-${item.interval}`} value={item.interval}>{item.symbol} · {item.interval} · {item.candles.toLocaleString()} candles</option>)}
               </select></label>
-              <label><span>Starting balance</span><input type="number" min="1" step="100" value={form.initial_balance} onChange={(e) => setForm({ ...form, initial_balance: e.target.value })} /></label>
+              <label><span>Starting balance</span><input type="number" min="0.01" step="0.01" value={form.initial_balance} onChange={(e) => setForm({ ...form, initial_balance: e.target.value })} /></label>
               <label><span>From</span><input type="date" value={form.from} min={selectedDataset ? toDateInput(selectedDataset.from_time) : undefined} max={selectedDataset ? toDateInput(selectedDataset.to_time) : undefined} onChange={(e) => setForm({ ...form, from: e.target.value })} /></label>
               <label><span>To</span><input type="date" value={form.to} min={selectedDataset ? toDateInput(selectedDataset.from_time) : undefined} max={selectedDataset ? toDateInput(selectedDataset.to_time) : undefined} onChange={(e) => setForm({ ...form, to: e.target.value })} /></label>
               <label><span>Execution path</span><select value={form.path_mode} onChange={(e) => setForm({ ...form, path_mode: e.target.value })}>

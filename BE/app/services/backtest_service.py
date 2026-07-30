@@ -281,6 +281,49 @@ def _tick_until_stable(db: Session, bot: TradingBot, max_ticks: int = 7) -> None
         previous = current
 
 
+def _assert_initial_grid_created(db: Session, bot: TradingBot) -> None:
+    """Fail a backtest when its initial grid cannot create any order.
+
+    Order validation in the shared live runtime is intentionally recoverable and is
+    recorded as bot events. During a historical backtest, however, retrying the
+    same invalid configuration on every candle produces thousands of duplicate
+    errors and a misleading Completed result.
+    """
+    active_orders = (
+        db.query(TradingBotOrder.id)
+        .filter(
+            TradingBotOrder.bot_id == bot.id,
+            TradingBotOrder.status.in_({"New", "PartiallyFilled", "Untriggered"}),
+        )
+        .count()
+    )
+    if active_orders > 0:
+        return
+
+    error_events = (
+        db.query(TradingBotEvent)
+        .filter(
+            TradingBotEvent.bot_id == bot.id,
+            TradingBotEvent.event_type == "error",
+        )
+        .order_by(asc(TradingBotEvent.id))
+        .all()
+    )
+    if not error_events:
+        return
+
+    unique_messages: list[str] = []
+    for event in error_events:
+        message = str(event.message or "Backtest bot failed to create its initial grid")
+        if message not in unique_messages:
+            unique_messages.append(message)
+
+    details = "; ".join(unique_messages[:5])
+    if len(unique_messages) > 5:
+        details += f"; and {len(unique_messages) - 5} more errors"
+    raise RuntimeError(f"Initial grid creation failed: {details}")
+
+
 def _dashboard_values(payload: dict) -> dict[str, float]:
     account = payload.get("account") or {}
     position = payload.get("position") or {}
@@ -524,6 +567,8 @@ def run_backtest_job(run_id: int) -> None:
                 if (index == 1 and point_index == 0) or int(price_result.get("filled_orders") or 0) > 0:
                     with use_simulated_time(simulated_dt):
                         _tick_until_stable(db, temp_bot, max_ticks=5)
+                    if index == 1 and point_index == 0:
+                        _assert_initial_grid_created(db, temp_bot)
                 dashboard = emulator.dashboard(run.emulator_account_id, run.symbol)
                 values = _dashboard_values(dashboard)
 

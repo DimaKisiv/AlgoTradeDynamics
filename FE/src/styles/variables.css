@@ -29,35 +29,22 @@
 
   --warning: #ffc24b;
 
-  --gradient-hero:
-    radial-gradient(
+  --gradient-hero: radial-gradient(
       ellipse 120% 80% at 50% 0%,
       rgba(0, 224, 143, 0.18) 0%,
       transparent 50%
     ),
-    radial-gradient(
-      ellipse 100% 70% at 90% 30%,
-      rgba(102, 166, 255, 0.12) 0%,
-      transparent 60%
-    ),
-    radial-gradient(
-      ellipse 80% 60% at 10% 60%,
-      rgba(0, 224, 143, 0.08) 0%,
-      transparent 60%
-    );
+    radial-gradient(ellipse 100% 70% at 90% 30%, rgba(102, 166, 255, 0.12) 0%, transparent 60%),
+    radial-gradient(ellipse 80% 60% at 10% 60%, rgba(0, 224, 143, 0.08) 0%, transparent 60%);
 
   --gradient-accent: linear-gradient(135deg, #00e08f 0%, #66f0c4 100%);
   --gradient-text: linear-gradient(135deg, #f4f5fa 0%, #aab1c4 100%);
-  --gradient-glow: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.12) 0%,
-    rgba(255, 255, 255, 0) 60%
-  );
+  --gradient-glow: linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 60%);
 
   /* Typography */
-  --font-display: "Space Grotesk", sans-serif;
-  --font-body: "Inter", sans-serif;
-  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+  --font-display: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --font-body: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 
   /* Spacing scale */
   --space-1: 4px;

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import math
+from decimal import Decimal, ROUND_CEILING
 import statistics
 import time
 from datetime import datetime, timedelta, timezone
@@ -44,6 +45,54 @@ def _interval_seconds(interval: str) -> int:
         "720": 43200, "D": 86400, "W": 604800, "M": 2592000,
     }
     return mapping.get(str(interval), 60)
+
+
+
+
+def _ceil_to_step(value: float, step: float) -> float:
+    if step <= 0:
+        return value
+    value_decimal = Decimal(str(value))
+    step_decimal = Decimal(str(step))
+    units = (value_decimal / step_decimal).quantize(Decimal("1"), rounding=ROUND_CEILING)
+    return float(units * step_decimal)
+
+
+def _validate_initial_grid_quantity(
+    bot: TradingBot,
+    *,
+    first_price: float,
+    instrument_response: dict[str, Any],
+) -> None:
+    items = instrument_response.get("result", {}).get("list", [])
+    if not items:
+        raise ValueError(f"Instrument rules were not found for {bot.symbol}")
+
+    lot = items[0].get("lotSizeFilter", {})
+    min_order_qty = _float(lot.get("minOrderQty"))
+    qty_step = _float(lot.get("qtyStep"), 0.000001)
+    min_notional = _float(lot.get("minNotionalValue"))
+
+    levels = max(int(bot.grid_orders_count or 1), 1)
+    step_percent = max(_float(bot.grid_step_percent), 0.0)
+    lowest_multiplier = 1.0 - ((levels - 1) * step_percent / 100.0)
+    lowest_grid_price = first_price * lowest_multiplier
+    if lowest_grid_price <= 0:
+        raise ValueError("Grid configuration produces a non-positive order price")
+
+    required_for_notional = min_notional / lowest_grid_price if min_notional > 0 else 0.0
+    minimum_qty = _ceil_to_step(max(min_order_qty, required_for_notional), qty_step)
+    configured_qty = _float(bot.order_qty)
+
+    if configured_qty + 1e-12 < minimum_qty:
+        coin = bot.symbol.removesuffix("USDT")
+        raise ValueError(
+            f"Order quantity is too small for this backtest. "
+            f"Configured: {configured_qty:g} {coin}. "
+            f"Minimum for all {levels} grid levels at the starting price is "
+            f"{minimum_qty:g} {coin} (Bybit minimum notional: {min_notional:g} USDT). "
+            f"Increase the bot Order quantity to at least {minimum_qty:g} {coin} and try again."
+        )
 
 
 def _bot_snapshot(bot: TradingBot) -> dict[str, Any]:
@@ -103,10 +152,26 @@ def create_backtest(db: Session, payload: BacktestCreate, user_id: int) -> Backt
             start_time=payload.start_time,
             end_time=payload.end_time,
         )
+        if candle_count <= 0:
+            raise ValueError("No historical candles found for this bot, interval, and period")
+
+        first_candle = emulator.first_candle(
+            symbol=bot.symbol,
+            interval=payload.interval,
+            start_time=payload.start_time,
+            end_time=payload.end_time,
+        )
+        if first_candle is None:
+            raise ValueError("No historical candles found for this bot, interval, and period")
+
+        instrument_response = emulator.instrument_info(category=bot.category, symbol=bot.symbol)
+        _validate_initial_grid_quantity(
+            bot,
+            first_price=_float(first_candle.get("open")),
+            instrument_response=instrument_response,
+        )
     finally:
         emulator.close()
-    if candle_count <= 0:
-        raise ValueError("No historical candles found for this bot, interval, and period")
 
     snapshot = _bot_snapshot(bot)
     name = payload.name or f"{bot.name} · {datetime.fromtimestamp(payload.start_time / 1000, tz=timezone.utc).date()}"

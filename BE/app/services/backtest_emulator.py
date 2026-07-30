@@ -30,6 +30,27 @@ class BacktestEmulatorClient:
         )
         return int(payload.get("count", 0))
 
+
+    def first_candle(self, *, symbol: str, interval: str, start_time: int, end_time: int) -> dict | None:
+        payload = self._request(
+            "GET", "/api/admin/historical/candles",
+            params={
+                "symbol": symbol,
+                "interval": interval,
+                "start_time": start_time,
+                "end_time": end_time,
+                "limit": 1,
+            },
+        )
+        items = payload.get("items", [])
+        return items[0] if items else None
+
+    def instrument_info(self, *, category: str, symbol: str) -> dict:
+        return self._request(
+            "GET", "/v5/market/instruments-info",
+            params={"category": category, "symbol": symbol},
+        )
+
     def candles(self, *, symbol: str, interval: str, start_time: int, end_time: int) -> Iterator[dict]:
         after_time = None
         while True:

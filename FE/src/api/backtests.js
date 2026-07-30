@@ -1,34 +1,17 @@
-/**
- * API client for AlgoTradeDynamics backtests + strategies.
- * Uses the shared `request` wrapper (auth token + error handling).
- */
-import { request, ApiError, API_BASE_URL } from './client';
+import { request } from "./client";
 
-// ----- Strategies -----
-
-export function fetchStrategies() {
-  return request('/strategies');
-}
-
-// ----- Backtests -----
-
-export function startBacktest(payload) {
-  return request('/backtests/start', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
-}
-
-export function listBacktests() {
-  return request('/backtests');
-}
-
-export function getBacktest(id) {
-  return request(`/backtests/${id}`);
-}
-
-export function deleteBacktest(id) {
-  return request(`/backtests/${id}`, { method: 'DELETE' });
-}
-
-export { ApiError, API_BASE_URL };
+export const backtestsApi = {
+  list: () => request("/backtests"),
+  datasets: () => request("/backtests/datasets"),
+  get: (id) => request(`/backtests/${id}`),
+  create: (payload) => request("/backtests", { method: "POST", body: JSON.stringify(payload) }),
+  remove: (id) => request(`/backtests/${id}`, { method: "DELETE" }),
+  pause: (id) => request(`/backtests/${id}/pause`, { method: "POST" }),
+  resume: (id) => request(`/backtests/${id}/resume`, { method: "POST" }),
+  cancel: (id) => request(`/backtests/${id}/cancel`, { method: "POST" }),
+  points: (id) => request(`/backtests/${id}/points`),
+  cycles: (id) => request(`/backtests/${id}/cycles`),
+  orders: (id) => request(`/backtests/${id}/orders`),
+  executions: (id) => request(`/backtests/${id}/executions`),
+  events: (id) => request(`/backtests/${id}/events`),
+};

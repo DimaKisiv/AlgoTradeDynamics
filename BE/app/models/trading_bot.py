@@ -50,6 +50,10 @@ class TradingBot(Base):
         JSON, default=dict, nullable=False)
     order_link_generation: Mapped[int] = mapped_column(
         Integer, default=1, nullable=False)
+    is_backtest: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
+    backtest_run_id: Mapped[int | None] = mapped_column(
+        ForeignKey("backtest_runs.id", ondelete="CASCADE"), nullable=True, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow, nullable=False, index=True
     )

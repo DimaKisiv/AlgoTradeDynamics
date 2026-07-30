@@ -17,11 +17,10 @@ export default function CTA() {
               <span className="italic-accent">за 30 секунд.</span>
             </h2>
             <p className="lead">
-              Без реєстрації, без зайвих кроків. Параметри за замовчуванням уже налаштовано —
-              просто натисніть кнопку.
+              Оберіть одного зі своїх ботів, dataset і період. Backtest створить ізольований акаунт та збере повний звіт.
             </p>
-            <Link to="/app" className={styles.ctaBtn}>
-              <span>Перейти до backtest engine</span>
+            <Link to="/backtests" className={styles.ctaBtn}>
+              <span>Відкрити Bot Backtests</span>
               <ArrowRight size={18} />
             </Link>
           </div>

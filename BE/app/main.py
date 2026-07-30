@@ -9,7 +9,6 @@ from app.api.backtests import router as backtests_router
 from app.api.bots import router as bots_router
 from app.api.bybit import router as bybit_router
 from app.api.health import router as health_router
-from app.api.strategies import router as strategies_router
 from app.bot_engine.runtime import start_bot_worker, stop_bot_worker
 from app.core.config import get_settings
 from app.core.logging import configure_logging, get_logger
@@ -42,9 +41,8 @@ app = FastAPI(
     title=settings.app_name,
     version="1.0.0",
     description=(
-        "REST API для MVP веб-платформи AlgoTradeDynamics. "
-        "Дозволяє запускати backtesting криптовалютних торгових стратегій, "
-        "переглядати метрики, equity curve та журнал угод."
+        "AlgoTradeDynamics API: trading bots, local exchange emulator integration, "
+        "and deterministic historical backtests of existing bot configurations."
     ),
     lifespan=lifespan,
 )
@@ -59,7 +57,6 @@ app.add_middleware(
 
 app.include_router(health_router)
 app.include_router(auth_router, prefix="/api")
-app.include_router(strategies_router, prefix="/api")
 app.include_router(backtests_router, prefix="/api")
 app.include_router(bots_router, prefix="/api")
 app.include_router(bybit_router, prefix="/api")

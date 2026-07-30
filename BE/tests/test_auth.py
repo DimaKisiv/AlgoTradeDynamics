@@ -58,24 +58,3 @@ def test_invalid_token_rejected(client):
     assert client.get("/api/auth/me", headers=headers).status_code == 401
 
 
-def test_users_cannot_access_each_others_runs(client):
-    _, headers_a = _register_and_login(client)
-    _, headers_b = _register_and_login(client)
-
-    payload = {"symbol": "BTC/USDT", "initial_balance": 10000, "strategy": "ma_crossover"}
-    created = client.post("/api/backtests/start", json=payload, headers=headers_a)
-    assert created.status_code == 201
-    run_id = created.json()["id"]
-
-    # User B не бачить запуск користувача A
-    assert client.get(f"/api/backtests/{run_id}", headers=headers_b).status_code == 404
-    # ...і не може його видалити
-    assert client.delete(f"/api/backtests/{run_id}", headers=headers_b).status_code == 404
-    # ...а у власному списку не має його
-    b_runs = client.get("/api/backtests", headers=headers_b).json()
-    assert all(r["id"] != run_id for r in b_runs)
-
-    # User A бачить свій запуск
-    assert client.get(f"/api/backtests/{run_id}", headers=headers_a).status_code == 200
-    a_runs = client.get("/api/backtests", headers=headers_a).json()
-    assert any(r["id"] == run_id for r in a_runs)

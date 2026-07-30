@@ -1,64 +1,10 @@
 import { useScrollReveal } from '../../../hooks/useScrollReveal';
-import { TrendingUp, GitCompare } from 'lucide-react';
+import { Hand, History, Route } from 'lucide-react';
 import styles from './Strategies.module.css';
 
-const STRATS = [
-  {
-    icon: <GitCompare size={22} />,
-    tag: 'Trend Following',
-    name: 'Moving Average Crossover',
-    desc:
-      'Класична трендова стратегія. Buy — коли швидка ковзна перетинає повільну знизу вгору; Sell — навпаки. Чудово працює на трендових ринках, погано — на бічняку.',
-    params: ['Fast MA window', 'Slow MA window'],
-    bg: 'linear-gradient(135deg, rgba(0,224,143,0.18), rgba(0,224,143,0.04))',
-  },
-  {
-    icon: <TrendingUp size={22} />,
-    tag: 'Mean Reversion',
-    name: 'RSI Mean Reversion',
-    desc:
-      'Контр-трендова стратегія. Buy — при виході з зони перепроданості (RSI ↑ через 30), Sell — при вході у перекупленість (RSI ↑ через 70). Працює на ринках з вираженими відкатами.',
-    params: ['RSI period', 'Oversold threshold', 'Overbought threshold'],
-    bg: 'linear-gradient(135deg, rgba(102,166,255,0.15), rgba(102,166,255,0.03))',
-  },
+const MODES = [
+  { icon:<Hand size={22}/>, tag:'Interactive', name:'Manual testing', desc:'Рухайте ціну руками, перевіряйте конкретні edge cases і дивіться, як реальний bot worker створює ордери, позицію та TP.', params:['Exact price control','Live orders and events'], bg:'linear-gradient(135deg,rgba(0,224,143,.18),rgba(0,224,143,.04))' },
+  { icon:<Route size={22}/>, tag:'Repeatable', name:'Scenario testing', desc:'Зберігайте послідовності руху ціни та повторюйте той самий сценарій після змін алгоритму.', params:['Saved price paths','Pause and step mode'], bg:'linear-gradient(135deg,rgba(102,166,255,.15),rgba(102,166,255,.03))' },
+  { icon:<History size={22}/>, tag:'Historical', name:'Bot backtesting', desc:'Оберіть існуючого бота й програйте реальні історичні свічки через той самий Bybit-compatible emulator.', params:['Orders on price chart','Equity, drawdown and exposure'], bg:'linear-gradient(135deg,rgba(185,140,255,.15),rgba(185,140,255,.03))' },
 ];
-
-export default function Strategies() {
-  const headerRef = useScrollReveal();
-  const gridRef = useScrollReveal();
-
-  return (
-    <section id="strategies" className={styles.strats}>
-      <div className="container">
-        <div ref={headerRef} className="section-header reveal">
-          <span className="eyebrow">Стратегії</span>
-          <h2 className="display-2">
-            Дві перевірені <span className="italic-accent">класики</span> з коробки.
-          </h2>
-          <p className="lead">
-            Обидві реалізовані з нуля на Python, без чорних скриньок. Архітектура побудована
-            навколо абстракції <code>Strategy</code> — додати власну займає 30 рядків коду.
-          </p>
-        </div>
-
-        <div ref={gridRef} className={`${styles.stratsGrid} reveal`}>
-          {STRATS.map((s) => (
-            <article key={s.name} className={`${styles.strat} glass-strong`} style={{ '--bg': s.bg }}>
-              <div className={styles.stratIcon}>{s.icon}</div>
-              <span className={styles.stratTag}>{s.tag}</span>
-              <h3 className={styles.stratName}>{s.name}</h3>
-              <p className={styles.stratDesc}>{s.desc}</p>
-              <ul className={styles.stratParams}>
-                {s.params.map((p) => (
-                  <li key={p}>
-                    <span className={styles.stratBullet} /> {p}
-                  </li>
-                ))}
-              </ul>
-            </article>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
+export default function Strategies(){const headerRef=useScrollReveal();const gridRef=useScrollReveal();return <section id="strategies" className={styles.strats}><div className="container"><div ref={headerRef} className="section-header reveal"><span className="eyebrow">Testing modes</span><h2 className="display-2">Один бот. <span className="italic-accent">Три рівні перевірки.</span></h2><p className="lead">Від ручного edge-case до багатомісячного історичного прогону без окремої спрощеної торгової логіки.</p></div><div ref={gridRef} className={`${styles.stratsGrid} reveal`}>{MODES.map((item)=><article key={item.name} className={`${styles.strat} glass-strong`} style={{'--bg':item.bg}}><div className={styles.stratIcon}>{item.icon}</div><span className={styles.stratTag}>{item.tag}</span><h3 className={styles.stratName}>{item.name}</h3><p className={styles.stratDesc}>{item.desc}</p><ul className={styles.stratParams}>{item.params.map((value)=><li key={value}><span className={styles.stratBullet}/>{value}</li>)}</ul></article>)}</div></div></section>}

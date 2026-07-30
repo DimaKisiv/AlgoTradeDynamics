@@ -37,7 +37,7 @@ export default function RegisterPage() {
         <span className="eyebrow">Реєстрація</span>
         <h1 className={`display-3 ${styles.title}`}>Створіть акаунт.</h1>
         <p className="lead">
-          Зареєструйтеся, щоб зберігати власні backtest-сесії й повертатися до них будь-коли.
+          Зареєструйтеся, щоб створювати ботів, запускати emulator і зберігати історичні тести.
         </p>
 
         <form className={styles.form} onSubmit={handleSubmit}>

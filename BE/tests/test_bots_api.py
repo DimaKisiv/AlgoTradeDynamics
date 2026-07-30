@@ -109,7 +109,7 @@ def test_start_sync_stop_and_list_bot_orders(client, auth_headers, monkeypatch):
 
     synced = client.post(f"/api/bots/{bot['id']}/sync", headers=auth_headers)
     assert synced.status_code == 200, synced.text
-    assert all(order["status"] == "Filled" for order in synced.json())
+    assert all(order["status"] in ACTIVE_ORDER_STATUSES for order in synced.json())
 
     stopped = client.post(f"/api/bots/{bot['id']}/stop", headers=auth_headers)
     assert stopped.status_code == 200, stopped.text
@@ -981,7 +981,14 @@ def test_clear_history_increments_generation_and_blocks_old_remote_history(clien
     refreshed_bot = client.get(
         f"/api/bots/{bot['id']}", headers=auth_headers).json()
     assert refreshed_bot["order_link_generation"] == 2
+    assert refreshed_bot["runtime_status"] == "stopped"
 
+    orders = client.get(
+        f"/api/bots/{bot['id']}/orders", headers=auth_headers).json()
+    assert orders == []
+
+    restarted = client.post(f"/api/bots/{bot['id']}/start", headers=auth_headers)
+    assert restarted.status_code == 200, restarted.text
     _tick_bot(bot["id"])
 
     orders = client.get(

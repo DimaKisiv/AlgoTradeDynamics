@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+from functools import lru_cache
 
 try:
     from pybit.unified_trading import HTTP
@@ -25,6 +26,11 @@ def _load_credentials(environment: str) -> tuple[str | None, str | None]:
     return api_key, api_secret
 
 
+@lru_cache(maxsize=256)
+def _get_emulator_session(base_url: str, api_key: str) -> EmulatorHTTP:
+    return EmulatorHTTP(base_url=base_url, api_key=api_key)
+
+
 def get_bybit_session(bot: TradingBot):
     if bot.environment == "emulator":
         settings = get_settings()
@@ -33,10 +39,7 @@ def get_bybit_session(bot: TradingBot):
             bot_settings.get("emulator_api_key")
             or settings.exchange_emulator_default_api_key
         )
-        return EmulatorHTTP(
-            base_url=settings.exchange_emulator_url,
-            api_key=api_key,
-        )
+        return _get_emulator_session(settings.exchange_emulator_url, api_key)
 
     if HTTP is None:
         raise RuntimeError("pybit is required for Bybit demo, testnet, or live environments")

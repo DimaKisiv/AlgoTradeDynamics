@@ -12,33 +12,33 @@ import styles from './Features.module.css';
 const FEATURES = [
   {
     icon: <Cpu size={22} />,
-    title: 'Дві перевірені стратегії',
+    title: 'Той самий bot worker',
     text:
-      'Moving Average Crossover і RSI Mean Reversion вбудовані з коробки. Архітектура дозволяє додавати власні стратегії як plug-in модулі.',
+      'Backtest запускає snapshot вашого існуючого grid-бота через той самий order lifecycle, TP та reconciliation, що й emulator/live runtime.',
   },
   {
     icon: <ShieldAlert size={22} />,
     title: 'Risk-controlled execution',
     text:
-      'Stop-loss, position sizing і автоматична зупинка при перевищенні максимального drawdown — параметри ризику ніколи не залишаються без контролю.',
+      'Ізольований тестовий акаунт, баланс, leverage, fees, slippage та execution path не торкаються звичайної історії бота.',
   },
   {
     icon: <LineChart size={22} />,
     title: 'Equity curve у реальному часі',
     text:
-      'Інтерактивний графік капіталу із позначками входів і виходів. Зрозуміло за один погляд, де стратегія заробила, а де зазнала збитків.',
+      'Графік ціни показує grid fills, take profits, cancelled orders, equity, drawdown і position exposure.',
   },
   {
     icon: <BarChart3 size={22} />,
     title: 'Глибокі метрики',
     text:
-      'Total PnL, Win Rate, Max Drawdown, кількість угод. Кожна метрика клікабельна — деталізація до конкретних угод і дат.',
+      'PnL, fees, max drawdown, worst unrealized loss, time in position, time in loss, recovery та max exposure.',
   },
   {
     icon: <Workflow size={22} />,
     title: 'Журнал угод',
     text:
-      'Повний trade log: вхід, вихід, причина закриття (сигнал, стоп-лосс, ризик-ліміт). Експортується для подальшого аналізу.',
+      'Orders, executions, position changes, cycles і worker events з переходом із таблиці до потрібного моменту графіка.',
   },
   {
     icon: <GanttChartSquare size={22} />,

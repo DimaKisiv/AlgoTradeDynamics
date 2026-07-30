@@ -1,13 +1,15 @@
-"""ORM models for backtest runs, trades and equity points."""
+"""ORM models for emulator-driven trading bot backtests."""
+from __future__ import annotations
+
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import JSON, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import BigInteger, Boolean, DateTime, Float, ForeignKey, Integer, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 
-if TYPE_CHECKING:  # уникаємо циклічного імпорту
+if TYPE_CHECKING:
     from app.models.user import User
 
 
@@ -22,63 +24,99 @@ class BacktestRun(Base):
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
     )
-    symbol: Mapped[str] = mapped_column(String(30), default="BTC/USDT")
-    strategy_name: Mapped[str] = mapped_column(String(80))
-    strategy_params: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
-    risk_params: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    source_bot_id: Mapped[int | None] = mapped_column(
+        ForeignKey("trading_bots.id", ondelete="SET NULL"), index=True, nullable=True
+    )
+    temp_bot_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    emulator_account_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
-    initial_balance: Mapped[float] = mapped_column(Float, default=10_000)
-    final_balance: Mapped[float] = mapped_column(Float, default=0)
-    total_pnl: Mapped[float] = mapped_column(Float, default=0)
-    total_pnl_percent: Mapped[float] = mapped_column(Float, default=0)
-    max_drawdown_percent: Mapped[float] = mapped_column(Float, default=0)
-    win_rate_percent: Mapped[float] = mapped_column(Float, default=0)
-    trades_count: Mapped[int] = mapped_column(Integer, default=0)
+    name: Mapped[str] = mapped_column(String(180), nullable=False)
+    bot_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    symbol: Mapped[str] = mapped_column(String(30), nullable=False, index=True)
+    interval: Mapped[str] = mapped_column(String(10), nullable=False, default="1")
+    start_time: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    end_time: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    initial_balance: Mapped[float] = mapped_column(Float, nullable=False, default=10_000)
+    fee_rate: Mapped[float] = mapped_column(Float, nullable=False, default=0.0002)
+    slippage_percent: Mapped[float] = mapped_column(Float, nullable=False, default=0)
+    path_mode: Mapped[str] = mapped_column(String(30), nullable=False, default="conservative")
+    end_behavior: Mapped[str] = mapped_column(String(30), nullable=False, default="keep_open")
 
-    status: Mapped[str] = mapped_column(String(30), default="completed")
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=_utcnow, index=True
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="queued", index=True)
+    progress: Mapped[float] = mapped_column(Float, nullable=False, default=0)
+    processed_candles: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    total_candles: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    current_time: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    current_price: Mapped[float | None] = mapped_column(Float, nullable=True)
+    pause_requested: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    cancel_requested: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+    bot_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    configuration: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    metrics: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, nullable=False, index=True)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow, onupdate=_utcnow, nullable=False
     )
 
     user: Mapped["User"] = relationship("User", back_populates="runs")
-
-    trades: Mapped[list["Trade"]] = relationship(
-        "Trade", back_populates="run", cascade="all, delete-orphan"
+    points: Mapped[list["BacktestPoint"]] = relationship(
+        "BacktestPoint", back_populates="run", cascade="all, delete-orphan"
     )
-    equity_points: Mapped[list["EquityPoint"]] = relationship(
-        "EquityPoint", back_populates="run", cascade="all, delete-orphan"
+    cycles: Mapped[list["BacktestCycle"]] = relationship(
+        "BacktestCycle", back_populates="run", cascade="all, delete-orphan"
     )
 
 
-class Trade(Base):
-    __tablename__ = "trades"
+class BacktestPoint(Base):
+    __tablename__ = "backtest_points"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     run_id: Mapped[int] = mapped_column(
-        ForeignKey("backtest_runs.id", ondelete="CASCADE"), index=True
+        ForeignKey("backtest_runs.id", ondelete="CASCADE"), index=True, nullable=False
     )
-    symbol: Mapped[str] = mapped_column(String(30), default="BTC/USDT")
-    side: Mapped[str] = mapped_column(String(10))
-    entry_date: Mapped[str] = mapped_column(String(20))
-    exit_date: Mapped[str] = mapped_column(String(20))
-    entry_price: Mapped[float] = mapped_column(Float)
-    exit_price: Mapped[float] = mapped_column(Float)
-    quantity: Mapped[float] = mapped_column(Float)
-    pnl: Mapped[float] = mapped_column(Float)
-    pnl_percent: Mapped[float] = mapped_column(Float)
-    reason: Mapped[str] = mapped_column(String(120))
+    timestamp: Mapped[int] = mapped_column(BigInteger, nullable=False, index=True)
+    open: Mapped[float] = mapped_column(Float, nullable=False)
+    high: Mapped[float] = mapped_column(Float, nullable=False)
+    low: Mapped[float] = mapped_column(Float, nullable=False)
+    close: Mapped[float] = mapped_column(Float, nullable=False)
+    balance: Mapped[float] = mapped_column(Float, nullable=False)
+    equity: Mapped[float] = mapped_column(Float, nullable=False)
+    available_balance: Mapped[float] = mapped_column(Float, nullable=False)
+    unrealized_pnl: Mapped[float] = mapped_column(Float, nullable=False)
+    position_qty: Mapped[float] = mapped_column(Float, nullable=False)
+    position_value: Mapped[float] = mapped_column(Float, nullable=False)
+    drawdown_percent: Mapped[float] = mapped_column(Float, nullable=False)
 
-    run: Mapped["BacktestRun"] = relationship("BacktestRun", back_populates="trades")
+    run: Mapped["BacktestRun"] = relationship("BacktestRun", back_populates="points")
 
 
-class EquityPoint(Base):
-    __tablename__ = "equity_points"
+class BacktestCycle(Base):
+    __tablename__ = "backtest_cycles"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     run_id: Mapped[int] = mapped_column(
-        ForeignKey("backtest_runs.id", ondelete="CASCADE"), index=True
+        ForeignKey("backtest_runs.id", ondelete="CASCADE"), index=True, nullable=False
     )
-    date: Mapped[str] = mapped_column(String(20))
-    value: Mapped[float] = mapped_column(Float)
+    cycle_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    started_at_ms: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    closed_at_ms: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    duration_seconds: Mapped[float] = mapped_column(Float, nullable=False, default=0)
+    time_in_loss_seconds: Mapped[float] = mapped_column(Float, nullable=False, default=0)
+    max_unrealized_loss: Mapped[float] = mapped_column(Float, nullable=False, default=0)
+    max_position_qty: Mapped[float] = mapped_column(Float, nullable=False, default=0)
+    max_position_value: Mapped[float] = mapped_column(Float, nullable=False, default=0)
+    entries_filled: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    avg_entry_price: Mapped[float | None] = mapped_column(Float, nullable=True)
+    exit_price: Mapped[float | None] = mapped_column(Float, nullable=True)
+    gross_pnl: Mapped[float] = mapped_column(Float, nullable=False, default=0)
+    fees: Mapped[float] = mapped_column(Float, nullable=False, default=0)
+    net_pnl: Mapped[float] = mapped_column(Float, nullable=False, default=0)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="open")
+    details: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
 
-    run: Mapped["BacktestRun"] = relationship("BacktestRun", back_populates="equity_points")
+    run: Mapped["BacktestRun"] = relationship("BacktestRun", back_populates="cycles")

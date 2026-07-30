@@ -1,84 +1,111 @@
-"""Pydantic schemas for backtest endpoints."""
+"""Schemas for emulator-driven bot backtests."""
+from __future__ import annotations
+
 from datetime import datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-
-SymbolLiteral = Literal["BTC/USDT", "ETH/USDT"]
-StrategyId = Literal["ma_crossover", "rsi"]
-
-
-class MACrossoverParams(BaseModel):
-    fast_window: int = Field(default=10, ge=2, le=100)
-    slow_window: int = Field(default=30, ge=3, le=250)
+PathMode = Literal["conservative", "ohlc", "olhc", "close"]
+EndBehavior = Literal["keep_open", "force_close"]
 
 
-class RSIParams(BaseModel):
-    rsi_period: int = Field(default=14, ge=2, le=60)
-    oversold: float = Field(default=30, ge=5, le=45)
-    overbought: float = Field(default=70, ge=55, le=95)
-
-
-class RiskLimits(BaseModel):
-    position_size_percent: float = Field(default=20, gt=0, le=100)
-    stop_loss_percent: float = Field(default=5, gt=0, le=50)
-    max_drawdown_percent: float = Field(default=20, gt=0, le=80)
-
-
-class BacktestRequest(BaseModel):
-    symbol: SymbolLiteral = "BTC/USDT"
+class BacktestCreate(BaseModel):
+    bot_id: int
+    interval: str = Field(default="1", min_length=1, max_length=10)
+    start_time: int
+    end_time: int
     initial_balance: float = Field(default=10_000, gt=0)
-    strategy: StrategyId = "ma_crossover"
-    ma_params: MACrossoverParams = Field(default_factory=MACrossoverParams)
-    rsi_params: RSIParams = Field(default_factory=RSIParams)
-    risk: RiskLimits = Field(default_factory=RiskLimits)
-
-
-class TradeResponse(BaseModel):
-    id: int
-    symbol: str
-    side: str
-    entry_date: str
-    exit_date: str
-    entry_price: float
-    exit_price: float
-    quantity: float
-    pnl: float
-    pnl_percent: float
-    reason: str
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class EquityPointResponse(BaseModel):
-    date: str
-    value: float
-
-    model_config = ConfigDict(from_attributes=True)
+    fee_rate: float = Field(default=0.0002, ge=0, le=0.1)
+    slippage_percent: float = Field(default=0, ge=0, le=10)
+    path_mode: PathMode = "conservative"
+    end_behavior: EndBehavior = "keep_open"
+    name: str | None = Field(default=None, max_length=180)
 
 
 class BacktestRunSummary(BaseModel):
     id: int
+    source_bot_id: int | None
+    name: str
+    bot_name: str
     symbol: str
-    strategy_name: str
+    interval: str
+    start_time: int
+    end_time: int
     initial_balance: float
-    final_balance: float
-    total_pnl: float
-    total_pnl_percent: float
-    max_drawdown_percent: float
-    win_rate_percent: float
-    trades_count: int
     status: str
+    progress: float
+    processed_candles: int
+    total_candles: int
+    current_time: int | None
+    current_price: float | None
+    metrics: dict[str, Any]
+    error: str | None
     created_at: datetime
+    started_at: datetime | None
+    completed_at: datetime | None
 
     model_config = ConfigDict(from_attributes=True)
 
 
-class BacktestRunResponse(BacktestRunSummary):
-    strategy_params: dict[str, Any]
-    risk_params: dict[str, Any]
-    trades: list[TradeResponse] = []
-    equity_points: list[EquityPointResponse] = []
+class BacktestRunDetail(BacktestRunSummary):
+    temp_bot_id: int | None
+    emulator_account_id: int | None
+    fee_rate: float
+    slippage_percent: float
+    path_mode: str
+    end_behavior: str
+    pause_requested: bool
+    cancel_requested: bool
+    bot_snapshot: dict[str, Any]
+    configuration: dict[str, Any]
+    updated_at: datetime
+
+
+class BacktestPointResponse(BaseModel):
+    timestamp: int
+    open: float
+    high: float
+    low: float
+    close: float
+    balance: float
+    equity: float
+    available_balance: float
+    unrealized_pnl: float
+    position_qty: float
+    position_value: float
+    drawdown_percent: float
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class BacktestCycleResponse(BaseModel):
+    id: int
+    cycle_number: int
+    started_at_ms: int
+    closed_at_ms: int | None
+    duration_seconds: float
+    time_in_loss_seconds: float
+    max_unrealized_loss: float
+    max_position_qty: float
+    max_position_value: float
+    entries_filled: int
+    avg_entry_price: float | None
+    exit_price: float | None
+    gross_pnl: float
+    fees: float
+    net_pnl: float
+    status: str
+    details: dict[str, Any]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class HistoricalDatasetResponse(BaseModel):
+    exchange: str
+    category: str
+    symbol: str
+    interval: str
+    candles: int
+    from_time: int
+    to_time: int

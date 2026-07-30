@@ -61,7 +61,7 @@ def serialize_trading_bot(db: Session, bot: TradingBot) -> dict:
 def list_trading_bots(db: Session, user_id: int, limit: int = 100) -> list[TradingBot]:
     bots = (
         db.query(TradingBot)
-        .filter(TradingBot.user_id == user_id)
+        .filter(TradingBot.user_id == user_id, TradingBot.is_backtest.is_(False))
         .order_by(desc(TradingBot.updated_at), desc(TradingBot.id))
         .limit(limit)
         .all()
@@ -72,7 +72,9 @@ def list_trading_bots(db: Session, user_id: int, limit: int = 100) -> list[Tradi
 def get_trading_bot(db: Session, bot_id: int, user_id: int) -> TradingBot | None:
     return (
         db.query(TradingBot)
-        .filter(TradingBot.id == bot_id, TradingBot.user_id == user_id)
+        .filter(
+            TradingBot.id == bot_id, TradingBot.user_id == user_id, TradingBot.is_backtest.is_(False)
+        )
         .first()
     )
 

@@ -17,8 +17,10 @@ export function StatusBadge({ status }) {
   const value = normalize(status);
   let className = styles.neutral;
 
-  if (["new", "created", "pendingnew", "untriggered", "open"].includes(value)) {
+  if (["new", "created", "pendingnew", "untriggered", "open", "queued", "running"].includes(value)) {
     className = styles.open;
+  } else if (["paused"].includes(value)) {
+    className = styles.partial;
   } else if (["partiallyfilled", "partially filled"].includes(value)) {
     className = styles.partial;
   } else if (["filled", "completed", "closed"].includes(value)) {

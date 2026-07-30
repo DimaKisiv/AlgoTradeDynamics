@@ -19,8 +19,8 @@ export default function Footer() {
           <div>
             <p className={styles.footerTitle}>Продукт</p>
             <ul>
-              <li><a href="/app">Backtest engine</a></li>
-              <li><a href="/runs">Історія запусків</a></li>
+              <li><a href="/backtests">Backtest engine</a></li>
+              <li><a href="/bots">Trading bots</a></li>
               <li><a href="http://localhost:8000/docs" target="_blank" rel="noreferrer">API · Swagger</a></li>
             </ul>
           </div>
@@ -38,7 +38,7 @@ export default function Footer() {
       <div className={`${styles.footerBase} container`}>
         <p className={styles.footerLegal}>
           Цей MVP не виконує реальних торгових операцій і не є фінансовою порадою. Призначений лише
-          для навчального backtesting.
+          для тестування алгоритмів на локальному exchange emulator.
         </p>
         <a className={styles.footerGithub} href="#" aria-label="GitHub">
           <Github size={16} />

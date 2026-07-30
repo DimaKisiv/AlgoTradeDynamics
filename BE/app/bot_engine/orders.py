@@ -70,9 +70,15 @@ def get_instrument_rules(session, *, category: str, symbol: str) -> InstrumentRu
 def round_to_step(value: float, step: float) -> float:
     if step <= 0:
         return value
-    quantized = Decimal(str(value)) / Decimal(str(step))
-    rounded = quantized.quantize(
-        Decimal("1"), rounding=ROUND_DOWN) * Decimal(str(step))
+
+    # Values such as 100 * 1.015 can arrive as 101.49999999999999.
+    # Add only a sub-nanostep tolerance before flooring so an exact tick is
+    # not incorrectly moved one full step lower by binary floating-point noise.
+    step_decimal = Decimal(str(step))
+    value_decimal = Decimal(str(value))
+    tolerance = step_decimal * Decimal("1e-9")
+    quantized = (value_decimal + tolerance) / step_decimal
+    rounded = quantized.quantize(Decimal("1"), rounding=ROUND_DOWN) * step_decimal
     return float(rounded)
 
 

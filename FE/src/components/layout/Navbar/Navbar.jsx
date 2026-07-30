@@ -51,37 +51,14 @@ export default function Navbar() {
           </NavLink>
           {isAuthenticated && (
             <>
-              <NavLink
-                to="/app"
-                className={({ isActive }) =>
-                  `${styles.navLink} ${isActive ? styles.isActive : ""}`
-                }
-              >
-                Backtest
-              </NavLink>
-              <NavLink
-                to="/bots"
-                className={({ isActive }) =>
-                  `${styles.navLink} ${isActive ? styles.isActive : ""}`
-                }
-              >
+              <NavLink to="/bots" className={({ isActive }) => `${styles.navLink} ${isActive ? styles.isActive : ""}`}>
                 Боти
               </NavLink>
-              <NavLink
-                to="/emulator"
-                className={({ isActive }) =>
-                  `${styles.navLink} ${isActive ? styles.isActive : ""}`
-                }
-              >
-                Emulator
+              <NavLink to="/backtests" className={({ isActive }) => `${styles.navLink} ${isActive || location.pathname.startsWith("/backtests/") ? styles.isActive : ""}`}>
+                Backtests
               </NavLink>
-              <NavLink
-                to="/runs"
-                className={({ isActive }) =>
-                  `${styles.navLink} ${isActive || location.pathname.startsWith("/runs/") ? styles.isActive : ""}`
-                }
-              >
-                Історія
+              <NavLink to="/emulator" className={({ isActive }) => `${styles.navLink} ${isActive ? styles.isActive : ""}`}>
+                Emulator
               </NavLink>
             </>
           )}

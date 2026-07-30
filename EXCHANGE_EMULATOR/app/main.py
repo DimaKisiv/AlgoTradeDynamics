@@ -11,7 +11,7 @@ import httpx
 from fastapi import Depends, FastAPI, File, Header, HTTPException, Query, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from sqlalchemy import delete, func, or_, select
+from sqlalchemy import delete, func, inspect, or_, select, text
 from sqlalchemy.orm import Session
 
 from app.database import Base, engine, get_db
@@ -29,12 +29,14 @@ from app.engine import (
     make_api_key,
     make_api_secret,
     position_payload,
+    effective_market,
     replay_one_candle,
     reset_account,
     runtime_worker,
     scenario_step_once,
     serialize_order,
     set_market_price,
+    set_account_market_price,
     start_manual_move,
     start_replay,
     start_scenario,
@@ -45,6 +47,9 @@ from app.models import Account, Candle, Event, Execution, Market, Order, Positio
 class AccountCreate(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     initial_balance: float = Field(default=10000.0, gt=0)
+    maker_fee_rate: float = Field(default=0.0002, ge=0, le=0.1)
+    taker_fee_rate: float = Field(default=0.00055, ge=0, le=0.1)
+    slippage_percent: float = Field(default=0.0, ge=0, le=10)
 
 
 class AccountFund(BaseModel):
@@ -58,6 +63,8 @@ class AccountReset(BaseModel):
 class PriceUpdate(BaseModel):
     price: float = Field(gt=0)
     mark_price: float | None = Field(default=None, gt=0)
+    simulation_time: int | None = None
+    account_id: int | None = None
 
 
 class PriceMove(BaseModel):
@@ -124,6 +131,9 @@ def serialize_account(db: Session, account: Account, *, include_secret: bool = F
         "unrealized_pnl": snapshot["unrealized_pnl"],
         "margin_used": snapshot["margin_used"],
         "reserved_order_margin": snapshot["reserved_order_margin"],
+        "maker_fee_rate": account.maker_fee_rate,
+        "taker_fee_rate": account.taker_fee_rate,
+        "slippage_percent": account.slippage_percent,
         "created_at": account.created_at,
     }
     if include_secret:
@@ -184,9 +194,24 @@ def require_account(
     return account
 
 
+def ensure_schema_compatibility() -> None:
+    # create_all does not add columns to an existing SQLite volume.
+    with engine.begin() as connection:
+        existing = {column["name"] for column in inspect(connection).get_columns("accounts")} if inspect(connection).has_table("accounts") else set()
+        additions = {
+            "maker_fee_rate": "FLOAT NOT NULL DEFAULT 0.0002",
+            "taker_fee_rate": "FLOAT NOT NULL DEFAULT 0.00055",
+            "slippage_percent": "FLOAT NOT NULL DEFAULT 0",
+        }
+        for name, ddl in additions.items():
+            if name not in existing:
+                connection.execute(text(f"ALTER TABLE accounts ADD COLUMN {name} {ddl}"))
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     Base.metadata.create_all(bind=engine)
+    ensure_schema_compatibility()
     with Session(bind=engine) as db:
         ensure_seed_data(db)
         seed_bundled_history(db)
@@ -237,6 +262,9 @@ def create_account(payload: AccountCreate, db: Session = Depends(get_db)) -> dic
         api_secret=make_api_secret(),
         initial_balance=payload.initial_balance,
         balance=payload.initial_balance,
+        maker_fee_rate=payload.maker_fee_rate,
+        taker_fee_rate=payload.taker_fee_rate,
+        slippage_percent=payload.slippage_percent,
     )
     db.add(account)
     db.flush()
@@ -304,19 +332,44 @@ def list_markets(db: Session = Depends(get_db)) -> list[dict]:
 
 @app.post("/api/admin/markets/{symbol}/price")
 def update_price(symbol: str, payload: PriceUpdate, db: Session = Depends(get_db)) -> dict:
-    market = get_or_create_market(db, symbol.upper(), initial_price=payload.price)
-    market.mode = "manual"
-    market.status = "idle"
-    market.runtime_state = {}
-    set_market_price(db, market.symbol, payload.price, mark_price=payload.mark_price, source="manual")
+    symbol = symbol.upper()
+    if payload.account_id is not None:
+        account = db.get(Account, payload.account_id)
+        if account is None:
+            raise HTTPException(status_code=404, detail="Account not found")
+        market, filled_count = set_account_market_price(
+            db, account.id, symbol, payload.price, mark_price=payload.mark_price,
+            simulation_time=payload.simulation_time, emit_event=False,
+        )
+        response = {
+            "symbol": market.symbol,
+            "last_price": market.last_price,
+            "mark_price": market.mark_price,
+            "mode": "backtest",
+            "status": "running",
+            "account_id": account.id,
+            "filled_orders": filled_count,
+        }
+    else:
+        market = get_or_create_market(db, symbol, initial_price=payload.price)
+        market.mode = "manual"
+        market.status = "idle"
+        market.runtime_state = {}
+        set_market_price(
+            db, market.symbol, payload.price, mark_price=payload.mark_price,
+            source="manual", simulation_time=payload.simulation_time,
+        )
+        response = {
+            "symbol": market.symbol,
+            "last_price": market.last_price,
+            "mark_price": market.mark_price,
+            "mode": market.mode,
+            "status": market.status,
+            "account_id": None,
+            "filled_orders": 0,
+        }
     db.commit()
-    return {
-        "symbol": market.symbol,
-        "last_price": market.last_price,
-        "mark_price": market.mark_price,
-        "mode": market.mode,
-        "status": market.status,
-    }
+    return response
 
 
 @app.post("/api/admin/markets/{symbol}/move")
@@ -586,6 +639,66 @@ def list_datasets(db: Session = Depends(get_db)) -> list[dict]:
     ]
 
 
+@app.get("/api/admin/historical/count")
+def count_historical_candles(
+    symbol: str,
+    interval: str,
+    start_time: int,
+    end_time: int,
+    db: Session = Depends(get_db),
+) -> dict:
+    count = db.scalar(
+        select(func.count(Candle.id)).where(
+            Candle.symbol == symbol.upper(),
+            Candle.interval == interval,
+            Candle.open_time >= start_time,
+            Candle.open_time <= end_time,
+        )
+    ) or 0
+    return {"count": int(count)}
+
+
+@app.get("/api/admin/historical/candles")
+def list_historical_candles(
+    symbol: str,
+    interval: str,
+    start_time: int,
+    end_time: int,
+    after_time: int | None = None,
+    limit: int = Query(default=5000, ge=1, le=10000),
+    db: Session = Depends(get_db),
+) -> dict:
+    query = (
+        select(Candle)
+        .where(
+            Candle.symbol == symbol.upper(),
+            Candle.interval == interval,
+            Candle.open_time >= start_time,
+            Candle.open_time <= end_time,
+        )
+        .order_by(Candle.open_time)
+        .limit(limit)
+    )
+    if after_time is not None:
+        query = query.where(Candle.open_time > after_time)
+    items = db.scalars(query).all()
+    return {
+        "items": [
+            {
+                "open_time": item.open_time,
+                "open": item.open,
+                "high": item.high,
+                "low": item.low,
+                "close": item.close,
+                "volume": item.volume,
+                "turnover": item.turnover,
+            }
+            for item in items
+        ],
+        "next_after_time": items[-1].open_time if len(items) == limit else None,
+    }
+
+
 @app.delete("/api/admin/historical/{symbol}")
 def delete_historical(symbol: str, interval: str | None = None, db: Session = Depends(get_db)) -> dict:
     query = delete(Candle).where(Candle.symbol == symbol.upper())
@@ -659,7 +772,7 @@ def admin_positions(account_id: int | None = None, db: Session = Depends(get_db)
 def admin_executions(
     account_id: int | None = None,
     symbol: str | None = None,
-    limit: int = Query(default=200, ge=1, le=1000),
+    limit: int = Query(default=200, ge=1, le=100000),
     db: Session = Depends(get_db),
 ) -> list[dict]:
     query = select(Execution).order_by(Execution.created_at.desc()).limit(limit)
@@ -720,7 +833,7 @@ def dashboard(
     account = db.get(Account, account_id)
     if account is None:
         raise HTTPException(status_code=404, detail="Account not found")
-    market = get_or_create_market(db, symbol.upper())
+    market = effective_market(db, account.id, symbol.upper())
     position = db.scalar(
         select(Position).where(
             Position.account_id == account.id,
@@ -747,9 +860,9 @@ def dashboard(
             "symbol": market.symbol,
             "last_price": market.last_price,
             "mark_price": market.mark_price,
-            "mode": market.mode,
-            "status": market.status,
-            "runtime_state": market.runtime_state,
+            "mode": getattr(market, "mode", "backtest"),
+            "status": getattr(market, "status", "running"),
+            "runtime_state": getattr(market, "runtime_state", {"simulation_time": getattr(market, "simulation_time", None)}),
             "updated_at": market.updated_at,
         },
         "position": position_payload(db, position) if position else None,
@@ -762,8 +875,14 @@ def dashboard(
 
 
 @app.get("/v5/market/tickers")
-def get_tickers(category: str, symbol: str, db: Session = Depends(get_db)) -> dict:
-    market = get_or_create_market(db, symbol.upper())
+def get_tickers(
+    category: str,
+    symbol: str,
+    x_api_key: str | None = Header(default=None, alias="X-API-Key"),
+    db: Session = Depends(get_db),
+) -> dict:
+    account = get_account_by_api_key(db, x_api_key)
+    market = effective_market(db, account.id, symbol.upper()) if account else get_or_create_market(db, symbol.upper())
     return bybit_ok(
         {
             "category": category,

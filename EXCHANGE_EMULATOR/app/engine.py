@@ -11,7 +11,7 @@ from sqlalchemy import and_, delete, func, select
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
-from app.models import Account, Candle, Event, Execution, Market, Order, Position, Scenario
+from app.models import Account, AccountMarket, Candle, Event, Execution, Market, Order, Position, Scenario
 
 ACTIVE_STATUSES = {"New", "Created", "PartiallyFilled", "PendingNew", "Untriggered"}
 MAKER_FEE_RATE = 0.0002
@@ -25,6 +25,24 @@ DEFAULT_MARKETS = {
 
 def now_utc() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def market_time(market: Market | AccountMarket | None) -> datetime:
+    if isinstance(market, AccountMarket) and market.simulation_time is not None:
+        raw = market.simulation_time
+    elif isinstance(market, Market):
+        raw = (market.runtime_state or {}).get("simulation_time")
+    else:
+        raw = None
+    if raw is not None:
+        try:
+            value = int(raw)
+            if value < 10_000_000_000:
+                value *= 1000
+            return datetime.fromtimestamp(value / 1000, tz=timezone.utc)
+        except (TypeError, ValueError, OSError):
+            pass
+    return now_utc()
 
 
 def as_float(value, default: float = 0.0) -> float:
@@ -50,8 +68,10 @@ def log_event(
     account_id: int | None = None,
     symbol: str | None = None,
     payload: dict | None = None,
+    created_at: datetime | None = None,
 ) -> Event:
     event = Event(
+        created_at=created_at or now_utc(),
         account_id=account_id,
         symbol=symbol,
         event_type=event_type,
@@ -137,6 +157,43 @@ def get_or_create_market(db: Session, symbol: str, *, initial_price: float = 100
     return market
 
 
+def get_or_create_account_market(
+    db: Session, account_id: int, symbol: str, *, initial_price: float | None = None
+) -> AccountMarket:
+    symbol = symbol.upper()
+    account_market = db.scalar(
+        select(AccountMarket).where(
+            AccountMarket.account_id == account_id,
+            AccountMarket.symbol == symbol,
+        )
+    )
+    if account_market is None:
+        global_market = get_or_create_market(db, symbol, initial_price=initial_price or 100.0)
+        price = initial_price if initial_price is not None else global_market.last_price
+        account_market = AccountMarket(
+            account_id=account_id,
+            symbol=symbol,
+            last_price=price,
+            mark_price=price,
+            simulation_time=None,
+            updated_at=now_utc(),
+        )
+        db.add(account_market)
+        db.flush()
+    return account_market
+
+
+def effective_market(db: Session, account_id: int, symbol: str) -> Market | AccountMarket:
+    symbol = symbol.upper()
+    account_market = db.scalar(
+        select(AccountMarket).where(
+            AccountMarket.account_id == account_id,
+            AccountMarket.symbol == symbol,
+        )
+    )
+    return account_market or get_or_create_market(db, symbol)
+
+
 def get_or_create_position(db: Session, account_id: int, category: str, symbol: str) -> Position:
     position = db.scalar(
         select(Position).where(
@@ -198,7 +255,7 @@ def account_snapshot(db: Session, account: Account, *, exclude_order_id: str | N
     for position in positions:
         if position.size <= 0:
             continue
-        market = get_or_create_market(db, position.symbol)
+        market = effective_market(db, account.id, position.symbol)
         unrealized += (market.mark_price - position.avg_price) * position.size
         leverage = max(position.leverage, 1.0)
         margin_used += position.size * market.mark_price / leverage
@@ -213,7 +270,7 @@ def account_snapshot(db: Session, account: Account, *, exclude_order_id: str | N
     for order in open_orders:
         if exclude_order_id and order.id == exclude_order_id:
             continue
-        order_market = get_or_create_market(db, order.symbol)
+        order_market = effective_market(db, account.id, order.symbol)
         order_position = db.scalar(
             select(Position).where(
                 Position.account_id == account.id,
@@ -239,7 +296,7 @@ def account_snapshot(db: Session, account: Account, *, exclude_order_id: str | N
 
 
 def position_payload(db: Session, position: Position) -> dict:
-    market = get_or_create_market(db, position.symbol)
+    market = effective_market(db, position.account_id, position.symbol)
     unrealized = (market.mark_price - position.avg_price) * position.size if position.size > 0 else 0.0
     position_value = position.size * market.mark_price
     account = db.get(Account, position.account_id)
@@ -319,7 +376,7 @@ def create_order(
     order_link_id: str | None,
 ) -> tuple[Order, int, str]:
     symbol = symbol.upper()
-    market = get_or_create_market(db, symbol)
+    market = effective_market(db, account.id, symbol)
     if order_link_id:
         existing = db.scalar(
             select(Order).where(Order.account_id == account.id, Order.order_link_id == order_link_id)
@@ -327,8 +384,11 @@ def create_order(
         if existing is not None:
             return existing, 110072, "OrderLinkedID is duplicate"
 
+    event_time = market_time(market)
     order = Order(
         id=uuid.uuid4().hex,
+        created_at=event_time,
+        updated_at=event_time,
         account_id=account.id,
         category=category,
         symbol=symbol,
@@ -353,6 +413,7 @@ def create_order(
             account_id=account.id,
             symbol=symbol,
             payload={"order_id": order.id, "order_link_id": order_link_id},
+            created_at=event_time,
         )
         db.commit()
         return order, 10001, reject_reason
@@ -364,6 +425,7 @@ def create_order(
         account_id=account.id,
         symbol=symbol,
         payload={"order_id": order.id, "order_link_id": order_link_id, "qty": qty, "price": price},
+        created_at=event_time,
     )
     if order_type == "Market":
         fill_order(db, order, market.last_price, liquidity="Taker")
@@ -399,6 +461,10 @@ def fill_order(db: Session, order: Order, fill_price: float, *, liquidity: str) 
     if qty <= 0:
         return
 
+    if liquidity == "Taker" and account.slippage_percent > 0:
+        adjustment = account.slippage_percent / 100
+        fill_price = fill_price * (1 + adjustment if order.side == "Buy" else 1 - adjustment)
+
     closed_pnl = 0.0
     if order.side == "Buy":
         old_cost = position.avg_price * position.size
@@ -419,17 +485,20 @@ def fill_order(db: Session, order: Order, fill_price: float, *, liquidity: str) 
             position.size = 0.0
             position.avg_price = 0.0
 
-    fee_rate = MAKER_FEE_RATE if liquidity == "Maker" else TAKER_FEE_RATE
+    fee_rate = account.maker_fee_rate if liquidity == "Maker" else account.taker_fee_rate
     fee = fill_price * qty * fee_rate
     account.balance += closed_pnl - fee
 
     order.cum_exec_qty += qty
     order.avg_price = fill_price
     order.status = "Filled"
-    order.updated_at = now_utc()
-    position.updated_at = now_utc()
+    market = effective_market(db, account.id, order.symbol)
+    event_time = market_time(market)
+    order.updated_at = event_time
+    position.updated_at = event_time
     execution = Execution(
         id=uuid.uuid4().hex,
+        created_at=event_time,
         account_id=account.id,
         order_id=order.id,
         symbol=order.symbol,
@@ -454,6 +523,7 @@ def fill_order(db: Session, order: Order, fill_price: float, *, liquidity: str) 
             "fee": fee,
             "closed_pnl": closed_pnl,
         },
+        created_at=event_time,
     )
     log_event(
         db,
@@ -462,7 +532,52 @@ def fill_order(db: Session, order: Order, fill_price: float, *, liquidity: str) 
         account_id=account.id,
         symbol=order.symbol,
         payload={"size": position.size, "avg_price": position.avg_price, "realized_pnl": position.realized_pnl},
+        created_at=event_time,
     )
+
+
+def set_account_market_price(
+    db: Session,
+    account_id: int,
+    symbol: str,
+    price: float,
+    *,
+    mark_price: float | None = None,
+    simulation_time: int | None = None,
+    emit_event: bool = False,
+) -> tuple[AccountMarket, int]:
+    if price <= 0:
+        raise ValueError("Price must be greater than zero")
+    market = get_or_create_account_market(db, account_id, symbol, initial_price=price)
+    old_price = market.last_price
+    market.last_price = price
+    market.mark_price = mark_price if mark_price and mark_price > 0 else price
+    market.simulation_time = simulation_time
+    event_time = market_time(market)
+    market.updated_at = event_time
+    orders = db.scalars(
+        select(Order).where(
+            Order.account_id == account_id,
+            Order.symbol == market.symbol,
+            Order.status.in_(ACTIVE_STATUSES),
+        ).order_by(Order.created_at)
+    ).all()
+    filled_count = 0
+    for order in orders:
+        if maybe_fill_order(db, order, price):
+            filled_count += 1
+    if emit_event and (not math.isclose(old_price, price) or filled_count):
+        log_event(
+            db,
+            "market_price",
+            f"{market.symbol} isolated price changed {format_number(old_price)} → {format_number(price)}",
+            account_id=account_id,
+            symbol=market.symbol,
+            payload={"old_price": old_price, "price": price, "source": "backtest", "filled_orders": filled_count},
+            created_at=event_time,
+        )
+    db.flush()
+    return market, filled_count
 
 
 def set_market_price(
@@ -473,16 +588,27 @@ def set_market_price(
     mark_price: float | None = None,
     source: str = "manual",
     emit_event: bool = True,
+    simulation_time: int | None = None,
 ) -> Market:
     if price <= 0:
         raise ValueError("Price must be greater than zero")
     market = get_or_create_market(db, symbol, initial_price=price)
     old_price = market.last_price
+    if simulation_time is not None:
+        state = dict(market.runtime_state or {})
+        state["simulation_time"] = int(simulation_time)
+        market.runtime_state = state
+    event_time = market_time(market)
     market.last_price = price
     market.mark_price = mark_price if mark_price and mark_price > 0 else price
-    market.updated_at = now_utc()
+    market.updated_at = event_time
+    isolated_accounts = select(AccountMarket.account_id).where(AccountMarket.symbol == market.symbol)
     orders = db.scalars(
-        select(Order).where(Order.symbol == market.symbol, Order.status.in_(ACTIVE_STATUSES)).order_by(Order.created_at)
+        select(Order).where(
+            Order.symbol == market.symbol,
+            Order.status.in_(ACTIVE_STATUSES),
+            ~Order.account_id.in_(isolated_accounts),
+        ).order_by(Order.created_at)
     ).all()
     filled_count = 0
     for order in orders:
@@ -495,6 +621,7 @@ def set_market_price(
             f"{market.symbol} price changed {format_number(old_price)} → {format_number(price)}",
             symbol=market.symbol,
             payload={"old_price": old_price, "price": price, "source": source, "filled_orders": filled_count},
+            created_at=event_time,
         )
     db.flush()
     return market
@@ -512,8 +639,9 @@ def cancel_order(db: Session, account: Account, *, order_id: str | None, order_l
     if order is None:
         return None
     if order.status in ACTIVE_STATUSES:
+        event_time = market_time(effective_market(db, account.id, order.symbol))
         order.status = "Cancelled"
-        order.updated_at = now_utc()
+        order.updated_at = event_time
         log_event(
             db,
             "order_cancelled",
@@ -521,6 +649,7 @@ def cancel_order(db: Session, account: Account, *, order_id: str | None, order_l
             account_id=account.id,
             symbol=order.symbol,
             payload={"order_id": order.id, "order_link_id": order.order_link_id},
+            created_at=event_time,
         )
         db.commit()
     return order

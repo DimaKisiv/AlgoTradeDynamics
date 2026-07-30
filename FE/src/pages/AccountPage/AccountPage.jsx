@@ -41,7 +41,7 @@ export default function AccountPage() {
           </div>
 
           <div className={styles.actions}>
-            <Link to="/runs" className={styles.link}>Мої запуски</Link>
+            <Link to="/backtests" className={styles.link}>Мої backtests</Link>
             <button type="button" className={styles.logout} onClick={handleLogout}>
               <LogOut size={16} /> Вийти
             </button>

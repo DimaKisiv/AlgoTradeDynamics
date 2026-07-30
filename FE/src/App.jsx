@@ -6,15 +6,17 @@ import Footer from "./components/layout/Footer/Footer";
 import ProtectedRoute from "./components/routing/ProtectedRoute";
 import GuestRoute from "./components/routing/GuestRoute";
 import LandingPage from "./pages/LandingPage/LandingPage";
-import DashboardPage from "./pages/DashboardPage/DashboardPage";
 import BotsPage from "./pages/BotsPage/BotsPage";
 import BotDetailPage from "./pages/BotDetailPage/BotDetailPage";
-import RunsPage from "./pages/RunsPage/RunsPage";
-import RunDetailPage from "./pages/RunDetailPage/RunDetailPage";
+import BacktestsPage from "./pages/BacktestsPage/BacktestsPage";
+import BacktestDetailPage from "./pages/BacktestDetailPage/BacktestDetailPage";
+import BacktestComparePage from "./pages/BacktestComparePage/BacktestComparePage";
 import LoginPage from "./pages/LoginPage/LoginPage";
 import RegisterPage from "./pages/RegisterPage/RegisterPage";
 import AccountPage from "./pages/AccountPage/AccountPage";
 import EmulatorPage from "./pages/EmulatorPage/EmulatorPage";
+
+const protectedPage = (component) => <ProtectedRoute>{component}</ProtectedRoute>;
 
 export default function App() {
   return (
@@ -23,81 +25,15 @@ export default function App() {
         <Navbar />
         <Routes>
           <Route path="/" element={<LandingPage />} />
-
-          <Route
-            path="/login"
-            element={
-              <GuestRoute>
-                <LoginPage />
-              </GuestRoute>
-            }
-          />
-          <Route
-            path="/register"
-            element={
-              <GuestRoute>
-                <RegisterPage />
-              </GuestRoute>
-            }
-          />
-
-          <Route
-            path="/app"
-            element={
-              <ProtectedRoute>
-                <DashboardPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/bots"
-            element={
-              <ProtectedRoute>
-                <BotsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/bots/:botId"
-            element={
-              <ProtectedRoute>
-                <BotDetailPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/emulator"
-            element={
-              <ProtectedRoute>
-                <EmulatorPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/runs"
-            element={
-              <ProtectedRoute>
-                <RunsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/runs/:id"
-            element={
-              <ProtectedRoute>
-                <RunDetailPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/account"
-            element={
-              <ProtectedRoute>
-                <AccountPage />
-              </ProtectedRoute>
-            }
-          />
-
+          <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />
+          <Route path="/register" element={<GuestRoute><RegisterPage /></GuestRoute>} />
+          <Route path="/bots" element={protectedPage(<BotsPage />)} />
+          <Route path="/bots/:botId" element={protectedPage(<BotDetailPage />)} />
+          <Route path="/emulator" element={protectedPage(<EmulatorPage />)} />
+          <Route path="/backtests" element={protectedPage(<BacktestsPage />)} />
+          <Route path="/backtests/compare" element={protectedPage(<BacktestComparePage />)} />
+          <Route path="/backtests/:id" element={protectedPage(<BacktestDetailPage />)} />
+          <Route path="/account" element={protectedPage(<AccountPage />)} />
           <Route path="*" element={<LandingPage />} />
         </Routes>
         <Footer />
@@ -105,3 +41,4 @@ export default function App() {
     </AuthProvider>
   );
 }
+

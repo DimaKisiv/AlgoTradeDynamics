@@ -11,14 +11,14 @@ class EmulatorHTTP:
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.timeout = timeout
+        self.client = httpx.Client(base_url=self.base_url, timeout=self.timeout)
 
     def _request(self, method: str, path: str, **kwargs: Any) -> dict:
         headers = dict(kwargs.pop("headers", {}) or {})
         headers["X-API-Key"] = self.api_key
-        with httpx.Client(base_url=self.base_url, timeout=self.timeout) as client:
-            response = client.request(method, path, headers=headers, **kwargs)
-            response.raise_for_status()
-            return response.json()
+        response = self.client.request(method, path, headers=headers, **kwargs)
+        response.raise_for_status()
+        return response.json()
 
     def get_tickers(self, **params: Any) -> dict:
         return self._request("GET", "/v5/market/tickers", params=params)

@@ -6,6 +6,7 @@ import re
 
 from sqlalchemy import desc
 
+from app.core.clock import utcnow as runtime_utcnow
 from app.bot_engine.bybit.client import get_bybit_session
 from app.bot_engine.events import log_bot_event
 from app.bot_engine.market_data import get_instrument_rules, get_last_price, get_ticker_snapshot
@@ -28,7 +29,7 @@ from app.models.trading_bot_order import TradingBotOrder
 
 
 def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return runtime_utcnow()
 
 
 def get_bot_setting(bot: TradingBot, key: str, default):
@@ -192,6 +193,8 @@ def _record_order(db, bot: TradingBot, order: OrderRequest, response: dict, *, s
             .first()
         )
     record = existing or TradingBotOrder(
+        created_at=_utcnow(),
+        updated_at=_utcnow(),
         bot_id=bot.id,
         user_id=bot.user_id,
         exchange=bot.exchange,

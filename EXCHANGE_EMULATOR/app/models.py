@@ -21,6 +21,9 @@ class Account(Base):
     api_secret: Mapped[str] = mapped_column(String(160), nullable=False)
     initial_balance: Mapped[float] = mapped_column(Float, default=10000.0, nullable=False)
     balance: Mapped[float] = mapped_column(Float, default=10000.0, nullable=False)
+    maker_fee_rate: Mapped[float] = mapped_column(Float, default=0.0002, nullable=False)
+    taker_fee_rate: Mapped[float] = mapped_column(Float, default=0.00055, nullable=False)
+    slippage_percent: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
 
 
@@ -35,6 +38,19 @@ class Market(Base):
     status: Mapped[str] = mapped_column(String(20), default="idle", nullable=False)
     runtime_state: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
+
+
+class AccountMarket(Base):
+    __tablename__ = "account_markets"
+    __table_args__ = (UniqueConstraint("account_id", "symbol", name="uq_account_market"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id", ondelete="CASCADE"), index=True)
+    symbol: Mapped[str] = mapped_column(String(30), index=True, nullable=False)
+    last_price: Mapped[float] = mapped_column(Float, nullable=False)
+    mark_price: Mapped[float] = mapped_column(Float, nullable=False)
+    simulation_time: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
 
 
 class Order(Base):

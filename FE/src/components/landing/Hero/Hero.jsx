@@ -19,7 +19,7 @@ export default function Hero() {
         <motion.div initial="hidden" animate="visible" className={styles.heroContent}>
           <motion.div variants={fadeUp} custom={0} className="pill">
             <span className="dot" />
-            <span>Дипломний MVP · Backtesting · Risk-Safe</span>
+            <span>Real bot worker · Exchange emulator · Historical replay</span>
           </motion.div>
 
           <motion.h1 variants={fadeUp} custom={1} className={`display-1 ${styles.heroTitle}`}>
@@ -28,13 +28,11 @@ export default function Hero() {
           </motion.h1>
 
           <motion.p variants={fadeUp} custom={2} className="lead">
-            AlgoTradeDynamics дає змогу запустити криптовалютну торгову стратегію на історичних
-            даних, побачити equity curve, drawdown, win rate та повний журнал умовних угод — у
-            єдиному преміальному інтерфейсі.
+            Оберіть створеного grid-бота й проганяйте його через Bybit-compatible emulator: реальні ордери, TP, комісії, equity, drawdown і повна історія циклів.
           </motion.p>
 
           <motion.div variants={fadeUp} custom={3} className={styles.heroActions}>
-            <Link to="/app" className={styles.heroPrimary}>
+            <Link to="/backtests" className={styles.heroPrimary}>
               <span>Запустити Backtest</span>
               <ArrowRight size={18} />
             </Link>
@@ -44,9 +42,9 @@ export default function Hero() {
           </motion.div>
 
           <motion.div variants={fadeUp} custom={4} className={styles.heroBadges}>
-            <span><Sparkles size={14} /> 2 стратегії</span>
+            <span><Sparkles size={14} /> Real bot logic</span>
             <span><ShieldCheck size={14} /> Risk-controlled</span>
-            <span><TrendingUp size={14} /> 366 днів історії</span>
+            <span><TrendingUp size={14} /> Historical datasets</span>
           </motion.div>
         </motion.div>
 
@@ -59,7 +57,7 @@ export default function Hero() {
           <div className={`${styles.heroWindow} glass-strong`}>
             <div className={styles.heroWindowBar}>
               <span /><span /><span />
-              <p>BTC/USDT · MA Crossover · 2024</p>
+              <p>BTCUSDT · Grid Bot · Historical</p>
             </div>
             <div className={styles.heroWindowBody}>
               <div className={styles.heroWindowStat}>
@@ -69,8 +67,8 @@ export default function Hero() {
               </div>
               <div className={`${styles.heroWindowStat} ${styles.heroWindowStatRight}`}>
                 <p className="eyebrow">Win Rate</p>
-                <h3 className="display-3">62.5%</h3>
-                <p className="text-tertiary">8 угод</p>
+                <h3 className="display-3">58.6%</h3>
+                <p className="text-tertiary">time in position</p>
               </div>
               <svg viewBox="0 0 540 200" className={styles.heroSparkline} preserveAspectRatio="none">
                 <defs>
@@ -114,8 +112,8 @@ export default function Hero() {
           <div className={`${styles.heroChip} ${styles.heroChip1} glass`}>
             <ShieldCheck size={14} />
             <div>
-              <p className={styles.heroChipLabel}>Stop-loss</p>
-              <p className={styles.heroChipValue}>5%</p>
+              <p className={styles.heroChipLabel}>Grid levels</p>
+              <p className={styles.heroChipValue}>2</p>
             </div>
           </div>
           <div className={`${styles.heroChip} ${styles.heroChip2} glass`}>

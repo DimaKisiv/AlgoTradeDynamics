@@ -35,7 +35,7 @@ export default function LoginPage() {
       <div className={`${styles.card} glass-strong`}>
         <span className="eyebrow">Вхід</span>
         <h1 className={`display-3 ${styles.title}`}>З поверненням.</h1>
-        <p className="lead">Увійдіть, щоб працювати з вашими backtest-сесіями.</p>
+        <p className="lead">Увійдіть, щоб працювати з ботами, emulator та backtests.</p>
 
         <form className={styles.form} onSubmit={handleSubmit}>
           <label className={styles.field}>

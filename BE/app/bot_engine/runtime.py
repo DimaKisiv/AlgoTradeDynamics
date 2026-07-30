@@ -21,7 +21,9 @@ async def tick_running_bots(app) -> None:
     db = SessionLocal()
     try:
         bots = db.query(TradingBot).filter(
-            TradingBot.runtime_status == "running").all()
+            TradingBot.runtime_status == "running",
+            TradingBot.is_backtest.is_(False),
+        ).all()
         for bot in bots:
             lock = app.state.bot_worker_locks.setdefault(
                 bot.id, asyncio.Lock())

@@ -1,350 +1,212 @@
-# AlgoTradeDynamics prototype v1
+# AlgoTradeDynamics
 
-> MVP веб-платформи для безпечного backtesting криптовалютних торгових стратегій.
-> Дипломна робота · Neoversity MSc Computer Science · 2026
+Платформа для запуску grid-ботів на Bybit або локальному exchange emulator та для детермінованого тестування **тих самих ботів** на історичних даних.
 
-Платформа дозволяє трейдеру налаштувати алгоритмічну стратегію (Moving Average Crossover або
-RSI Mean Reversion), запустити її на історичних даних і отримати:
+Старий окремий MA Crossover / RSI backtester видалено. Нова вкладка **Backtests** бере конфігурацію одного з існуючих ботів, створює її snapshot, запускає приховану тестову копію через той самий trading engine і програє свічки в ізольованому emulator account.
 
-- Equity curve (динаміка капіталу в часі)
-- Ключові метрики: Total PnL, Win Rate, Max Drawdown
-- Повний журнал умовних угод
-- Історію усіх запусків з можливістю порівняння
-- Персональний обліковий запис — кожен користувач працює лише зі своїми даними
+## Сервіси
 
-Платформа містить окремий локальний **Exchange Emulator**. Він приймає Bybit-сумісні
-запити від grid-бота, але не відправляє ордери на реальну біржу. Для Bybit Demo/Testnet/Live
-залишена окрема конфігурація, яку слід вмикати лише свідомо.
+- `frontend` — React/Vite, `http://localhost:5173`
+- `backend` — FastAPI, `http://localhost:8000`
+- `exchange-emulator` — Bybit-compatible API та admin API, `http://localhost:8001`
+- `db` — PostgreSQL 16
 
----
+Swagger:
 
-## Технологічний стек
+- Backend: `http://localhost:8000/docs`
+- Emulator: `http://localhost:8001/docs`
 
-| Шар            | Технологія                                                      |
-| -------------- | --------------------------------------------------------------- |
-| Backend        | Python 3.12, FastAPI, SQLAlchemy 2.0, Alembic, Pydantic v2      |
-| База даних     | PostgreSQL 16 (SQLite для локального dev / тестів)              |
-| Bot Engine     | Pure Python (без сторонніх trading-бібліотек)                   |
-| Frontend       | React 18, Vite 5, React Router 6, Framer Motion, Recharts       |
-| Дизайн         | CSS Modules + дизайн-токени, Glassmorphism, Instrument Serif + Manrope |
-| Auth           | JWT (PyJWT, HS256) + bcrypt (passlib); приватні дані за `user_id`      |
-| Тести          | pytest + httpx TestClient                                       |
-| Інфраструктура | Docker, Docker Compose                                          |
-
-## Архітектура
-
-```
-algotrade-dynamics/
-├── backend/                    # Python FastAPI
-│   ├── app/
-│   │   ├── api/                # роутери: auth, strategies, backtests (+deps)
-│   │   ├── core/               # config, logging, security (JWT + bcrypt)
-│   │   ├── db/                 # SQLAlchemy session & base
-│   │   ├── models/             # ORM: User, BacktestRun, Trade, EquityPoint
-│   │   ├── schemas/            # Pydantic схеми (backtest, user)
-│   │   ├── services/           # backtest_service, auth_service
-│   │   ├── bot_engine/         # Backtester + стратегії
-│   │   │   ├── indicators.py   # SMA, RSI (pure python)
-│   │   │   ├── backtester.py   # Engine з risk-менеджментом
-│   │   │   └── strategies/     # MA, RSI + ABC base
-│   │   └── main.py             # FastAPI app
-│   ├── alembic/                # Міграції БД
-│   ├── data/                   # CSV історичні дані
-│   ├── tests/                  # 30 unit + integration тестів
-│   └── Dockerfile
-├── frontend/                   # React SPA
-│   ├── src/
-│   │   ├── api/                # client.js (fetch+токен), auth.js, backtests.js
-│   │   ├── context/            # AuthContext (провайдер + useAuth)
-│   │   ├── components/         # кожен компонент — окрема папка:
-│   │   │   │                   #   Name/Name.jsx + Name/Name.module.css
-│   │   │   ├── layout/         # Navbar/ (auth-стан), Footer/
-│   │   │   ├── ui/             # Button/, Card/
-│   │   │   ├── landing/        # Hero/, Features/, HowItWorks/, Strategies/, CTA/
-│   │   │   ├── dashboard/      # ControlPanel/, EquityChart/, TradeJournal/, MetricCard/, ResultsView/
-│   │   │   └── routing/        # ProtectedRoute, GuestRoute
-│   │   ├── pages/              # Landing/Dashboard/Runs/RunDetail + Login/Register/Account
-│   │   ├── hooks/              # useBacktest, useScrollReveal
-│   │   ├── lib/                # Форматери
-│   │   ├── styles/             # глобальний шар: variables.css (токени) + globals.css (reset, типографіка, утиліти)
-│   │   ├── App.jsx
-│   │   └── main.jsx
-│   └── Dockerfile
-├── docs/                       # Архітектура, demo-script, scope
-└── docker-compose.yml
-```
-
-## Швидкий старт (Docker — рекомендований шлях)
-
-Передумови: Docker Desktop / Docker Engine + Docker Compose v2.
+## Запуск
 
 ```bash
 docker compose up --build
 ```
 
-Після успішного старту:
+Вхід за замовчуванням:
 
-- **Frontend (SPA):** http://localhost:5173
-- **Backend (API):** http://localhost:8000
-- **Swagger UI:** http://localhost:8000/docs
-- **Exchange Emulator API / Swagger:** http://localhost:8001/docs
-- **PostgreSQL:** localhost:5432 (user `postgres` / db `algotrade`)
+```text
+demo@algotrade.dev
+demo1234
+```
 
-Alembic міграції виконуються автоматично при старті backend-контейнера.
+Зупинка без видалення даних:
 
+```bash
+docker compose down
+```
+
+Повне очищення PostgreSQL та emulator volume:
+
+```bash
+docker compose down -v
+```
+
+## Важливо при оновленні
+
+Міграція `0008_replace_legacy_backtests` навмисно видаляє таблиці та результати старого MA/RSI backtester-а. Вони несумісні з новими emulator-driven backtests.
+
+При звичайному запуску backend автоматично виконує:
+
+```bash
+alembic upgrade head
+```
 
 ## Exchange Emulator
 
-Після `docker compose up --build` відкрийте frontend, увійдіть і перейдіть у
-**Emulator** (`/emulator`). Сервіс біржі працює окремо на `http://localhost:8001`,
-а його SQLite-база зберігається в Docker volume `emulator_data`.
+Сторінка `/emulator` підтримує три режими:
 
-### Що реалізовано
+1. **Manual** — встановлення конкретної ціни або плавний рух до цілі.
+2. **Scenario** — збережені послідовності рухів ціни.
+3. **Historical** — replay локально збережених свічок.
 
-- постійні тестові акаунти з API key, балансом, equity та available balance;
-- Bybit-сумісні endpoints для ticker, instrument info, create/cancel/query orders,
-  order history, positions, wallet balance, executions і leverage;
-- повне виконання limit/market ордерів, reduce-only закриття, average entry,
-  realized/unrealized PnL та maker/taker fees;
-- режими **Manual**, **Scenario** та **Historical Replay**;
-- завантаження OHLCV через публічний Bybit Kline API;
-- автоматично підготовлені bundled daily datasets BTCUSDT та ETHUSDT за 2024 рік;
-- імпорт CSV з колонками `date|timestamp|open_time, open, high, low, close, volume`;
-- журнал подій, orders, positions та executions;
-- вибір emulator-акаунта безпосередньо у формі створення бота.
+Також доступні:
 
-### Перший тест бота
+- постійні тестові акаунти;
+- баланс, equity, позиції, ордери та executions;
+- reset account;
+- завантаження історії з Bybit;
+- імпорт CSV;
+- activity/event log.
 
-1. Відкрийте `/emulator` → **Accounts**. Можна використати `Default Emulator Account`
-   з балансом 10,000 USDT або створити новий.
-2. Відкрийте `/bots` і створіть бота:
-   - Environment: `Local Emulator`;
-   - Emulator account: потрібний тестовий акаунт;
-   - Symbol: наприклад `ETHUSDT`;
-   - Order Qty: наприклад `0.01`;
-   - Grid Orders: `2`;
-   - Grid Step: `5`.
-3. Натисніть **Start**. Worker створить grid-ордери через локальний Bybit-compatible API.
-4. Поверніться в `/emulator` → **Manual** і зменште ціну. Ордери, позиція та PnL
-   з'являться у вкладці **Activity**.
-5. Підніміть ціну вище take-profit, щоб перевірити закриття циклу.
-6. Перед новим незалежним тестом натисніть **Reset account**.
+Вбудовано денні datasets `BTCUSDT` і `ETHUSDT` за 2024 рік. Для точнішого тесту grid-бота рекомендується завантажити `1m` свічки в `Emulator → Historical`.
 
-### Historical Replay
+## Новий Bot Backtesting
 
-1. У вкладці **Historical** виберіть symbol, діапазон дат та interval.
-2. Натисніть **Download from Bybit** або імпортуйте CSV.
-3. Виберіть швидкість та intrabar path:
-   - `Open → High → Low → Close`;
+### Створення
+
+На `/backtests`:
+
+1. Обрати існуючого grid-бота.
+2. Обрати dataset, interval і період.
+3. Вказати стартовий баланс, fee rate та slippage.
+4. Обрати intrabar path:
+   - `Conservative / Open → High → Low → Close`;
    - `Open → Low → High → Close`;
    - `Close only`.
-4. Використовуйте **Start / Pause / Resume / Next candle / Stop**.
+5. Обрати поведінку наприкінці:
+   - залишити відкриту позицію й порахувати unrealized PnL;
+   - примусово закрити за фінальною ціною.
 
-`speed` означає кількість свічок за секунду, а не реальний часовий масштаб.
-Для повторюваних тестів використовуйте той самий акаунт після reset або окремий акаунт.
+Оригінальний бот, його статус, ордери та звичайний emulator account не змінюються.
 
-### Сервіси Docker Compose
+### Ізоляція запуску
+
+Для кожного backtest створюються:
+
+- immutable snapshot конфігурації бота;
+- прихована тестова копія `TradingBot`;
+- окремий emulator account;
+- account-scoped market price, яка не рухає ціни інших emulator accounts.
+
+Backtest використовує той самий `tick_grid_bot`, reconciliation, lifecycle ордерів, Position TP та cycle rollover, що й звичайний бот.
+
+### Execution model
+
+Кожна історична свічка програється через її intrabar points. Після fill runner синхронізує бота до стабільного стану перед наступним рухом ціни. Це дозволяє створити або оновити TP всередині тієї ж свічки без очікування звичайного worker interval.
+
+### Керування
+
+Під час виконання доступні:
+
+- progress та simulated time;
+- pause;
+- resume;
+- cancel;
+- live price, PnL і оброблені candles.
+
+## Звіт backtest
+
+### Summary
+
+Зберігаються й показуються:
+
+- gross/net realized PnL;
+- unrealized та total PnL;
+- return і final equity;
+- fees;
+- closed/winning/losing cycles та win rate;
+- best/worst/average cycle;
+- час у позиції та частка тестового періоду;
+- час у негативному unrealized PnL;
+- найдовший негативний період;
+- maximum drawdown;
+- найдовший drawdown;
+- recovery time після максимальної просадки;
+- максимальна позиція та notional;
+- максимальна використана margin;
+- найнижчий available balance;
+- максимальна кількість заповнених grid levels;
+- фінальна відкрита позиція й ордери.
+
+### Chart
+
+Графік містить:
+
+- історичну ціну;
+- placed та filled grid entries;
+- створені та виконані Take Profit;
+- cancelled orders;
+- підсвічені періоди відкритої позиції;
+- підсвічені періоди негативного open PnL;
+- equity curve;
+- drawdown;
+- position size;
+- available balance;
+- zoom-window `1D / 1W / 1M / All`;
+- фільтр конкретного trading cycle;
+- перехід до графіка з Orders, Executions, Positions або Cycles.
+
+### Детальні вкладки
+
+- `Cycles`
+- `Orders`
+- `Executions`
+- `Positions`
+- `Events`
+- `Configuration`
+
+Configuration містить snapshot бота, dataset, fee/slippage model, path, timestamps та технічні IDs.
+
+### Compare
+
+У списку можна вибрати 2–5 завершених запусків. Comparison показує:
+
+- normalized equity curves;
+- PnL та return;
+- drawdown і recovery;
+- exposure;
+- час у позиції/мінусі;
+- fees;
+- grid parameters.
+
+## Основні backend endpoints
 
 ```text
-frontend          http://localhost:5173
-backend           http://localhost:8000
-exchange-emulator http://localhost:8001
-postgres          localhost:5432
+GET    /api/backtests/datasets
+POST   /api/backtests
+GET    /api/backtests
+GET    /api/backtests/{id}
+GET    /api/backtests/{id}/points
+GET    /api/backtests/{id}/cycles
+GET    /api/backtests/{id}/orders
+GET    /api/backtests/{id}/executions
+GET    /api/backtests/{id}/events
+POST   /api/backtests/{id}/pause
+POST   /api/backtests/{id}/resume
+POST   /api/backtests/{id}/cancel
+DELETE /api/backtests/{id}
 ```
 
-### Тести емулятора
+## Перевірки
 
-```bash
-cd EXCHANGE_EMULATOR
-pip install -r requirements.txt
-PYTHONPATH=. pytest -q
-```
+Backend та emulator Python modules перевіряються через `compileall`. Core integration test запускає реальний emulator HTTP service, створює isolated account, програє bundled BTC history і перевіряє, що backtest завершується, записує points/cycles/metrics та не змінює global emulator market.
 
-## Локальний запуск без Docker
+Frontend використовує React 18, Recharts і Vite. Для production build потрібен доступ до npm registry під час першого `npm ci`; Docker зробить це автоматично у звичайному середовищі.
 
-### Backend
+## Поточні обмеження
 
-```bash
-cd BE
-python -m venv .venv
-source .venv/bin/activate         # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-cp .env.example .env              # за потреби відредагуйте
-# для локалки можна залишити sqlite:///./algotrade.db у DATABASE_URL
-alembic upgrade head              # якщо використовуєте Postgres
-uvicorn app.main:app --reload
-```
-
-### Frontend
-
-У новому терміналі:
-
-```bash
-cd FE
-cp .env.example .env
-npm install
-npm run dev
-```
-
-## Тестування
-
-```bash
-cd BE
-pytest -v
-```
-
-Покриває: indicators (SMA, RSI), обидві стратегії, backtester (entry/exit, stop-loss,
-drawdown halt), HTTP API (POST/GET/DELETE, validation errors), автентифікацію
-(register / login / me) та ізоляцію даних між користувачами.
-
-Кількість тестів може змінюватися разом із функціональністю; усі тести мають завершитися без помилок.
-
-## API стисло
-
-| Метод  | Шлях                   | Опис                                      |
-| ------ | ---------------------- | ----------------------------------------- |
-| GET    | `/health`              | Healthcheck                               |
-| POST   | `/api/auth/register`   | Реєстрація (email + пароль)               |
-| POST   | `/api/auth/login`      | Логін, повертає JWT access token          |
-| GET    | `/api/auth/me` 🔒       | Поточний користувач + к-сть його запусків |
-| GET    | `/api/strategies`      | Каталог доступних стратегій з параметрами |
-| POST   | `/api/backtests/start` 🔒 | Запустити backtest, повернути результат |
-| GET    | `/api/backtests` 🔒     | Список **своїх** запусків (summary)       |
-| GET    | `/api/backtests/{id}` 🔒 | Деталі свого запуску (trades + equity)   |
-| DELETE | `/api/backtests/{id}` 🔒 | Видалити свій запуск                     |
-
-🔒 — потребує заголовок `Authorization: Bearer <token>`.
-
-Повна інтерактивна документація — `http://localhost:8000/docs` (Swagger UI).
-
-Більше — у `docs/`:
-
-- `docs/architecture.md` — діаграма компонентів і потоків
-- `docs/demo-script.md` — сценарій для демо на захисті
-- `docs/project-scope.md` — обмеження MVP та подальший розвиток
-
-## Автентифікація та облікові записи
-
-Платформа багатокористувацька: кожен користувач бачить і керує лише **своїми**
-backtest-сесіями.
-
-- **Автентифікація** — email + пароль. Пароль зберігається як bcrypt-хеш (`passlib`),
-  ніколи у відкритому вигляді. Після логіну сервер видає **JWT** (HS256, `PyJWT`),
-  який фронтенд додає у заголовок `Authorization: Bearer <token>`.
-- **Авторизація (доступ до даних)** — кожен `BacktestRun` прив'язаний до `user_id`.
-  Усі запити (створення, список, деталі, видалення) фільтруються за поточним
-  користувачем; чужий запуск повертає `404`. Ролей/дозволів немає — модель проста:
-  «кожен бачить лише своє».
-- **Токен** зберігається у `localStorage`; на будь-яку відповідь `401` фронтенд
-  автоматично розлогінює користувача й пропонує увійти знову.
-
-Міграція `0002` створює таблицю `users`, додає `user_id` до `backtest_runs`
-і засідає **демо-користувача** для швидкого старту:
-
-```
-email:    demo@algotrade.dev
-password: demo1234
-```
-
-Налаштування через env: `JWT_SECRET_KEY`, `JWT_ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`
-(див. `.env.example`). У продакшені обов'язково задайте власний `JWT_SECRET_KEY`.
-
-Фронтенд-маршрути: `/login`, `/register` (лише для гостей), `/account`, а також
-`/app`, `/runs`, `/runs/:id` — захищені (редірект на `/login`, якщо не залогінений).
-
-## Безпека та обмеження
-
-Це навчальний MVP. **Жодних реальних ордерів в emulator-режимі не виконується.** Ціни можуть
-задаватися вручну, сценарієм або історичними свічками; вся emulator-торгівля — умовна симуляція. Платформа не призначена для прийняття інвестиційних рішень
-без додаткового аналізу.
-
-
-## Правила формування Git Braches
-Для забезпечення єдиного підходу до роботи з Git усі гілки повинні створюватися відповідно до визначеного формату.
-
-Назва гілки повинна:
-- бути написана англійською мовою;
-- використовувати kebab-case;
-- містити короткий і зрозумілий опис задачі;
-- не містити пробілів;
-- бути написана в нижньому регістрі.
-
-Типи гілок
-
-feature
-Використовується для розробки нової функціональності.
-personal/ia/feature/user-authentication
-personal/ia/feature/trading-dashboard
-personal/ia/feature/add-user-profile
-
-bugfix
-Використовується для виправлення конкретного багу, виявленого під час тестування або роботи системи.
-personal/ia/bugfix/incorrect-trading-price
-personal/ia/bugfix/chart-not-rendering
-
-refactor
-Використовується для зміни структури або покращення коду без зміни функціональності.
-personal/ia/refactor/api-client
-personal/ia/refactor/auth-service
-personal/ia/refactor/trading-module
-
-test
-Використовується для додавання або оновлення тестів.
-personal/ia/test/add-login-tests
-personal/ia/test/update-trading-tests
-
-Правило
-Кожна задача повинна виконуватися в окремій гілці. Після завершення роботи створюється Pull Request / Merge Request у main.
-
-Не рекомендується використовувати назви:
-test
-new-feature
-my-branch
-fix
-temp
-dev
-illia
-
-Приклад формування гілок:
-personal/перша літера імʼя та прізвища у моєму варіанті це ia, далі тип гілки (feature, bugfix, refactor, test) і 
-короткий опис задачі у форматі kebab-case.
-
-# Pull Request Rules
-
-1. **Один PR — одна задача.** Не об'єднувати різні функціональні зміни в один PR.
-
-2. **Зрозуміла назва PR.** Назва повинна коротко описувати внесені зміни та, за можливості, містити ID задачі.
-
-   ```text
-   [FE] Add trading dashboard
-   [BE] Add trading functionality
-   ```
-
-3. **PR повинен містити опис.** Коротко вказати, що було змінено та як це протестовано.
-
-4. **Перед створенням PR перевірити код.**
-
-  * Lint проходить успішно.
-  * Тести проходять успішно.
-  * Build проходить успішно.
-  * Немає debug-коду або випадкових змін.
-
-5. **Code Review обов'язковий.** PR повинен отримати щонайменше 1 Approval перед merge.
-
-6. **Усі критичні коментарі повинні бути вирішені** перед merge.
-
-7. **Не виконувати прямий push у `main`.** Зміни потрапляють у `main` тільки через Pull Request.
-
-8. **Після merge видалити branch**, якщо вона більше не використовується.
-
-
-## Exchange reset reconciliation
-
-If an emulator account is reset while a bot is still running, the backend now reconciles its local order state on the next worker tick:
-
-- locally active orders missing from both exchange open orders and exact order history are marked `Cancelled`;
-- the reconciliation reason is stored in `raw_response.reconciliation`;
-- a bot event `order_reconciled_missing` is written;
-- the running grid bot creates a clean replacement grid from the current market price;
-- filled/cancelled order history and closed-cycle performance remain available;
-- the bot summary shows only active Position TP orders.
+- backtest runner наразі підтримує grid strategy;
+- історична точність залежить від timeframe та intrabar model;
+- OHLC candle не показує справжній порядок trades усередині інтервалу;
+- partial fills, funding та повний order book model можна додати окремими етапами;
+- background backtest task живе всередині backend process, тому restart backend перериває активний запуск.

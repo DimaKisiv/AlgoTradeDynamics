@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
-  Area, AreaChart, CartesianGrid, ComposedChart, Line, ReferenceArea, ReferenceLine,
-  ResponsiveContainer, Scatter, Tooltip, XAxis, YAxis,
+  Area, AreaChart, CartesianGrid, ComposedChart, Line, ReferenceArea, ReferenceDot, ReferenceLine,
+  ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import { ArrowLeft, CirclePause, CirclePlay, Copy, Crosshair, LoaderCircle, OctagonX } from "lucide-react";
 
@@ -24,6 +24,92 @@ const asMs = (value) => {
   return new Date(value).getTime();
 };
 
+const DAY_MS = 86400000;
+const WINDOW_MS = { "1d": DAY_MS, "1w": 7 * DAY_MS, "1m": 30 * DAY_MS };
+const CHART_SYNC_ID = "backtest-detail";
+
+function chartSpan(data) {
+  if (!data?.length) return 0;
+  return Math.max(asMs(data[data.length - 1].timestamp) - asMs(data[0].timestamp), 0);
+}
+
+function formatChartTime(value, spanMs) {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "";
+  if (spanMs <= 2 * DAY_MS) {
+    return date.toLocaleString("uk-UA", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+  }
+  if (spanMs <= 45 * DAY_MS) return date.toLocaleDateString("uk-UA", { day: "2-digit", month: "short" });
+  if (spanMs <= 370 * DAY_MS) return date.toLocaleDateString("uk-UA", { day: "2-digit", month: "short" });
+  return date.toLocaleDateString("uk-UA", { month: "short", year: "numeric" });
+}
+
+function buildTimeTicks(start, end, targetCount = 7) {
+  const min = Number(start);
+  const max = Number(end);
+  if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min) return [];
+
+  const span = max - min;
+  const count = Math.max(2, targetCount);
+  if (span <= 45 * DAY_MS) {
+    return Array.from({ length: count }, (_, index) => min + ((span * index) / (count - 1)));
+  }
+
+  const startDate = new Date(min);
+  const endDate = new Date(max);
+  const monthCount = Math.max(
+    1,
+    ((endDate.getUTCFullYear() - startDate.getUTCFullYear()) * 12)
+      + endDate.getUTCMonth() - startDate.getUTCMonth() + 1,
+  );
+  const monthStep = Math.max(1, Math.ceil(monthCount / (count - 1)));
+  const ticks = [min];
+  let cursor = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth() + monthStep, 1));
+  while (cursor.getTime() < max) {
+    ticks.push(cursor.getTime());
+    cursor = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + monthStep, 1));
+  }
+  ticks.push(max);
+  return [...new Set(ticks)].sort((a, b) => a - b);
+}
+
+function formatPeriodTime(value, spanMs) {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "";
+  return spanMs <= 2 * DAY_MS
+    ? date.toLocaleString("uk-UA", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
+    : date.toLocaleDateString("uk-UA", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function paddedDomain(values, paddingRatio = 0.08) {
+  const finite = values.map(Number).filter(Number.isFinite);
+  if (!finite.length) return [0, 1];
+  let min = Math.min(...finite);
+  let max = Math.max(...finite);
+  const spread = Math.max(max - min, Math.max(Math.abs(max), Math.abs(min), 1) * 0.01);
+  return [min - spread * paddingRatio, max + spread * paddingRatio];
+}
+
+function formatAxisMoney(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "—";
+  const compact = Math.abs(number).toLocaleString("en-US", { notation: "compact", maximumFractionDigits: 1 });
+  return `${number < 0 ? "-" : ""}$${compact}`;
+}
+
+function formatAxisPercent(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return "—";
+  const number = Math.abs(numeric) < 0.005 ? 0 : numeric;
+  return `${number.toFixed(Math.abs(number) < 1 ? 2 : 1)}%`;
+}
+
+function formatAxisQty(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "—";
+  return number.toLocaleString("en-US", { maximumFractionDigits: 6 });
+}
+
 function duration(seconds) {
   const value = Math.max(Number(seconds || 0), 0);
   const days = Math.floor(value / 86400);
@@ -42,27 +128,74 @@ function Empty({ children = "Немає даних" }) { return <div className={
 
 function PriceTooltip({ active, payload }) {
   if (!active || !payload?.length) return null;
-  const row = payload[0]?.payload || {};
+  const candlePayload = payload.find((item) => item.dataKey === "close")?.payload;
+  const markerPayload = payload.find((item) => item.dataKey === "price")?.payload;
+  const row = candlePayload || markerPayload || payload[0]?.payload || {};
+  const timestamp = asMs(row.timestamp);
   return <div className={styles.tooltip}>
-    <strong>{new Date(row.timestamp).toLocaleString("uk-UA")}</strong>
-    {row.open != null && <><span>O {fmtNumber(row.open, 2)} · H {fmtNumber(row.high, 2)}</span><span>L {fmtNumber(row.low, 2)} · C {fmtNumber(row.close, 2)}</span></>}
-    {row.label && <span>{row.label} · {row.status}</span>}
-    {row.price != null && <span>Price {fmtNumber(row.price, 2)} · Qty {row.qty}</span>}
+    <strong>{new Date(timestamp).toLocaleString("uk-UA")}</strong>
+    {row.open != null && <>
+      <span>Open {fmtMoney(row.open)} · High {fmtMoney(row.high)}</span>
+      <span>Low {fmtMoney(row.low)} · Close {fmtMoney(row.close)}</span>
+    </>}
+    {markerPayload && <>
+      <span className={styles.tooltipAction}>{markerPayload.label} · {markerPayload.status}</span>
+      <span>{fmtMoney(markerPayload.price)} · {fmtNumber(markerPayload.qty, 6)}</span>
+    </>}
+  </div>;
+}
+
+function MetricTooltip({ active, payload, label, formatter }) {
+  if (!active || !payload?.length) return null;
+  const value = payload[0]?.value;
+  return <div className={styles.tooltip}>
+    <strong>{new Date(asMs(label)).toLocaleString("uk-UA")}</strong>
+    <span>{formatter(value)}</span>
   </div>;
 }
 
 function OrderMarker({ cx, cy, payload }) {
   if (!Number.isFinite(cx) || !Number.isFinite(cy)) return null;
-  const isSell = payload.side === "Sell";
   const isTp = payload.role?.includes("take_profit") || payload.role?.includes("tp");
-  const fill = payload.kind === "cancelled" ? "#929bb0"
-    : payload.kind === "placed" ? (isTp ? "#b98cff" : "#4d9dff")
-      : isSell ? "#f05b63" : "#25c78b";
+  const compact = Boolean(payload.compact);
+  const radius = compact ? 4.2 : 6;
+  const fill = payload.kind === "cancelled" ? "#929bb0" : isTp ? "#b98cff" : "#25c78b";
+  const title = `${payload.label} · ${fmtMoney(payload.price)} · ${fmtNumber(payload.qty, 6)} · ${new Date(payload.timestamp).toLocaleString("uk-UA")}`;
   if (payload.kind === "cancelled") {
-    return <g transform={`translate(${cx},${cy})`}><path d="M-5 -5 L5 5 M5 -5 L-5 5" stroke={fill} strokeWidth="2.3"/></g>;
+    const size = compact ? 3.5 : 5;
+    return <g transform={`translate(${cx},${cy})`} className={styles.orderMarker}><title>{title}</title><path d={`M-${size} -${size} L${size} ${size} M${size} -${size} L-${size} ${size}`} stroke={fill} strokeWidth={compact ? 1.7 : 2.3}/></g>;
   }
-  return <g transform={`translate(${cx},${cy})`}><circle r={payload.kind === "placed" ? 4.5 : 6} fill={fill} stroke="#090b12" strokeWidth="2"/><path d={isSell ? "M-3 2 L0 -2 L3 2" : "M-3 -2 L0 2 L3 -2"} fill="none" stroke="#fff" strokeWidth="1.3"/></g>;
+  return <g transform={`translate(${cx},${cy})`} className={styles.orderMarker}>
+    <title>{title}</title>
+    <circle r={radius} fill={fill} stroke="#090b12" strokeWidth={compact ? 1.4 : 2}/>
+    <path d={isTp ? "M-3 2 L0 -2 L3 2" : "M-3 -2 L0 2 L3 -2"} fill="none" stroke="#fff" strokeWidth={compact ? 1 : 1.3}/>
+  </g>;
 }
+
+function ChartToggle({ checked, onChange, label, color, type = "dot" }) {
+  return <label className={styles.chartToggle}>
+    <input type="checkbox" checked={checked} onChange={onChange}/>
+    <i className={type === "band" ? styles.legendBand : styles.legendDot} style={{ "--legend-color": color }}/>
+    <span>{label}</span>
+  </label>;
+}
+
+function MiniChart({ title, value, data, dataKey, stroke, fill, domain, timeDomain, timeTicks, yFormatter, tooltipFormatter, spanMs, type = "monotone", referenceValue = null, referenceLabel = "" }) {
+  return <div className={styles.miniChart}>
+    <div className={styles.miniChartHeader}><h3>{title}</h3><strong>{value}</strong></div>
+    <ResponsiveContainer width="100%" height={210}>
+      <AreaChart data={data} syncId={CHART_SYNC_ID} margin={{ top: 8, right: 10, left: 0, bottom: 0 }}>
+        <CartesianGrid stroke="rgba(255,255,255,.045)" vertical={false}/>
+        <XAxis dataKey="timestamp" type="number" scale="time" domain={timeDomain} ticks={timeTicks} allowDataOverflow height={28} tickFormatter={(v) => formatChartTime(v, spanMs)} stroke="#68718a" tick={{ fontSize: 10 }}/>
+        <YAxis domain={domain} width={72} stroke="#68718a" tickFormatter={yFormatter} tick={{ fontSize: 10 }}/>
+        <Tooltip content={<MetricTooltip formatter={tooltipFormatter}/>} cursor={{ stroke: "rgba(255,255,255,.18)", strokeDasharray: "3 3" }}/>
+        {referenceValue != null && <ReferenceLine y={referenceValue} stroke="rgba(255,255,255,.25)" strokeDasharray="4 4" label={referenceLabel ? { value: referenceLabel, position: "insideTopRight", fill: "#7f879c", fontSize: 10 } : undefined}/>}
+        <Area type={type} dataKey={dataKey} stroke={stroke} strokeWidth={1.7} fill={fill} isAnimationActive={false} activeDot={{ r: 3 }}/>
+      </AreaChart>
+    </ResponsiveContainer>
+  </div>;
+}
+
 
 export default function BacktestDetailPage() {
   const { id } = useParams();
@@ -112,55 +245,117 @@ export default function BacktestDetailPage() {
   };
 
   const metrics = run?.metrics || {};
+  const normalizedPoints = useMemo(() => points
+    .map((point) => ({ ...point, timestamp: asMs(point.timestamp) }))
+    .filter((point) => Number.isFinite(point.timestamp))
+    .sort((a, b) => a.timestamp - b.timestamp), [points]);
+
   const filteredPoints = useMemo(() => {
-    let data = points;
+    let data = normalizedPoints;
     if (cycleFilter !== "all") {
       const cycle = cycles.find((item) => String(item.cycle_number) === cycleFilter);
-      if (cycle) data = data.filter((point) => point.timestamp >= cycle.started_at_ms && point.timestamp <= (cycle.closed_at_ms || run.end_time));
+      if (cycle) {
+        const cycleEnd = cycle.closed_at_ms || asMs(run?.end_time);
+        data = data.filter((point) => point.timestamp >= asMs(cycle.started_at_ms) && point.timestamp <= cycleEnd);
+      }
     }
     if (focusTime && windowSize !== "all") {
-      const periods = { "1d": 86400000, "1w": 7 * 86400000, "1m": 30 * 86400000 };
-      const span = periods[windowSize] || periods["1d"];
+      const span = WINDOW_MS[windowSize] || WINDOW_MS["1d"];
       data = data.filter((point) => point.timestamp >= focusTime - span / 2 && point.timestamp <= focusTime + span / 2);
     } else if (windowSize !== "all" && data.length) {
-      const periods = { "1d": 86400000, "1w": 7 * 86400000, "1m": 30 * 86400000 };
       const end = data[data.length - 1].timestamp;
-      data = data.filter((point) => point.timestamp >= end - periods[windowSize]);
+      data = data.filter((point) => point.timestamp >= end - WINDOW_MS[windowSize]);
     }
     return data;
-  }, [points, cycles, cycleFilter, windowSize, focusTime, run]);
+  }, [normalizedPoints, cycles, cycleFilter, windowSize, focusTime, run?.end_time]);
 
-  const markers = useMemo(() => orders.flatMap((order) => {
-    const role = order.order_role || "";
-    const status = order.status || "";
-    const isTp = role.includes("take_profit") || role.includes("tp");
-    const cancelled = status.toLowerCase().includes("cancel");
-    if (cancelled && !filters.cancelled) return [];
-    if (!cancelled && role.includes("grid_entry") && !filters.entries) return [];
-    if (!cancelled && isTp && !filters.tp) return [];
-    const base = {
-      price: asNumber(order.price), qty: order.qty, side: order.side, role,
-      label: isTp ? "Position TP" : role.replaceAll("_", " "),
-    };
-    if (base.price <= 0) return [];
-    const createdTime = asMs(order.created_at);
-    const updatedTime = asMs(order.updated_at);
-    const result = [{ ...base, timestamp: createdTime, status: "Placed", kind: "placed" }];
-    if (status !== "New" && Math.abs(updatedTime - createdTime) > 1) {
+  const orderByExchangeId = useMemo(() => new Map(orders.map((order) => [String(order.exchange_order_id), order])), [orders]);
+
+  const markers = useMemo(() => {
+    const result = [];
+    executions.forEach((execution) => {
+      const order = orderByExchangeId.get(String(execution.orderId));
+      const role = order?.order_role || (String(execution.side).toLowerCase() === "sell" ? "position_take_profit" : "grid_entry");
+      const isTp = role.includes("take_profit") || role.includes("tp");
+      if (isTp && !filters.tp) return;
+      if (!isTp && !filters.entries) return;
+      const level = String(order?.order_link_id || "").match(/entry-(\d+)/)?.[1];
       result.push({
-        ...base, timestamp: updatedTime, status,
-        kind: cancelled ? "cancelled" : status === "Filled" ? "filled" : "updated",
+        id: `execution-${execution.execId || `${execution.execTime}-${execution.execSeq}`}`,
+        timestamp: asMs(execution.execTime),
+        sequence: asNumber(execution.execSeq),
+        price: asNumber(execution.execPrice),
+        qty: asNumber(execution.execQty),
+        role,
+        label: isTp ? "Take profit filled" : `Grid #${level || "?"} filled`,
+        status: "Filled",
+        kind: "filled",
+      });
+    });
+    if (filters.cancelled) {
+      orders.forEach((order) => {
+        const status = String(order.status || "");
+        if (!status.toLowerCase().includes("cancel")) return;
+        const role = order.order_role || "";
+        const isTp = role.includes("take_profit") || role.includes("tp");
+        const level = String(order.order_link_id || "").match(/entry-(\d+)/)?.[1];
+        result.push({
+          id: `cancelled-${order.id || order.exchange_order_id}`,
+          timestamp: asMs(order.updated_at),
+          sequence: Number.MAX_SAFE_INTEGER,
+          price: asNumber(order.price),
+          qty: asNumber(order.qty),
+          role,
+          label: isTp ? "Take profit cancelled" : `Grid #${level || "?"} cancelled`,
+          status: "Cancelled",
+          kind: "cancelled",
+        });
       });
     }
-    return result;
-  }), [orders, filters]);
+    return result
+      .filter((marker) => Number.isFinite(marker.timestamp) && marker.price > 0)
+      .sort((a, b) => (a.timestamp - b.timestamp) || (a.sequence - b.sequence));
+  }, [executions, orderByExchangeId, orders, filters.entries, filters.tp, filters.cancelled]);
+
+  const chartSpanMs = useMemo(() => chartSpan(filteredPoints), [filteredPoints]);
+  const compactMarkers = chartSpanMs > 90 * DAY_MS || filteredPoints.length > 700;
 
   const visibleMarkers = useMemo(() => {
     if (!filteredPoints.length) return [];
     const min = filteredPoints[0].timestamp;
     const max = filteredPoints[filteredPoints.length - 1].timestamp;
-    return markers.filter((marker) => marker.timestamp >= min && marker.timestamp <= max);
-  }, [markers, filteredPoints]);
+    return markers
+      .filter((marker) => marker.timestamp >= min && marker.timestamp <= max)
+      .map((marker) => ({ ...marker, compact: compactMarkers }));
+  }, [markers, filteredPoints, compactMarkers]);
+
+  const priceDomain = useMemo(() => {
+    const values = filteredPoints.flatMap((point) => [point.low, point.high, point.close]);
+    visibleMarkers.forEach((marker) => values.push(marker.price));
+    return paddedDomain(values, 0.045);
+  }, [filteredPoints, visibleMarkers]);
+
+  const equityDomain = useMemo(() => paddedDomain(filteredPoints.map((point) => point.equity), 0.12), [filteredPoints]);
+  const drawdownDomain = useMemo(() => {
+    const values = filteredPoints.map((point) => asNumber(point.drawdown_percent));
+    const minimum = Math.min(...values, -0.01);
+    return [minimum * 1.08, 0];
+  }, [filteredPoints]);
+  const positionDomain = useMemo(() => {
+    const maximum = Math.max(...filteredPoints.map((point) => asNumber(point.position_qty)), 0);
+    return [0, maximum > 0 ? maximum * 1.12 : 1];
+  }, [filteredPoints]);
+  const balanceDomain = useMemo(() => paddedDomain(filteredPoints.map((point) => point.available_balance), 0.12), [filteredPoints]);
+  const latestPoint = filteredPoints[filteredPoints.length - 1] || null;
+  const periodStart = filteredPoints[0]?.timestamp;
+  const periodEnd = latestPoint?.timestamp;
+  const timeDomain = useMemo(() => [periodStart, periodEnd], [periodStart, periodEnd]);
+  const mainTimeTicks = useMemo(() => buildTimeTicks(periodStart, periodEnd, 8), [periodStart, periodEnd]);
+  const miniTimeTicks = useMemo(() => buildTimeTicks(periodStart, periodEnd, 5), [periodStart, periodEnd]);
+  const priceBandSize = Math.max(priceDomain[1] - priceDomain[0], 1) * 0.012;
+  const openCycle = cycles.find((cycle) => String(cycle.status).toLowerCase() === "open" || !cycle.closed_at_ms);
+  const openCycleStart = openCycle ? asMs(openCycle.started_at_ms) : null;
+  const showOpenCycleStart = openCycleStart != null && openCycleStart >= periodStart && openCycleStart <= periodEnd;
 
   const positionRanges = useMemo(() => {
     if (!filters.position || !filteredPoints.length) return [];
@@ -281,12 +476,60 @@ export default function BacktestDetailPage() {
         </>}
 
         {tab === "Chart" && <section className={styles.chartPanel}>
-          <div className={styles.chartToolbar}><div className={styles.checks}>
-            <label><input type="checkbox" checked={filters.entries} onChange={(e)=>setFilters({...filters,entries:e.target.checked})}/> Entries</label><label><input type="checkbox" checked={filters.tp} onChange={(e)=>setFilters({...filters,tp:e.target.checked})}/> Take profits</label><label><input type="checkbox" checked={filters.cancelled} onChange={(e)=>setFilters({...filters,cancelled:e.target.checked})}/> Cancelled</label><label><input type="checkbox" checked={filters.position} onChange={(e)=>setFilters({...filters,position:e.target.checked})}/> In position</label><label><input type="checkbox" checked={filters.loss} onChange={(e)=>setFilters({...filters,loss:e.target.checked})}/> Open loss</label>
-          </div><div className={styles.chartSelects}><select value={cycleFilter} onChange={(e)=>{setCycleFilter(e.target.value);setFocusTime(null)}}><option value="all">All cycles</option>{cycles.map((cycle)=><option key={cycle.id} value={cycle.cycle_number}>Cycle #{cycle.cycle_number}</option>)}</select>{["1d","1w","1m","all"].map((item)=><button key={item} className={windowSize===item?styles.activeWindow:""} onClick={()=>setWindowSize(item)}>{item.toUpperCase()}</button>)}</div></div>
+          <div className={styles.chartToolbar}>
+            <div className={styles.checks}>
+              <ChartToggle checked={filters.entries} onChange={(e) => setFilters({ ...filters, entries: e.target.checked })} label="Entry fills" color="#25c78b"/>
+              <ChartToggle checked={filters.tp} onChange={(e) => setFilters({ ...filters, tp: e.target.checked })} label="Take-profit fills" color="#b98cff"/>
+              <ChartToggle checked={filters.cancelled} onChange={(e) => setFilters({ ...filters, cancelled: e.target.checked })} label="Cancelled orders" color="#929bb0"/>
+              <ChartToggle checked={filters.position} onChange={(e) => setFilters({ ...filters, position: e.target.checked })} label="Position open" color="#4d9dff" type="band"/>
+              <ChartToggle checked={filters.loss} onChange={(e) => setFilters({ ...filters, loss: e.target.checked })} label="Open loss" color="#f05b63" type="band"/>
+            </div>
+            <div className={styles.chartSelects}>
+              <select value={cycleFilter} onChange={(e) => { setCycleFilter(e.target.value); setFocusTime(null); }}>
+                <option value="all">All cycles</option>
+                {cycles.map((cycle) => <option key={cycle.id} value={cycle.cycle_number}>Cycle #{cycle.cycle_number}</option>)}
+              </select>
+              {["1d", "1w", "1m", "all"].map((item) => <button key={item} className={windowSize === item ? styles.activeWindow : ""} onClick={() => { setWindowSize(item); if (item === "all") setFocusTime(null); }}>{item.toUpperCase()}</button>)}
+            </div>
+          </div>
           {filteredPoints.length ? <>
-            <div className={styles.priceChart}><ResponsiveContainer width="100%" height={430}><ComposedChart data={filteredPoints} margin={{top:20,right:22,left:8,bottom:10}}><CartesianGrid stroke="rgba(255,255,255,.05)" vertical={false}/><XAxis dataKey="timestamp" type="number" scale="time" domain={["dataMin","dataMax"]} tickFormatter={(v)=>new Date(v).toLocaleDateString("uk-UA",{month:"short",day:"2-digit"})} stroke="#68718a"/><YAxis domain={["auto","auto"]} tickFormatter={(v)=>Number(v).toLocaleString("en-US",{notation:"compact"})} stroke="#68718a"/><Tooltip content={<PriceTooltip/>}/>{positionRanges.map(([x1,x2],index)=><ReferenceArea key={`position-${index}`} x1={x1} x2={x2} fill="#4d9dff" fillOpacity={0.045} strokeOpacity={0}/>) }{lossRanges.map(([x1,x2],index)=><ReferenceArea key={`loss-${index}`} x1={x1} x2={x2} fill="#f05b63" fillOpacity={0.09} strokeOpacity={0}/>) }<Line type="monotone" dataKey="close" stroke="#d8dde9" strokeWidth={1.5} dot={false} isAnimationActive={false}/><Scatter data={visibleMarkers} dataKey="price" shape={<OrderMarker/>} isAnimationActive={false}/>{focusTime&&<ReferenceLine x={focusTime} stroke="#ffc24b" strokeDasharray="4 4"/>}</ComposedChart></ResponsiveContainer></div>
-            <div className={styles.subCharts}><div><h3>Equity</h3><ResponsiveContainer width="100%" height={190}><AreaChart data={filteredPoints}><CartesianGrid stroke="rgba(255,255,255,.04)" vertical={false}/><XAxis dataKey="timestamp" type="number" scale="time" domain={["dataMin","dataMax"]} hide/><YAxis domain={["auto","auto"]} width={64} stroke="#68718a"/><Tooltip labelFormatter={(v)=>new Date(v).toLocaleString("uk-UA")} formatter={(v)=>fmtMoney(v)}/><Area dataKey="equity" stroke="#25c78b" fill="rgba(37,199,139,.12)" isAnimationActive={false}/></AreaChart></ResponsiveContainer></div><div><h3>Drawdown</h3><ResponsiveContainer width="100%" height={190}><AreaChart data={filteredPoints}><CartesianGrid stroke="rgba(255,255,255,.04)" vertical={false}/><XAxis dataKey="timestamp" type="number" scale="time" domain={["dataMin","dataMax"]} hide/><YAxis width={64} stroke="#68718a" tickFormatter={(v)=>`${v.toFixed(0)}%`}/><Tooltip labelFormatter={(v)=>new Date(v).toLocaleString("uk-UA")} formatter={(v)=>`${Number(v).toFixed(2)}%`}/><Area dataKey="drawdown_percent" stroke="#f05b63" fill="rgba(240,91,99,.12)" isAnimationActive={false}/></AreaChart></ResponsiveContainer></div><div><h3>Position size</h3><ResponsiveContainer width="100%" height={190}><AreaChart data={filteredPoints}><CartesianGrid stroke="rgba(255,255,255,.04)" vertical={false}/><XAxis dataKey="timestamp" type="number" scale="time" domain={["dataMin","dataMax"]} hide/><YAxis width={64} stroke="#68718a"/><Tooltip labelFormatter={(v)=>new Date(v).toLocaleString("uk-UA")} formatter={(v)=>fmtNumber(v,6)}/><Area dataKey="position_qty" stroke="#4d9dff" fill="rgba(77,157,255,.12)" isAnimationActive={false}/></AreaChart></ResponsiveContainer></div><div><h3>Available balance</h3><ResponsiveContainer width="100%" height={190}><AreaChart data={filteredPoints}><CartesianGrid stroke="rgba(255,255,255,.04)" vertical={false}/><XAxis dataKey="timestamp" type="number" scale="time" domain={["dataMin","dataMax"]} hide/><YAxis domain={["auto","auto"]} width={64} stroke="#68718a"/><Tooltip labelFormatter={(v)=>new Date(v).toLocaleString("uk-UA")} formatter={(v)=>fmtMoney(v)}/><Area dataKey="available_balance" stroke="#ffc24b" fill="rgba(255,194,75,.12)" isAnimationActive={false}/></AreaChart></ResponsiveContainer></div></div>
+            <div className={styles.chartSnapshot}>
+              <div><span>Visible period</span><strong>{formatPeriodTime(periodStart, chartSpanMs)} — {formatPeriodTime(periodEnd, chartSpanMs)}</strong></div>
+              <div><span>Last price</span><strong>{fmtMoney(latestPoint?.close)}</strong></div>
+              <div><span>Equity</span><strong>{fmtMoney(latestPoint?.equity)}</strong></div>
+              <div><span>Position</span><strong>{fmtNumber(latestPoint?.position_qty, 6)}</strong></div>
+              <div><span>Drawdown</span><strong className={asNumber(latestPoint?.drawdown_percent) < 0 ? styles.snapshotNegative : ""}>{formatAxisPercent(latestPoint?.drawdown_percent)}</strong></div>
+            </div>
+            <div className={styles.chartHint}>The blue strip marks periods with an open position; the red strip marks periods when that position was in unrealized loss. The orange line marks the start of the still-open cycle. Markers show fills, not order creation.</div>
+            <div className={styles.priceChart}>
+              <ResponsiveContainer width="100%" height={470}>
+                <ComposedChart data={filteredPoints} syncId={CHART_SYNC_ID} margin={{ top: 18, right: 18, left: 4, bottom: 14 }}>
+                  <CartesianGrid stroke="rgba(255,255,255,.05)" vertical={false}/>
+                  <XAxis dataKey="timestamp" type="number" scale="time" domain={timeDomain} ticks={mainTimeTicks} allowDataOverflow height={38} tickMargin={10} tickFormatter={(v) => formatChartTime(v, chartSpanMs)} stroke="#68718a" tick={{ fontSize: 11 }}/>
+                  <YAxis domain={priceDomain} width={82} tickFormatter={formatAxisMoney} stroke="#68718a" tick={{ fontSize: 11 }}/>
+                  <Tooltip content={<PriceTooltip/>} cursor={{ stroke: "rgba(255,255,255,.22)", strokeDasharray: "3 3" }}/>
+                  {positionRanges.map(([x1, x2], index) => <ReferenceArea key={`position-${index}`} x1={x1} x2={x2} y1={priceDomain[0]} y2={priceDomain[0] + priceBandSize} fill="#4d9dff" fillOpacity={0.75} strokeOpacity={0}/>)}
+                  {lossRanges.map(([x1, x2], index) => <ReferenceArea key={`loss-${index}`} x1={x1} x2={x2} y1={priceDomain[0] + priceBandSize} y2={priceDomain[0] + (priceBandSize * 2)} fill="#f05b63" fillOpacity={0.75} strokeOpacity={0}/>)}
+                  <Line type="monotone" dataKey="close" name="Close" stroke="#d8dde9" strokeWidth={1.7} dot={false} activeDot={{ r: 3 }} isAnimationActive={false}/>
+                  {visibleMarkers.map((marker) => <ReferenceDot
+                    key={marker.id}
+                    x={marker.timestamp}
+                    y={marker.price}
+                    r={0}
+                    ifOverflow="discard"
+                    shape={(props) => <OrderMarker {...props} payload={marker}/>}
+                  />)}
+                  {showOpenCycleStart && <ReferenceLine x={openCycleStart} stroke="#ffc24b" strokeDasharray="5 4" label={{ value: `Open cycle #${openCycle.cycle_number}`, position: "insideTopRight", fill: "#ffc24b", fontSize: 10 }}/>}
+                  {focusTime && <ReferenceLine x={focusTime} stroke="#4d9dff" strokeDasharray="4 4"/>}
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+            <div className={styles.subCharts}>
+              <MiniChart title="Equity" value={fmtMoney(latestPoint?.equity)} data={filteredPoints} dataKey="equity" stroke="#25c78b" fill="rgba(37,199,139,.12)" domain={equityDomain} timeDomain={timeDomain} timeTicks={miniTimeTicks} yFormatter={formatAxisMoney} tooltipFormatter={fmtMoney} spanMs={chartSpanMs} referenceValue={asNumber(run.initial_balance ?? normalizedPoints[0]?.equity)} referenceLabel="Start"/>
+              <MiniChart title="Drawdown" value={formatAxisPercent(latestPoint?.drawdown_percent)} data={filteredPoints} dataKey="drawdown_percent" stroke="#f05b63" fill="rgba(240,91,99,.12)" domain={drawdownDomain} timeDomain={timeDomain} timeTicks={miniTimeTicks} yFormatter={formatAxisPercent} tooltipFormatter={formatAxisPercent} spanMs={chartSpanMs} referenceValue={0}/>
+              <MiniChart title="Position size" value={fmtNumber(latestPoint?.position_qty, 6)} data={filteredPoints} dataKey="position_qty" stroke="#4d9dff" fill="rgba(77,157,255,.12)" domain={positionDomain} timeDomain={timeDomain} timeTicks={miniTimeTicks} yFormatter={formatAxisQty} tooltipFormatter={(v) => fmtNumber(v, 6)} spanMs={chartSpanMs} type="stepAfter" referenceValue={0}/>
+              <MiniChart title="Available balance" value={fmtMoney(latestPoint?.available_balance)} data={filteredPoints} dataKey="available_balance" stroke="#ffc24b" fill="rgba(255,194,75,.12)" domain={balanceDomain} timeDomain={timeDomain} timeTicks={miniTimeTicks} yFormatter={formatAxisMoney} tooltipFormatter={fmtMoney} spanMs={chartSpanMs}/>
+            </div>
           </> : <Empty>Графік з’явиться після перших оброблених свічок.</Empty>}
         </section>}
 

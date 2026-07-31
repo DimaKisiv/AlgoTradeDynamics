@@ -197,7 +197,8 @@ def require_account(
 def ensure_schema_compatibility() -> None:
     # create_all does not add columns to an existing SQLite volume.
     with engine.begin() as connection:
-        existing = {column["name"] for column in inspect(connection).get_columns("accounts")} if inspect(connection).has_table("accounts") else set()
+        inspector = inspect(connection)
+        existing = {column["name"] for column in inspector.get_columns("accounts")} if inspector.has_table("accounts") else set()
         additions = {
             "maker_fee_rate": "FLOAT NOT NULL DEFAULT 0.0002",
             "taker_fee_rate": "FLOAT NOT NULL DEFAULT 0.00055",
@@ -206,6 +207,16 @@ def ensure_schema_compatibility() -> None:
         for name, ddl in additions.items():
             if name not in existing:
                 connection.execute(text(f"ALTER TABLE accounts ADD COLUMN {name} {ddl}"))
+
+        if inspector.has_table("executions"):
+            execution_columns = {column["name"] for column in inspector.get_columns("executions")}
+            if "sequence_no" not in execution_columns:
+                connection.execute(text("ALTER TABLE executions ADD COLUMN sequence_no INTEGER NOT NULL DEFAULT 0"))
+                if engine.dialect.name == "sqlite":
+                    connection.execute(text("UPDATE executions SET sequence_no = rowid WHERE sequence_no = 0"))
+            connection.execute(
+                text("CREATE INDEX IF NOT EXISTS ix_executions_sequence_no ON executions (sequence_no)")
+            )
 
 
 @asynccontextmanager
@@ -772,14 +783,24 @@ def admin_positions(account_id: int | None = None, db: Session = Depends(get_db)
 def admin_executions(
     account_id: int | None = None,
     symbol: str | None = None,
+    after_sequence: int | None = Query(default=None, ge=0),
     limit: int = Query(default=200, ge=1, le=100000),
     db: Session = Depends(get_db),
 ) -> list[dict]:
-    query = select(Execution).order_by(Execution.created_at.desc()).limit(limit)
+    query = select(Execution)
     if account_id:
         query = query.where(Execution.account_id == account_id)
     if symbol:
         query = query.where(Execution.symbol == symbol.upper())
+    if after_sequence is not None:
+        query = query.where(Execution.sequence_no > after_sequence).order_by(
+            Execution.sequence_no.asc(), Execution.created_at.asc(), Execution.id.asc()
+        )
+    else:
+        query = query.order_by(
+            Execution.created_at.desc(), Execution.sequence_no.desc(), Execution.id.desc()
+        )
+    query = query.limit(limit)
     items = db.scalars(query).all()
     return [
         {
@@ -793,6 +814,7 @@ def admin_executions(
             "execFee": format_number(item.fee),
             "closedPnl": format_number(item.closed_pnl),
             "execTime": int(item.created_at.timestamp() * 1000),
+            "execSeq": item.sequence_no,
         }
         for item in items
     ]
@@ -1113,7 +1135,10 @@ def bybit_execution_list(
     query = select(Execution).where(Execution.account_id == account.id)
     if symbol:
         query = query.where(Execution.symbol == symbol.upper())
-    items = db.scalars(query.order_by(Execution.created_at.desc()).limit(min(limit, 200))).all()
+    items = db.scalars(
+        query.order_by(Execution.created_at.desc(), Execution.sequence_no.desc(), Execution.id.desc())
+        .limit(min(limit, 200))
+    ).all()
     result = [
         {
             "symbol": item.symbol,
@@ -1126,6 +1151,7 @@ def bybit_execution_list(
             "execFee": format_number(item.fee),
             "closedPnl": format_number(item.closed_pnl),
             "execTime": str(int(item.created_at.timestamp() * 1000)),
+            "execSeq": item.sequence_no,
             "execType": "Trade",
         }
         for item in items

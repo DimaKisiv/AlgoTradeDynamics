@@ -197,11 +197,19 @@ export default function BacktestDetailPage() {
     return true;
   }), [orders, orderFilter]);
 
+  const orderedExecutions = useMemo(() => [...executions].sort((a, b) => {
+    const timeDifference = asMs(a.execTime) - asMs(b.execTime);
+    if (timeDifference !== 0) return timeDifference;
+    const sequenceDifference = asNumber(a.execSeq) - asNumber(b.execSeq);
+    if (sequenceDifference !== 0) return sequenceDifference;
+    return String(a.execId || "").localeCompare(String(b.execId || ""));
+  }), [executions]);
+
   const positionTimeline = useMemo(() => {
     const byExchangeId = new Map(orders.map((order) => [String(order.exchange_order_id), order]));
     let qty = 0;
     let avg = 0;
-    return [...executions].sort((a, b) => asMs(a.execTime) - asMs(b.execTime)).map((item) => {
+    return orderedExecutions.map((item) => {
       const before = qty;
       const fillQty = asNumber(item.execQty);
       const price = asNumber(item.execPrice);
@@ -216,7 +224,7 @@ export default function BacktestDetailPage() {
       const order = byExchangeId.get(String(item.orderId));
       return { ...item, before, after: qty, average: avg, role: order?.order_role || (isBuy ? "grid_entry" : "position_take_profit") };
     });
-  }, [executions, orders]);
+  }, [orderedExecutions, orders]);
 
   const filteredEvents = useMemo(() => events.filter((event) => {
     const type = String(event.event_type || "").toLowerCase();
@@ -286,7 +294,7 @@ export default function BacktestDetailPage() {
 
         {tab === "Orders" && <TableWrap><div className={styles.tableFilters}>{["all","open","filled","cancelled","rejected"].map((item)=><button key={item} className={orderFilter===item?styles.activeFilter:""} onClick={()=>setOrderFilter(item)}>{item}</button>)}</div><table className={styles.table}><thead><tr><th>Time</th><th>Side</th><th>Type</th><th>Role</th><th>Qty</th><th>Price</th><th>Status</th><th>Exchange ID</th><th></th></tr></thead><tbody>{filteredOrders.map((order)=><tr key={order.id}><td>{fmtDateTime(order.created_at)}</td><td><SideBadge side={order.side}/></td><td><OrderTypeBadge type={order.order_type} reduceOnly={order.raw_response?.reduceOnly}/></td><td><RoleBadge role={order.order_role} linkId={order.order_link_id}/></td><td>{fmtNumber(order.qty,6)}</td><td>{order.price?fmtMoney(order.price):"Market"}</td><td><StatusBadge status={order.status}/></td><td className={styles.mono} title={order.exchange_order_id}>{order.exchange_order_id?.slice(0,10)||"—"}</td><td><button className={styles.jump} onClick={()=>jumpToChart(order.updated_at)}><Crosshair size={14}/></button></td></tr>)}</tbody></table>{!filteredOrders.length&&<Empty/>}</TableWrap>}
 
-        {tab === "Executions" && <TableWrap><table className={styles.table}><thead><tr><th>Time</th><th>Side</th><th>Price</th><th>Qty</th><th>Fee</th><th>Closed PnL</th><th>Execution ID</th><th></th></tr></thead><tbody>{executions.map((item)=><tr key={item.execId}><td>{new Date(asMs(item.execTime)).toLocaleString("uk-UA")}</td><td><SideBadge side={item.side}/></td><td>{fmtMoney(asNumber(item.execPrice))}</td><td>{fmtNumber(asNumber(item.execQty),6)}</td><td>{fmtMoney(asNumber(item.execFee))}</td><td><PnlValue value={item.closedPnl}>{fmtMoneySigned(asNumber(item.closedPnl))}</PnlValue></td><td className={styles.mono}>{item.execId.slice(0,10)}</td><td><button className={styles.jump} onClick={()=>jumpToChart(item.execTime)}><Crosshair size={14}/></button></td></tr>)}</tbody></table>{!executions.length&&<Empty/>}</TableWrap>}
+        {tab === "Executions" && <TableWrap><table className={styles.table}><thead><tr><th>Time</th><th>Side</th><th>Price</th><th>Qty</th><th>Fee</th><th>Closed PnL</th><th>Execution ID</th><th></th></tr></thead><tbody>{orderedExecutions.map((item)=><tr key={item.execId}><td>{new Date(asMs(item.execTime)).toLocaleString("uk-UA")}</td><td><SideBadge side={item.side}/></td><td>{fmtMoney(asNumber(item.execPrice))}</td><td>{fmtNumber(asNumber(item.execQty),6)}</td><td>{fmtMoney(asNumber(item.execFee))}</td><td><PnlValue value={item.closedPnl}>{fmtMoneySigned(asNumber(item.closedPnl))}</PnlValue></td><td className={styles.mono}>{item.execId.slice(0,10)}</td><td><button className={styles.jump} onClick={()=>jumpToChart(item.execTime)}><Crosshair size={14}/></button></td></tr>)}</tbody></table>{!orderedExecutions.length&&<Empty/>}</TableWrap>}
 
         {tab === "Positions" && <TableWrap><table className={styles.table}><thead><tr><th>Time</th><th>Action</th><th>Qty before</th><th>Qty after</th><th>Fill price</th><th>Average entry after</th><th>Closed PnL</th><th></th></tr></thead><tbody>{positionTimeline.map((item)=><tr key={`position-${item.execId}`}><td>{new Date(asMs(item.execTime)).toLocaleString("uk-UA")}</td><td><SideBadge side={item.side}/><RoleBadge role={item.role}/></td><td>{fmtNumber(item.before,6)}</td><td>{fmtNumber(item.after,6)}</td><td>{fmtMoney(asNumber(item.execPrice))}</td><td>{item.average?fmtMoney(item.average):"—"}</td><td><PnlValue value={item.closedPnl}>{fmtMoneySigned(asNumber(item.closedPnl))}</PnlValue></td><td><button className={styles.jump} onClick={()=>jumpToChart(item.execTime)}><Crosshair size={14}/></button></td></tr>)}</tbody></table>{!positionTimeline.length&&<Empty/>}</TableWrap>}
 

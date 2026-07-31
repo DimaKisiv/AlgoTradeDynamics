@@ -109,7 +109,17 @@ class BacktestEmulatorClient:
             "GET", "/api/admin/orders", params={"account_id": account_id, "symbol": symbol, "limit": limit}
         )
 
-    def executions(self, account_id: int, symbol: str, limit: int = 1000) -> list[dict]:
+    def executions(
+        self,
+        account_id: int,
+        symbol: str,
+        limit: int = 1000,
+        *,
+        after_sequence: int | None = None,
+    ) -> list[dict]:
+        params: dict[str, Any] = {"account_id": account_id, "symbol": symbol, "limit": limit}
+        if after_sequence is not None:
+            params["after_sequence"] = after_sequence
         return self._request(
-            "GET", "/api/admin/executions", params={"account_id": account_id, "symbol": symbol, "limit": limit}
+            "GET", "/api/admin/executions", params=params
         )

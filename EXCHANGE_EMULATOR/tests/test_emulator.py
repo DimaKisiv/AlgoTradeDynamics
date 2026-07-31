@@ -94,3 +94,73 @@ def test_manual_matching_scenario_and_replay():
             f"/api/admin/dashboard?account_id={account['id']}&symbol=ETHUSDT"
         ).json()
         assert dashboard["market"]["status"] == "completed"
+
+
+def test_execution_sequence_preserves_same_timestamp_order():
+    with TestClient(app) as client:
+        account = client.post(
+            "/api/admin/accounts",
+            json={"name": "Sequence test", "initial_balance": 10000},
+        ).json()
+        headers = {"X-API-Key": account["api_key"]}
+        simulation_time = 1_704_067_200_000
+
+        client.post(
+            "/api/admin/markets/BTCUSDT/price",
+            json={
+                "price": 50000,
+                "mark_price": 50000,
+                "simulation_time": simulation_time,
+                "account_id": account["id"],
+            },
+        ).raise_for_status()
+
+        buy = client.post(
+            "/v5/order/create",
+            headers=headers,
+            json={
+                "category": "linear",
+                "symbol": "BTCUSDT",
+                "side": "Buy",
+                "orderType": "Limit",
+                "qty": "0.001",
+                "price": "50000",
+                "orderLinkId": "sequence-buy",
+            },
+        ).json()
+        assert buy["retCode"] == 0
+
+        sell = client.post(
+            "/v5/order/create",
+            headers=headers,
+            json={
+                "category": "linear",
+                "symbol": "BTCUSDT",
+                "side": "Sell",
+                "orderType": "Limit",
+                "qty": "0.001",
+                "price": "50000",
+                "reduceOnly": True,
+                "orderLinkId": "sequence-sell",
+            },
+        ).json()
+        assert sell["retCode"] == 0
+
+        ascending = client.get(
+            "/api/admin/executions",
+            params={
+                "account_id": account["id"],
+                "symbol": "BTCUSDT",
+                "after_sequence": 0,
+                "limit": 10,
+            },
+        ).json()
+        assert [item["side"] for item in ascending] == ["Buy", "Sell"]
+        assert ascending[0]["execTime"] == ascending[1]["execTime"] == simulation_time
+        assert ascending[0]["execSeq"] < ascending[1]["execSeq"]
+
+        descending = client.get(
+            "/api/admin/executions",
+            params={"account_id": account["id"], "symbol": "BTCUSDT", "limit": 10},
+        ).json()
+        assert [item["side"] for item in descending] == ["Sell", "Buy"]

@@ -104,6 +104,7 @@ class Execution(Base):
     qty: Mapped[float] = mapped_column(Float, nullable=False)
     fee: Mapped[float] = mapped_column(Float, nullable=False)
     closed_pnl: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    sequence_no: Mapped[int] = mapped_column(Integer, nullable=False, default=0, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
 
 

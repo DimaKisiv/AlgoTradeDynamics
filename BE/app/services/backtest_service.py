@@ -299,7 +299,9 @@ def list_executions(run: BacktestRun) -> list[dict]:
         return []
     emulator = BacktestEmulatorClient(get_settings().exchange_emulator_url)
     try:
-        return list(reversed(emulator.executions(run.emulator_account_id, run.symbol, limit=100000)))
+        return _sort_executions(
+            emulator.executions(run.emulator_account_id, run.symbol, limit=100000)
+        )
     finally:
         emulator.close()
 
@@ -405,9 +407,134 @@ def _dashboard_values(payload: dict) -> dict[str, float]:
     }
 
 
-def _store_cycle(db: Session, run_id: int, state: dict, *, close_time: int | None, exit_price: float | None, balance: float) -> BacktestCycle:
+def _execution_time(item: dict) -> int:
+    return int(item.get("execTime") or 0)
+
+
+def _execution_sequence(item: dict) -> int:
+    return int(item.get("execSeq") or 0)
+
+
+def _sort_executions(items: list[dict]) -> list[dict]:
+    return sorted(
+        items,
+        key=lambda item: (
+            _execution_time(item),
+            _execution_sequence(item),
+            str(item.get("execId") or ""),
+        ),
+    )
+
+
+def _new_cycle_state(state: dict, execution: dict) -> dict[str, Any]:
+    state["cycle_number"] += 1
+    exec_time = _execution_time(execution)
+    return {
+        "number": state["cycle_number"],
+        "started_at": exec_time,
+        "last_time": exec_time,
+        "time_in_loss": 0.0,
+        "max_unrealized_loss": 0.0,
+        "max_qty": 0.0,
+        "max_value": 0.0,
+        "entries_filled": 0,
+        "avg_entry": 0.0,
+        "gross_pnl": 0.0,
+        "fees": 0.0,
+        "execution_count": 0,
+        "start_exec_seq": _execution_sequence(execution),
+        "end_exec_seq": None,
+        "closed_at": None,
+        "exit_price": None,
+    }
+
+
+def _apply_execution_to_cycle_state(state: dict, execution: dict) -> dict[str, Any] | None:
+    side = str(execution.get("side") or "").lower()
+    qty = _float(execution.get("execQty"))
+    price = _float(execution.get("execPrice"))
+    fee = _float(execution.get("execFee"))
+    closed_pnl = _float(execution.get("closedPnl"))
+    exec_time = _execution_time(execution)
+    exec_seq = _execution_sequence(execution)
+
+    if qty <= 0:
+        raise RuntimeError(f"Execution {execution.get('execId')} has a non-positive quantity")
+
+    position_qty = _float(state.get("execution_position_qty"))
+    avg_entry = _float(state.get("execution_avg_entry"))
+
+    if side == "buy":
+        if position_qty <= 1e-12:
+            if state.get("current_cycle") is not None:
+                raise RuntimeError("A new position started while the previous backtest cycle was still open")
+            state["current_cycle"] = _new_cycle_state(state, execution)
+
+        cycle = state["current_cycle"]
+        new_qty = position_qty + qty
+        new_avg = ((position_qty * avg_entry) + (qty * price)) / new_qty
+        state["execution_position_qty"] = new_qty
+        state["execution_avg_entry"] = new_avg
+
+        cycle["entries_filled"] += 1
+        cycle["fees"] += fee
+        cycle["execution_count"] += 1
+        cycle["last_time"] = exec_time
+        cycle["end_exec_seq"] = exec_seq
+        cycle["avg_entry"] = new_avg
+        cycle["max_qty"] = max(cycle["max_qty"], new_qty)
+        cycle["max_value"] = max(cycle["max_value"], new_qty * price)
+        state["max_position_qty"] = max(state["max_position_qty"], new_qty)
+        state["max_position_value"] = max(state["max_position_value"], new_qty * price)
+        return None
+
+    if side != "sell":
+        raise RuntimeError(f"Unsupported execution side: {execution.get('side')}")
+    if position_qty <= 1e-12 or state.get("current_cycle") is None:
+        raise RuntimeError("A sell execution was received without an open backtest cycle")
+    if qty > position_qty + 1e-9:
+        raise RuntimeError(
+            f"Sell execution quantity {qty:g} exceeds reconstructed position {position_qty:g}"
+        )
+
+    cycle = state["current_cycle"]
+    cycle["fees"] += fee
+    cycle["gross_pnl"] += closed_pnl
+    cycle["execution_count"] += 1
+    cycle["last_time"] = exec_time
+    cycle["end_exec_seq"] = exec_seq
+    cycle["exit_price"] = price
+
+    new_qty = max(position_qty - qty, 0.0)
+    state["execution_position_qty"] = new_qty
+    if new_qty <= 1e-12:
+        state["execution_position_qty"] = 0.0
+        state["execution_avg_entry"] = 0.0
+        cycle["closed_at"] = exec_time
+        state["current_cycle"] = None
+        state["closed_cycle_count"] += 1
+        return cycle
+
+    state["execution_avg_entry"] = avg_entry
+    return None
+
+
+def _update_current_cycle_market_state(state: dict, values: dict[str, float], point_time: int) -> None:
+    cycle = state.get("current_cycle")
+    if cycle is None:
+        return
+    cycle["last_time"] = point_time
+    cycle["max_unrealized_loss"] = min(cycle["max_unrealized_loss"], values["unrealized"])
+    cycle["max_qty"] = max(cycle["max_qty"], values["position_qty"])
+    cycle["max_value"] = max(cycle["max_value"], values["position_value"])
+    cycle["avg_entry"] = values["avg_entry"] or cycle["avg_entry"]
+
+
+def _store_cycle(db: Session, run_id: int, state: dict) -> BacktestCycle:
+    close_time = state.get("closed_at")
     duration = max(((close_time or state["last_time"]) - state["started_at"]) / 1000, 0)
-    net_pnl = balance - state["start_balance"] if close_time is not None else 0.0
+    gross_pnl = _float(state.get("gross_pnl"))
+    fees = _float(state.get("fees"))
     cycle = BacktestCycle(
         run_id=run_id,
         cycle_number=state["number"],
@@ -420,12 +547,16 @@ def _store_cycle(db: Session, run_id: int, state: dict, *, close_time: int | Non
         max_position_value=state["max_value"],
         entries_filled=state["entries_filled"],
         avg_entry_price=state.get("avg_entry"),
-        exit_price=exit_price,
-        gross_pnl=net_pnl,
-        fees=0,
-        net_pnl=net_pnl,
+        exit_price=state.get("exit_price"),
+        gross_pnl=gross_pnl,
+        fees=fees,
+        net_pnl=gross_pnl - fees,
         status="closed" if close_time is not None else "open",
-        details={"start_balance": state["start_balance"]},
+        details={
+            "start_exec_seq": state.get("start_exec_seq"),
+            "end_exec_seq": state.get("end_exec_seq"),
+            "execution_count": state.get("execution_count", 0),
+        },
     )
     db.add(cycle)
     db.flush()
@@ -578,7 +709,11 @@ def run_backtest_job(run_id: int) -> None:
             "previous_values": None,
             "current_cycle": None,
             "cycle_number": 0,
-            "filled_buy_count": 0,
+            "closed_cycle_count": 0,
+            "execution_position_qty": 0.0,
+            "execution_avg_entry": 0.0,
+            "last_execution_sequence": 0,
+            "processed_execution_ids": set(),
         }
 
         for index, candle in enumerate(
@@ -622,20 +757,6 @@ def run_backtest_job(run_id: int) -> None:
             segment_ms = max(int(interval_seconds * 1000 / max(len(path), 1)), 1)
             for point_index, price in enumerate(path):
                 point_time = int(candle["open_time"]) + point_index * segment_ms
-                price_result = emulator.set_price(
-                    run.emulator_account_id, run.symbol, _float(price), point_time
-                )
-                simulated_dt = datetime.fromtimestamp(point_time / 1000, tz=timezone.utc)
-                # The strategy only needs to react when an order was filled. The first
-                # point initializes its grid. This keeps multi-year 1m backtests practical
-                # while still using the exact live bot reconciliation/order logic.
-                if (index == 1 and point_index == 0) or int(price_result.get("filled_orders") or 0) > 0:
-                    with use_simulated_time(simulated_dt):
-                        _tick_until_stable(db, temp_bot, max_ticks=5)
-                    if index == 1 and point_index == 0:
-                        _assert_initial_grid_created(db, temp_bot)
-                dashboard = emulator.dashboard(run.emulator_account_id, run.symbol)
-                values = _dashboard_values(dashboard)
 
                 previous_time = state["previous_time"]
                 previous_values = state["previous_values"]
@@ -655,6 +776,42 @@ def run_backtest_job(run_id: int) -> None:
                         state["longest_loss"] = max(
                             state["longest_loss"], (point_time - state["loss_started"]) / 1000
                         )
+
+                price_result = emulator.set_price(
+                    run.emulator_account_id, run.symbol, _float(price), point_time
+                )
+                simulated_dt = datetime.fromtimestamp(point_time / 1000, tz=timezone.utc)
+                # The strategy only needs to react when an order was filled. The first
+                # point initializes its grid. This keeps multi-year 1m backtests practical
+                # while still using the exact live bot reconciliation/order logic.
+                ticked = (index == 1 and point_index == 0) or int(price_result.get("filled_orders") or 0) > 0
+                if ticked:
+                    with use_simulated_time(simulated_dt):
+                        _tick_until_stable(db, temp_bot, max_ticks=5)
+                    if index == 1 and point_index == 0:
+                        _assert_initial_grid_created(db, temp_bot)
+
+                    new_executions = _sort_executions(
+                        emulator.executions(
+                            run.emulator_account_id,
+                            run.symbol,
+                            limit=100000,
+                            after_sequence=state["last_execution_sequence"],
+                        )
+                    )
+                    for execution in new_executions:
+                        exec_id = str(execution.get("execId") or "")
+                        if exec_id in state["processed_execution_ids"]:
+                            continue
+                        closed_cycle = _apply_execution_to_cycle_state(state, execution)
+                        state["processed_execution_ids"].add(exec_id)
+                        state["last_execution_sequence"] = max(
+                            state["last_execution_sequence"], _execution_sequence(execution)
+                        )
+                        if closed_cycle is not None:
+                            _store_cycle(db, run.id, closed_cycle)
+                dashboard = emulator.dashboard(run.emulator_account_id, run.symbol)
+                values = _dashboard_values(dashboard)
 
                 equity = values["equity"]
                 state["peak_equity"] = max(state["peak_equity"], equity)
@@ -693,43 +850,14 @@ def run_backtest_job(run_id: int) -> None:
                 state["max_margin_used"] = max(state["max_margin_used"], values["margin_used"])
                 state["lowest_available"] = min(state["lowest_available"], values["available"])
 
-                filled_buy_count = db.query(TradingBotOrder).filter(
-                    TradingBotOrder.bot_id == temp_bot.id,
-                    TradingBotOrder.side == "Buy",
-                    TradingBotOrder.status == "Filled",
-                ).count()
-                new_entries = max(filled_buy_count - state["filled_buy_count"], 0)
-                state["filled_buy_count"] = filled_buy_count
-
-                previous_qty = previous_values["position_qty"] if previous_values else 0
-                if previous_qty <= 0 and values["position_qty"] > 0:
-                    state["cycle_number"] += 1
-                    state["current_cycle"] = {
-                        "number": state["cycle_number"],
-                        "started_at": point_time,
-                        "last_time": point_time,
-                        "start_balance": values["balance"],
-                        "time_in_loss": 0.0,
-                        "max_unrealized_loss": min(values["unrealized"], 0),
-                        "max_qty": values["position_qty"],
-                        "max_value": values["position_value"],
-                        "entries_filled": max(new_entries, 1),
-                        "avg_entry": values["avg_entry"],
-                    }
-                elif state["current_cycle"] and values["position_qty"] > 0:
-                    cycle_state = state["current_cycle"]
-                    cycle_state["last_time"] = point_time
-                    cycle_state["max_unrealized_loss"] = min(cycle_state["max_unrealized_loss"], values["unrealized"])
-                    cycle_state["max_qty"] = max(cycle_state["max_qty"], values["position_qty"])
-                    cycle_state["max_value"] = max(cycle_state["max_value"], values["position_value"])
-                    cycle_state["entries_filled"] += new_entries
-                    cycle_state["avg_entry"] = values["avg_entry"] or cycle_state["avg_entry"]
-                if previous_qty > 0 and values["position_qty"] <= 0 and state["current_cycle"]:
-                    _store_cycle(
-                        db, run.id, state["current_cycle"], close_time=point_time,
-                        exit_price=_float(price), balance=values["balance"],
+                reconstructed_qty = _float(state["execution_position_qty"])
+                if not math.isclose(reconstructed_qty, values["position_qty"], rel_tol=0, abs_tol=1e-9):
+                    raise RuntimeError(
+                        "Execution accounting does not match emulator position: "
+                        f"reconstructed={reconstructed_qty:g}, emulator={values['position_qty']:g}, "
+                        f"time={point_time}"
                     )
-                    state["current_cycle"] = None
+                _update_current_cycle_market_state(state, values, point_time)
 
                 state["previous_time"] = point_time
                 state["previous_values"] = values
@@ -768,20 +896,45 @@ def run_backtest_job(run_id: int) -> None:
                 close_bot_position(db, temp_bot)
                 db.commit()
                 _tick_until_stable(db, temp_bot)
+
+            final_executions = _sort_executions(
+                emulator.executions(
+                    run.emulator_account_id,
+                    run.symbol,
+                    limit=100000,
+                    after_sequence=state["last_execution_sequence"],
+                )
+            )
+            for execution in final_executions:
+                exec_id = str(execution.get("execId") or "")
+                if exec_id in state["processed_execution_ids"]:
+                    continue
+                closed_cycle = _apply_execution_to_cycle_state(state, execution)
+                state["processed_execution_ids"].add(exec_id)
+                state["last_execution_sequence"] = max(
+                    state["last_execution_sequence"], _execution_sequence(execution)
+                )
+                if closed_cycle is not None:
+                    _store_cycle(db, run.id, closed_cycle)
+
             final_dashboard = emulator.dashboard(run.emulator_account_id, run.symbol)
             final_values = _dashboard_values(final_dashboard)
-            if state["current_cycle"] and final_values["position_qty"] <= 0:
-                _store_cycle(
-                    db, run.id, state["current_cycle"], close_time=final_time,
-                    exit_price=run.current_price, balance=final_values["balance"],
-                )
-                state["current_cycle"] = None
+
+        if not math.isclose(
+            _float(state["execution_position_qty"]),
+            final_values["position_qty"],
+            rel_tol=0,
+            abs_tol=1e-9,
+        ):
+            raise RuntimeError(
+                "Final execution accounting does not match emulator position: "
+                f"reconstructed={state['execution_position_qty']:g}, "
+                f"emulator={final_values['position_qty']:g}"
+            )
 
         if state["current_cycle"]:
-            _store_cycle(
-                db, run.id, state["current_cycle"], close_time=None,
-                exit_price=None, balance=final_values["balance"],
-            )
+            _update_current_cycle_market_state(state, final_values, final_time)
+            _store_cycle(db, run.id, state["current_cycle"])
             state["current_cycle"] = None
 
         if state["drawdown_started"] is not None:
@@ -797,19 +950,21 @@ def run_backtest_job(run_id: int) -> None:
                 (run.end_time - state["deepest_drawdown_time"]) / 1000, 0
             )
 
-        executions = list(reversed(emulator.executions(run.emulator_account_id, run.symbol, limit=100000)))
+        executions = _sort_executions(
+            emulator.executions(run.emulator_account_id, run.symbol, limit=100000)
+        )
+        if len(executions) != len(state["processed_execution_ids"]):
+            raise RuntimeError(
+                "Backtest execution stream was not processed completely: "
+                f"stored={len(executions)}, processed={len(state['processed_execution_ids'])}"
+            )
         cycles = list_cycles(db, run.id)
-        # Allocate execution fees and gross PnL to cycle time windows.
-        for cycle in cycles:
-            cycle_execs = [
-                item for item in executions
-                if item.get("execTime", 0) >= cycle.started_at_ms
-                and (cycle.closed_at_ms is None or item.get("execTime", 0) <= cycle.closed_at_ms)
-            ]
-            cycle.fees = sum(_float(item.get("execFee")) for item in cycle_execs)
-            cycle.gross_pnl = sum(_float(item.get("closedPnl")) for item in cycle_execs)
-            cycle.net_pnl = cycle.gross_pnl - cycle.fees
-            db.add(cycle)
+        closed_cycles = [cycle for cycle in cycles if cycle.status == "closed"]
+        if len(closed_cycles) != state["closed_cycle_count"]:
+            raise RuntimeError(
+                "Stored cycle count does not match execution accounting: "
+                f"stored={len(closed_cycles)}, reconstructed={state['closed_cycle_count']}"
+            )
 
         run.metrics = _final_metrics(run, final_dashboard, executions, state, cycles)
         run.status = "completed"

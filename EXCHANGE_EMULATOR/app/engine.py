@@ -22,6 +22,9 @@ DEFAULT_MARKETS = {
     "SOLUSDT": 180.0,
 }
 
+_execution_sequence_lock = threading.Lock()
+_last_execution_sequence = 0
+
 
 def now_utc() -> datetime:
     return datetime.now(timezone.utc)
@@ -58,6 +61,14 @@ def make_api_key() -> str:
 
 def make_api_secret() -> str:
     return secrets.token_urlsafe(32)
+
+
+def next_execution_sequence() -> int:
+    global _last_execution_sequence
+    with _execution_sequence_lock:
+        wall_clock_sequence = int(time.time() * 1000) * 1000
+        _last_execution_sequence = max(wall_clock_sequence, _last_execution_sequence + 1)
+        return _last_execution_sequence
 
 
 def log_event(
@@ -507,6 +518,7 @@ def fill_order(db: Session, order: Order, fill_price: float, *, liquidity: str) 
         qty=qty,
         fee=fee,
         closed_pnl=closed_pnl,
+        sequence_no=next_execution_sequence(),
     )
     db.add(execution)
     log_event(

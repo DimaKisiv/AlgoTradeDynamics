@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
-  Area, AreaChart, CartesianGrid, ComposedChart, Line, ReferenceArea, ReferenceDot, ReferenceLine,
+  Area, AreaChart, Brush, CartesianGrid, ComposedChart, Line, ReferenceArea, ReferenceDot, ReferenceLine,
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
-import { ArrowLeft, CirclePause, CirclePlay, Copy, Crosshair, LoaderCircle, OctagonX } from "lucide-react";
+import {
+  ArrowLeft, CirclePause, CirclePlay, Copy, Crosshair, LoaderCircle, Minus, MoveHorizontal,
+  OctagonX, Plus, RotateCcw, X,
+} from "lucide-react";
 
 import { backtestsApi } from "../../api/backtests";
 import Button from "../../components/ui/Button/Button";
@@ -25,7 +28,14 @@ const asMs = (value) => {
 };
 
 const DAY_MS = 86400000;
-const WINDOW_MS = { "1d": DAY_MS, "1w": 7 * DAY_MS, "1m": 30 * DAY_MS };
+const HOUR_MS = 3600000;
+const WINDOW_MS = {
+  "1d": DAY_MS,
+  "1w": 7 * DAY_MS,
+  "1m": 30 * DAY_MS,
+  "3m": 90 * DAY_MS,
+  "6m": 180 * DAY_MS,
+};
 const CHART_SYNC_ID = "backtest-detail";
 
 function chartSpan(data) {
@@ -71,6 +81,48 @@ function buildTimeTicks(start, end, targetCount = 7) {
   }
   ticks.push(max);
   return [...new Set(ticks)].sort((a, b) => a - b);
+}
+
+function clampRange(start, end, minimum, maximum) {
+  if (![start, end, minimum, maximum].every(Number.isFinite) || maximum <= minimum) return [minimum, maximum];
+  const fullSpan = maximum - minimum;
+  const requestedSpan = Math.min(Math.max(end - start, 1), fullSpan);
+  let nextStart = start;
+  let nextEnd = end;
+  if (nextStart < minimum) {
+    nextStart = minimum;
+    nextEnd = minimum + requestedSpan;
+  }
+  if (nextEnd > maximum) {
+    nextEnd = maximum;
+    nextStart = maximum - requestedSpan;
+  }
+  return [Math.max(nextStart, minimum), Math.min(nextEnd, maximum)];
+}
+
+function closestIndex(data, timestamp, direction = "start") {
+  if (!data.length) return 0;
+  let low = 0;
+  let high = data.length - 1;
+  while (low < high) {
+    const middle = Math.floor((low + high) / 2);
+    if (data[middle].timestamp < timestamp) low = middle + 1;
+    else high = middle;
+  }
+  if (direction === "end" && data[low]?.timestamp > timestamp) return Math.max(0, low - 1);
+  return low;
+}
+
+function medianSpacing(data) {
+  if (data.length < 2) return HOUR_MS;
+  const spacings = [];
+  const step = Math.max(1, Math.floor((data.length - 1) / 250));
+  for (let index = step; index < data.length; index += step) {
+    const spacing = data[index].timestamp - data[index - step].timestamp;
+    if (spacing > 0) spacings.push(spacing / step);
+  }
+  spacings.sort((a, b) => a - b);
+  return spacings[Math.floor(spacings.length / 2)] || HOUR_MS;
 }
 
 function formatPeriodTime(value, spanMs) {
@@ -137,6 +189,9 @@ function PriceTooltip({ active, payload }) {
     {row.open != null && <>
       <span>Open {fmtMoney(row.open)} · High {fmtMoney(row.high)}</span>
       <span>Low {fmtMoney(row.low)} · Close {fmtMoney(row.close)}</span>
+      <span>Equity {fmtMoney(row.equity)} · Available {fmtMoney(row.available_balance)}</span>
+      <span>Position {fmtNumber(row.position_qty, 6)} · Drawdown {formatAxisPercent(row.drawdown_percent)}</span>
+      <span>Open PnL {fmtMoneySigned(row.unrealized_pnl)}</span>
     </>}
     {markerPayload && <>
       <span className={styles.tooltipAction}>{markerPayload.label} · {markerPayload.status}</span>
@@ -154,21 +209,30 @@ function MetricTooltip({ active, payload, label, formatter }) {
   </div>;
 }
 
-function OrderMarker({ cx, cy, payload }) {
+function OrderMarker({ cx, cy, payload, onSelect }) {
   if (!Number.isFinite(cx) || !Number.isFinite(cy)) return null;
   const isTp = payload.role?.includes("take_profit") || payload.role?.includes("tp");
   const compact = Boolean(payload.compact);
-  const radius = compact ? 4.2 : 6;
+  const clustered = Number(payload.count || 1) > 1;
+  const radius = clustered ? (compact ? 8.5 : 10) : compact ? 4.2 : 6;
   const fill = payload.kind === "cancelled" ? "#929bb0" : isTp ? "#b98cff" : "#25c78b";
   const title = `${payload.label} · ${fmtMoney(payload.price)} · ${fmtNumber(payload.qty, 6)} · ${new Date(payload.timestamp).toLocaleString("uk-UA")}`;
+  const commonProps = {
+    "data-order-marker": true,
+    onPointerDown: (event) => event.stopPropagation(),
+    onClick: (event) => { event.stopPropagation(); onSelect?.(payload); },
+  };
   if (payload.kind === "cancelled") {
     const size = compact ? 3.5 : 5;
-    return <g transform={`translate(${cx},${cy})`} className={styles.orderMarker}><title>{title}</title><path d={`M-${size} -${size} L${size} ${size} M${size} -${size} L-${size} ${size}`} stroke={fill} strokeWidth={compact ? 1.7 : 2.3}/></g>;
+    return <g transform={`translate(${cx},${cy})`} className={styles.orderMarker} {...commonProps}><title>{title}</title><path d={`M-${size} -${size} L${size} ${size} M${size} -${size} L-${size} ${size}`} stroke={fill} strokeWidth={compact ? 1.7 : 2.3}/></g>;
   }
-  return <g transform={`translate(${cx},${cy})`} className={styles.orderMarker}>
+  return <g transform={`translate(${cx},${cy})`} className={styles.orderMarker} {...commonProps}>
     <title>{title}</title>
     <circle r={radius} fill={fill} stroke="#090b12" strokeWidth={compact ? 1.4 : 2}/>
-    <path d={isTp ? "M-3 2 L0 -2 L3 2" : "M-3 -2 L0 2 L3 -2"} fill="none" stroke="#fff" strokeWidth={compact ? 1 : 1.3}/>
+    {clustered
+      ? <text textAnchor="middle" dominantBaseline="central" fill="#fff" fontSize={compact ? 8 : 9} fontWeight="800">{payload.count}</text>
+      : <path d={isTp ? "M-3 2 L0 -2 L3 2" : "M-3 -2 L0 2 L3 -2"} fill="none" stroke="#fff" strokeWidth={compact ? 1 : 1.3}/>
+    }
   </g>;
 }
 
@@ -184,7 +248,7 @@ function MiniChart({ title, value, data, dataKey, stroke, fill, domain, timeDoma
   return <div className={styles.miniChart}>
     <div className={styles.miniChartHeader}><h3>{title}</h3><strong>{value}</strong></div>
     <ResponsiveContainer width="100%" height={210}>
-      <AreaChart data={data} syncId={CHART_SYNC_ID} margin={{ top: 8, right: 10, left: 0, bottom: 0 }}>
+      <AreaChart data={data} syncId={CHART_SYNC_ID} syncMethod="value" margin={{ top: 8, right: 10, left: 0, bottom: 0 }}>
         <CartesianGrid stroke="rgba(255,255,255,.045)" vertical={false}/>
         <XAxis dataKey="timestamp" type="number" scale="time" domain={timeDomain} ticks={timeTicks} allowDataOverflow height={28} tickFormatter={(v) => formatChartTime(v, spanMs)} stroke="#68718a" tick={{ fontSize: 10 }}/>
         <YAxis domain={domain} width={72} stroke="#68718a" tickFormatter={yFormatter} tick={{ fontSize: 10 }}/>
@@ -214,6 +278,13 @@ export default function BacktestDetailPage() {
   const [eventFilter, setEventFilter] = useState("important");
   const [windowSize, setWindowSize] = useState("all");
   const [focusTime, setFocusTime] = useState(null);
+  const [viewRange, setViewRange] = useState(null);
+  const [selectedMarker, setSelectedMarker] = useState(null);
+  const [isPanning, setIsPanning] = useState(false);
+  const chartInteractionRef = useRef(null);
+  const dragRef = useRef(null);
+  const pendingRangeRef = useRef(null);
+  const previousCycleFilterRef = useRef(cycleFilter);
 
   const loadRun = useCallback(async () => {
     try { setRun(await backtestsApi.get(id)); setError(""); }
@@ -250,24 +321,47 @@ export default function BacktestDetailPage() {
     .filter((point) => Number.isFinite(point.timestamp))
     .sort((a, b) => a.timestamp - b.timestamp), [points]);
 
-  const filteredPoints = useMemo(() => {
-    let data = normalizedPoints;
-    if (cycleFilter !== "all") {
-      const cycle = cycles.find((item) => String(item.cycle_number) === cycleFilter);
-      if (cycle) {
-        const cycleEnd = cycle.closed_at_ms || asMs(run?.end_time);
-        data = data.filter((point) => point.timestamp >= asMs(cycle.started_at_ms) && point.timestamp <= cycleEnd);
+  const cycleBasePoints = useMemo(() => {
+    if (cycleFilter === "all") return normalizedPoints;
+    const cycle = cycles.find((item) => String(item.cycle_number) === cycleFilter);
+    if (!cycle || !normalizedPoints.length) return normalizedPoints;
+    const startedAt = asMs(cycle.started_at_ms);
+    const closedAt = cycle.closed_at_ms ? asMs(cycle.closed_at_ms) : asMs(run?.end_time);
+    const cycleSpan = Math.max(closedAt - startedAt, DAY_MS);
+    const padding = Math.max(cycleSpan * 0.08, 6 * HOUR_MS);
+    return normalizedPoints.filter((point) => point.timestamp >= startedAt - padding && point.timestamp <= closedAt + padding);
+  }, [normalizedPoints, cycles, cycleFilter, run?.end_time]);
+
+  const baseStart = cycleBasePoints[0]?.timestamp;
+  const baseEnd = cycleBasePoints[cycleBasePoints.length - 1]?.timestamp;
+
+  useEffect(() => {
+    if (!Number.isFinite(baseStart) || !Number.isFinite(baseEnd)) return;
+    const cycleChanged = previousCycleFilterRef.current !== cycleFilter;
+    previousCycleFilterRef.current = cycleFilter;
+    setViewRange((current) => {
+      if (pendingRangeRef.current) {
+        const pending = pendingRangeRef.current;
+        pendingRangeRef.current = null;
+        return clampRange(pending[0], pending[1], baseStart, baseEnd);
       }
+      if (!current || cycleChanged) return [baseStart, baseEnd];
+      return clampRange(current[0], current[1], baseStart, baseEnd);
+    });
+    if (cycleChanged) {
+      if (!focusTime) setWindowSize("all");
+      setSelectedMarker(null);
     }
-    if (focusTime && windowSize !== "all") {
-      const span = WINDOW_MS[windowSize] || WINDOW_MS["1d"];
-      data = data.filter((point) => point.timestamp >= focusTime - span / 2 && point.timestamp <= focusTime + span / 2);
-    } else if (windowSize !== "all" && data.length) {
-      const end = data[data.length - 1].timestamp;
-      data = data.filter((point) => point.timestamp >= end - WINDOW_MS[windowSize]);
-    }
-    return data;
-  }, [normalizedPoints, cycles, cycleFilter, windowSize, focusTime, run?.end_time]);
+  }, [baseStart, baseEnd, cycleFilter, focusTime]);
+
+  const effectiveRange = viewRange && Number.isFinite(baseStart) && Number.isFinite(baseEnd)
+    ? clampRange(viewRange[0], viewRange[1], baseStart, baseEnd)
+    : [baseStart, baseEnd];
+
+  const filteredPoints = useMemo(() => {
+    if (!cycleBasePoints.length || !effectiveRange.every(Number.isFinite)) return [];
+    return cycleBasePoints.filter((point) => point.timestamp >= effectiveRange[0] && point.timestamp <= effectiveRange[1]);
+  }, [cycleBasePoints, effectiveRange[0], effectiveRange[1]]);
 
   const orderByExchangeId = useMemo(() => new Map(orders.map((order) => [String(order.exchange_order_id), order])), [orders]);
 
@@ -282,10 +376,15 @@ export default function BacktestDetailPage() {
       const level = String(order?.order_link_id || "").match(/entry-(\d+)/)?.[1];
       result.push({
         id: `execution-${execution.execId || `${execution.execTime}-${execution.execSeq}`}`,
+        executionId: execution.execId,
+        orderId: execution.orderId,
         timestamp: asMs(execution.execTime),
         sequence: asNumber(execution.execSeq),
         price: asNumber(execution.execPrice),
         qty: asNumber(execution.execQty),
+        fee: asNumber(execution.execFee),
+        closedPnl: asNumber(execution.closedPnl),
+        side: execution.side,
         role,
         label: isTp ? "Take profit filled" : `Grid #${level || "?"} filled`,
         status: "Filled",
@@ -301,10 +400,12 @@ export default function BacktestDetailPage() {
         const level = String(order.order_link_id || "").match(/entry-(\d+)/)?.[1];
         result.push({
           id: `cancelled-${order.id || order.exchange_order_id}`,
+          orderId: order.exchange_order_id,
           timestamp: asMs(order.updated_at),
           sequence: Number.MAX_SAFE_INTEGER,
           price: asNumber(order.price),
           qty: asNumber(order.qty),
+          side: order.side,
           role,
           label: isTp ? "Take profit cancelled" : `Grid #${level || "?"} cancelled`,
           status: "Cancelled",
@@ -317,7 +418,9 @@ export default function BacktestDetailPage() {
       .sort((a, b) => (a.timestamp - b.timestamp) || (a.sequence - b.sequence));
   }, [executions, orderByExchangeId, orders, filters.entries, filters.tp, filters.cancelled]);
 
-  const chartSpanMs = useMemo(() => chartSpan(filteredPoints), [filteredPoints]);
+  const chartSpanMs = Number.isFinite(effectiveRange[0]) && Number.isFinite(effectiveRange[1])
+    ? Math.max(effectiveRange[1] - effectiveRange[0], 0)
+    : chartSpan(filteredPoints);
   const compactMarkers = chartSpanMs > 90 * DAY_MS || filteredPoints.length > 700;
 
   const visibleMarkers = useMemo(() => {
@@ -328,6 +431,43 @@ export default function BacktestDetailPage() {
       .filter((marker) => marker.timestamp >= min && marker.timestamp <= max)
       .map((marker) => ({ ...marker, compact: compactMarkers }));
   }, [markers, filteredPoints, compactMarkers]);
+
+  const displayMarkers = useMemo(() => {
+    if (chartSpanMs <= 120 * DAY_MS || visibleMarkers.length <= 55) return visibleMarkers;
+    const start = filteredPoints[0]?.timestamp || 0;
+    const bucketSize = Math.max(chartSpanMs / 110, DAY_MS / 2);
+    const groups = new Map();
+    visibleMarkers.forEach((marker) => {
+      const isTp = marker.role?.includes("take_profit") || marker.role?.includes("tp");
+      const markerType = marker.kind === "cancelled" ? "cancelled" : isTp ? "tp" : "entry";
+      const key = `${markerType}-${Math.floor((marker.timestamp - start) / bucketSize)}`;
+      const group = groups.get(key) || [];
+      group.push(marker);
+      groups.set(key, group);
+    });
+    return [...groups.values()].map((group) => {
+      if (group.length === 1) return group[0];
+      const first = group[0];
+      const totalQty = group.reduce((sum, item) => sum + item.qty, 0);
+      const weightedPrice = totalQty > 0
+        ? group.reduce((sum, item) => sum + (item.price * item.qty), 0) / totalQty
+        : group.reduce((sum, item) => sum + item.price, 0) / group.length;
+      const isTp = first.role?.includes("take_profit") || first.role?.includes("tp");
+      return {
+        ...first,
+        id: `cluster-${first.id}`,
+        timestamp: Math.round(group.reduce((sum, item) => sum + item.timestamp, 0) / group.length),
+        price: weightedPrice,
+        qty: totalQty,
+        fee: group.reduce((sum, item) => sum + asNumber(item.fee), 0),
+        closedPnl: group.reduce((sum, item) => sum + asNumber(item.closedPnl), 0),
+        count: group.length,
+        compact: true,
+        clusterItems: group,
+        label: `${group.length} ${first.kind === "cancelled" ? "cancelled orders" : isTp ? "take-profit fills" : "entry fills"}`,
+      };
+    });
+  }, [visibleMarkers, filteredPoints, chartSpanMs]);
 
   const priceDomain = useMemo(() => {
     const values = filteredPoints.flatMap((point) => [point.low, point.high, point.close]);
@@ -347,15 +487,140 @@ export default function BacktestDetailPage() {
   }, [filteredPoints]);
   const balanceDomain = useMemo(() => paddedDomain(filteredPoints.map((point) => point.available_balance), 0.12), [filteredPoints]);
   const latestPoint = filteredPoints[filteredPoints.length - 1] || null;
-  const periodStart = filteredPoints[0]?.timestamp;
-  const periodEnd = latestPoint?.timestamp;
+  const periodStart = effectiveRange[0] ?? filteredPoints[0]?.timestamp;
+  const periodEnd = effectiveRange[1] ?? latestPoint?.timestamp;
   const timeDomain = useMemo(() => [periodStart, periodEnd], [periodStart, periodEnd]);
   const mainTimeTicks = useMemo(() => buildTimeTicks(periodStart, periodEnd, 8), [periodStart, periodEnd]);
   const miniTimeTicks = useMemo(() => buildTimeTicks(periodStart, periodEnd, 5), [periodStart, periodEnd]);
   const priceBandSize = Math.max(priceDomain[1] - priceDomain[0], 1) * 0.012;
   const openCycle = cycles.find((cycle) => String(cycle.status).toLowerCase() === "open" || !cycle.closed_at_ms);
+  const selectedCycle = cycleFilter === "all"
+    ? null
+    : cycles.find((cycle) => String(cycle.cycle_number) === cycleFilter) || null;
   const openCycleStart = openCycle ? asMs(openCycle.started_at_ms) : null;
   const showOpenCycleStart = openCycleStart != null && openCycleStart >= periodStart && openCycleStart <= periodEnd;
+  const minimumViewSpan = useMemo(
+    () => Math.max(medianSpacing(cycleBasePoints) * 8, 6 * HOUR_MS),
+    [cycleBasePoints],
+  );
+  const fullRangeSpan = Number.isFinite(baseStart) && Number.isFinite(baseEnd) ? baseEnd - baseStart : 0;
+  const currentRangeSpan = Number.isFinite(periodStart) && Number.isFinite(periodEnd) ? periodEnd - periodStart : 0;
+  const isFullRange = fullRangeSpan > 0 && Math.abs(currentRangeSpan - fullRangeSpan) <= Math.max(minimumViewSpan * 0.1, 1);
+  const navigatorStartIndex = cycleBasePoints.length && Number.isFinite(periodStart)
+    ? closestIndex(cycleBasePoints, periodStart, "start")
+    : 0;
+  const navigatorEndIndex = cycleBasePoints.length && Number.isFinite(periodEnd)
+    ? closestIndex(cycleBasePoints, periodEnd, "end")
+    : Math.max(cycleBasePoints.length - 1, 0);
+
+  const setClampedViewRange = useCallback((start, end, mode = "custom") => {
+    if (![baseStart, baseEnd, start, end].every(Number.isFinite)) return;
+    let nextStart = start;
+    let nextEnd = end;
+    if (nextEnd - nextStart < minimumViewSpan) {
+      const center = (nextStart + nextEnd) / 2;
+      nextStart = center - (minimumViewSpan / 2);
+      nextEnd = center + (minimumViewSpan / 2);
+    }
+    setViewRange(clampRange(nextStart, nextEnd, baseStart, baseEnd));
+    setWindowSize(mode);
+  }, [baseStart, baseEnd, minimumViewSpan]);
+
+  const resetChartView = useCallback(() => {
+    if (![baseStart, baseEnd].every(Number.isFinite)) return;
+    setViewRange([baseStart, baseEnd]);
+    setWindowSize("all");
+    setFocusTime(null);
+    setSelectedMarker(null);
+  }, [baseStart, baseEnd]);
+
+  const applyWindowPreset = useCallback((preset) => {
+    if (![baseStart, baseEnd].every(Number.isFinite)) return;
+    if (preset === "all") {
+      resetChartView();
+      return;
+    }
+    const span = Math.min(WINDOW_MS[preset] || fullRangeSpan, fullRangeSpan);
+    const anchor = Number.isFinite(focusTime) ? focusTime : baseEnd;
+    const start = Number.isFinite(focusTime) ? anchor - (span / 2) : anchor - span;
+    const end = Number.isFinite(focusTime) ? anchor + (span / 2) : anchor;
+    setClampedViewRange(start, end, preset);
+  }, [baseStart, baseEnd, focusTime, fullRangeSpan, resetChartView, setClampedViewRange]);
+
+  const zoomChart = useCallback((factor, anchorRatio = 0.5) => {
+    if (![periodStart, periodEnd, baseStart, baseEnd].every(Number.isFinite)) return;
+    const span = periodEnd - periodStart;
+    const nextSpan = Math.min(Math.max(span * factor, minimumViewSpan), fullRangeSpan);
+    const anchor = periodStart + (span * Math.min(Math.max(anchorRatio, 0), 1));
+    const nextStart = anchor - (nextSpan * anchorRatio);
+    const nextEnd = nextStart + nextSpan;
+    setClampedViewRange(nextStart, nextEnd, nextSpan >= fullRangeSpan * 0.999 ? "all" : "custom");
+  }, [periodStart, periodEnd, baseStart, baseEnd, minimumViewSpan, fullRangeSpan, setClampedViewRange]);
+
+  const panChart = useCallback((shiftMs) => {
+    if (![periodStart, periodEnd].every(Number.isFinite)) return;
+    setClampedViewRange(periodStart + shiftMs, periodEnd + shiftMs, "custom");
+  }, [periodStart, periodEnd, setClampedViewRange]);
+
+  const handleChartWheel = useCallback((event) => {
+    if (!chartInteractionRef.current || !currentRangeSpan) return;
+    event.preventDefault();
+    if (event.shiftKey) {
+      panChart(event.deltaY * currentRangeSpan * 0.0015);
+      return;
+    }
+    const bounds = chartInteractionRef.current.getBoundingClientRect();
+    const anchorRatio = bounds.width > 0 ? (event.clientX - bounds.left) / bounds.width : 0.5;
+    zoomChart(Math.exp(event.deltaY * 0.0014), anchorRatio);
+  }, [currentRangeSpan, panChart, zoomChart]);
+
+  const handleChartPointerDown = useCallback((event) => {
+    if (event.button !== 0 || event.target.closest?.("[data-order-marker]")) return;
+    const bounds = chartInteractionRef.current?.getBoundingClientRect();
+    if (!bounds?.width) return;
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startRange: [periodStart, periodEnd],
+      width: bounds.width,
+    };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    setIsPanning(true);
+  }, [periodStart, periodEnd]);
+
+  const handleChartPointerMove = useCallback((event) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const span = drag.startRange[1] - drag.startRange[0];
+    const shift = -((event.clientX - drag.startX) / drag.width) * span;
+    if (Math.abs(event.clientX - drag.startX) > 2) setFocusTime(null);
+    setClampedViewRange(drag.startRange[0] + shift, drag.startRange[1] + shift, "custom");
+  }, [setClampedViewRange]);
+
+  const finishChartPan = useCallback((event) => {
+    if (!dragRef.current) return;
+    event.currentTarget.releasePointerCapture?.(dragRef.current.pointerId);
+    dragRef.current = null;
+    setIsPanning(false);
+  }, []);
+
+  const handleBrushChange = useCallback((range) => {
+    if (!range || !cycleBasePoints.length) return;
+    const startPoint = cycleBasePoints[range.startIndex];
+    const endPoint = cycleBasePoints[range.endIndex];
+    if (!startPoint || !endPoint) return;
+    setClampedViewRange(startPoint.timestamp, endPoint.timestamp, "custom");
+    setFocusTime(null);
+  }, [cycleBasePoints, setClampedViewRange]);
+
+  useEffect(() => {
+    if (tab !== "Chart") return undefined;
+    const element = chartInteractionRef.current;
+    if (!element) return undefined;
+    const listener = (event) => handleChartWheel(event);
+    element.addEventListener("wheel", listener, { passive: false });
+    return () => element.removeEventListener("wheel", listener);
+  }, [tab, handleChartWheel]);
 
   const positionRanges = useMemo(() => {
     if (!filters.position || !filteredPoints.length) return [];
@@ -429,7 +694,24 @@ export default function BacktestDetailPage() {
     return /filled|created|cancel|completed|started|stopped|risk|error|failed/.test(type);
   }), [events, eventFilter]);
 
-  const jumpToChart = (timestamp) => { setFocusTime(asMs(timestamp)); setWindowSize("1d"); setTab("Chart"); };
+  const selectedMarkerCycle = useMemo(() => {
+    if (!selectedMarker) return null;
+    return cycles.find((cycle) => {
+      const startedAt = asMs(cycle.started_at_ms);
+      const closedAt = cycle.closed_at_ms ? asMs(cycle.closed_at_ms) : asMs(run?.end_time);
+      return selectedMarker.timestamp >= startedAt && selectedMarker.timestamp <= closedAt;
+    }) || null;
+  }, [selectedMarker, cycles, run?.end_time]);
+
+  const jumpToChart = (timestamp) => {
+    const target = asMs(timestamp);
+    if (!Number.isFinite(target)) return;
+    pendingRangeRef.current = [target - (DAY_MS / 2), target + (DAY_MS / 2)];
+    setCycleFilter("all");
+    setFocusTime(target);
+    setWindowSize("custom");
+    setTab("Chart");
+  };
 
   if (!run) return <main className={styles.page}><div className="container">{error ? <div className={styles.error}>{error}</div> : <div className={styles.loading}><LoaderCircle /> Завантаження…</div>}</div></main>;
 
@@ -485,11 +767,16 @@ export default function BacktestDetailPage() {
               <ChartToggle checked={filters.loss} onChange={(e) => setFilters({ ...filters, loss: e.target.checked })} label="Open loss" color="#f05b63" type="band"/>
             </div>
             <div className={styles.chartSelects}>
-              <select value={cycleFilter} onChange={(e) => { setCycleFilter(e.target.value); setFocusTime(null); }}>
+              <select value={cycleFilter} onChange={(e) => { setCycleFilter(e.target.value); setFocusTime(null); setSelectedMarker(null); }}>
                 <option value="all">All cycles</option>
                 {cycles.map((cycle) => <option key={cycle.id} value={cycle.cycle_number}>Cycle #{cycle.cycle_number}</option>)}
               </select>
-              {["1d", "1w", "1m", "all"].map((item) => <button key={item} className={windowSize === item ? styles.activeWindow : ""} onClick={() => { setWindowSize(item); if (item === "all") setFocusTime(null); }}>{item.toUpperCase()}</button>)}
+              {["1d", "1w", "1m", "3m", "6m", "all"].map((item) => <button key={item} className={windowSize === item ? styles.activeWindow : ""} onClick={() => applyWindowPreset(item)}>{item.toUpperCase()}</button>)}
+              {windowSize === "custom" && <span className={styles.customWindow}>CUSTOM</span>}
+              <span className={styles.toolbarDivider}/>
+              <button className={styles.iconWindowButton} title="Zoom in" onClick={() => zoomChart(0.65)}><Plus size={14}/></button>
+              <button className={styles.iconWindowButton} title="Zoom out" onClick={() => zoomChart(1.5)}><Minus size={14}/></button>
+              <button className={styles.iconWindowButton} title="Reset chart" disabled={isFullRange && !focusTime} onClick={resetChartView}><RotateCcw size={14}/></button>
             </div>
           </div>
           {filteredPoints.length ? <>
@@ -500,28 +787,75 @@ export default function BacktestDetailPage() {
               <div><span>Position</span><strong>{fmtNumber(latestPoint?.position_qty, 6)}</strong></div>
               <div><span>Drawdown</span><strong className={asNumber(latestPoint?.drawdown_percent) < 0 ? styles.snapshotNegative : ""}>{formatAxisPercent(latestPoint?.drawdown_percent)}</strong></div>
             </div>
-            <div className={styles.chartHint}>The blue strip marks periods with an open position; the red strip marks periods when that position was in unrealized loss. The orange line marks the start of the still-open cycle. Markers show fills, not order creation.</div>
-            <div className={styles.priceChart}>
+            <div className={styles.chartHint}><MoveHorizontal size={13}/> Scroll to zoom around the pointer · drag to pan · Shift + scroll to move horizontally · double-click to reset. The blue strip is position time, the red strip is open loss, and markers show fills.</div>
+            {selectedMarker && <div className={styles.markerDetails}>
+              <div className={styles.markerDetailsHeader}>
+                <div><span>{selectedMarker.count > 1 ? "Fill cluster" : selectedMarker.kind === "cancelled" ? "Cancelled order" : "Execution"}</span><strong>{selectedMarker.label}</strong></div>
+                <button onClick={() => setSelectedMarker(null)} title="Close details"><X size={16}/></button>
+              </div>
+              <div className={styles.markerDetailsGrid}>
+                <div><span>Time</span><strong>{new Date(selectedMarker.timestamp).toLocaleString("uk-UA")}</strong></div>
+                <div><span>Price</span><strong>{fmtMoney(selectedMarker.price)}</strong></div>
+                <div><span>Quantity</span><strong>{fmtNumber(selectedMarker.qty, 6)}</strong></div>
+                <div><span>Side</span><strong>{selectedMarker.side || (selectedMarker.role?.includes("take_profit") ? "Sell" : "Buy")}</strong></div>
+                <div><span>Cycle</span><strong>{selectedMarker.count > 1 ? "Multiple" : selectedMarkerCycle ? `#${selectedMarkerCycle.cycle_number}` : "—"}</strong></div>
+                {selectedMarker.kind === "filled" && <><div><span>Fee</span><strong>{fmtMoney(selectedMarker.fee)}</strong></div><div><span>Closed PnL</span><strong>{fmtMoneySigned(selectedMarker.closedPnl)}</strong></div></>}
+              </div>
+              {selectedMarker.clusterItems?.length > 1 && <div className={styles.clusterList}>{selectedMarker.clusterItems.slice(0, 8).map((item) => <button key={item.id} onClick={() => { setSelectedMarker(item); setFocusTime(item.timestamp); setClampedViewRange(item.timestamp - (DAY_MS / 2), item.timestamp + (DAY_MS / 2), "custom"); }}><span>{new Date(item.timestamp).toLocaleDateString("uk-UA")}</span><strong>{item.label}</strong><em>{fmtMoney(item.price)}</em></button>)}{selectedMarker.clusterItems.length > 8 && <small>+{selectedMarker.clusterItems.length - 8} more fills — zoom in to separate them</small>}</div>}
+            </div>}
+            <div
+              ref={chartInteractionRef}
+              className={`${styles.priceChart} ${isPanning ? styles.panning : ""}`}
+              onPointerDown={handleChartPointerDown}
+              onPointerMove={handleChartPointerMove}
+              onPointerUp={finishChartPan}
+              onPointerCancel={finishChartPan}
+              onDoubleClick={resetChartView}
+            >
               <ResponsiveContainer width="100%" height={470}>
-                <ComposedChart data={filteredPoints} syncId={CHART_SYNC_ID} margin={{ top: 18, right: 18, left: 4, bottom: 14 }}>
+                <ComposedChart data={filteredPoints} syncId={CHART_SYNC_ID} syncMethod="value" margin={{ top: 18, right: 18, left: 4, bottom: 14 }}>
                   <CartesianGrid stroke="rgba(255,255,255,.05)" vertical={false}/>
                   <XAxis dataKey="timestamp" type="number" scale="time" domain={timeDomain} ticks={mainTimeTicks} allowDataOverflow height={38} tickMargin={10} tickFormatter={(v) => formatChartTime(v, chartSpanMs)} stroke="#68718a" tick={{ fontSize: 11 }}/>
                   <YAxis domain={priceDomain} width={82} tickFormatter={formatAxisMoney} stroke="#68718a" tick={{ fontSize: 11 }}/>
                   <Tooltip content={<PriceTooltip/>} cursor={{ stroke: "rgba(255,255,255,.22)", strokeDasharray: "3 3" }}/>
-                  {positionRanges.map(([x1, x2], index) => <ReferenceArea key={`position-${index}`} x1={x1} x2={x2} y1={priceDomain[0]} y2={priceDomain[0] + priceBandSize} fill="#4d9dff" fillOpacity={0.75} strokeOpacity={0}/>)}
-                  {lossRanges.map(([x1, x2], index) => <ReferenceArea key={`loss-${index}`} x1={x1} x2={x2} y1={priceDomain[0] + priceBandSize} y2={priceDomain[0] + (priceBandSize * 2)} fill="#f05b63" fillOpacity={0.75} strokeOpacity={0}/>)}
+                  {openCycleStart != null && openCycleStart < periodEnd && <ReferenceArea x1={Math.max(openCycleStart, periodStart)} x2={periodEnd} y1={priceDomain[0]} y2={priceDomain[1]} fill="#ffc24b" fillOpacity={0.035} strokeOpacity={0}/>} 
+                  {positionRanges.map(([x1, x2], index) => <ReferenceArea key={`position-${index}`} x1={x1} x2={x2} y1={priceDomain[0]} y2={priceDomain[0] + priceBandSize} fill="#4d9dff" fillOpacity={0.75} strokeOpacity={0}/>) }
+                  {lossRanges.map(([x1, x2], index) => <ReferenceArea key={`loss-${index}`} x1={x1} x2={x2} y1={priceDomain[0] + priceBandSize} y2={priceDomain[0] + (priceBandSize * 2)} fill="#f05b63" fillOpacity={0.75} strokeOpacity={0}/>) }
                   <Line type="monotone" dataKey="close" name="Close" stroke="#d8dde9" strokeWidth={1.7} dot={false} activeDot={{ r: 3 }} isAnimationActive={false}/>
-                  {visibleMarkers.map((marker) => <ReferenceDot
+                  {displayMarkers.map((marker) => <ReferenceDot
                     key={marker.id}
                     x={marker.timestamp}
                     y={marker.price}
                     r={0}
                     ifOverflow="discard"
-                    shape={(props) => <OrderMarker {...props} payload={marker}/>}
+                    shape={(props) => <OrderMarker {...props} payload={marker} onSelect={(selected) => { setSelectedMarker(selected); setFocusTime(selected.timestamp); }}/>} 
                   />)}
-                  {showOpenCycleStart && <ReferenceLine x={openCycleStart} stroke="#ffc24b" strokeDasharray="5 4" label={{ value: `Open cycle #${openCycle.cycle_number}`, position: "insideTopRight", fill: "#ffc24b", fontSize: 10 }}/>}
-                  {focusTime && <ReferenceLine x={focusTime} stroke="#4d9dff" strokeDasharray="4 4"/>}
+                  {selectedCycle && selectedCycle !== openCycle && <ReferenceLine x={asMs(selectedCycle.started_at_ms)} stroke="#25c78b" strokeDasharray="3 4" label={{ value: `Cycle #${selectedCycle.cycle_number} entry`, position: "insideTopLeft", fill: "#25c78b", fontSize: 10 }}/>} 
+                  {selectedCycle?.closed_at_ms && <ReferenceLine x={asMs(selectedCycle.closed_at_ms)} stroke="#b98cff" strokeDasharray="3 4" label={{ value: "TP close", position: "insideTopRight", fill: "#b98cff", fontSize: 10 }}/>} 
+                  {showOpenCycleStart && <ReferenceLine x={openCycleStart} stroke="#ffc24b" strokeDasharray="5 4" label={{ value: `Open cycle #${openCycle.cycle_number}`, position: "insideTopRight", fill: "#ffc24b", fontSize: 10 }}/>} 
+                  {focusTime && focusTime >= periodStart && focusTime <= periodEnd && <ReferenceLine x={focusTime} stroke="#4d9dff" strokeDasharray="4 4"/>}
                 </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+            <div className={styles.navigatorChart}>
+              <div className={styles.navigatorHeader}><span>Timeline navigator</span><strong>{formatPeriodTime(periodStart, chartSpanMs)} — {formatPeriodTime(periodEnd, chartSpanMs)}</strong></div>
+              <ResponsiveContainer width="100%" height={82}>
+                <AreaChart data={cycleBasePoints} margin={{ top: 4, right: 8, left: 8, bottom: 2 }}>
+                  <XAxis dataKey="timestamp" type="number" scale="time" domain={[baseStart, baseEnd]} hide/>
+                  <YAxis domain={paddedDomain(cycleBasePoints.map((point) => point.close), 0.04)} hide/>
+                  <Area type="monotone" dataKey="close" stroke="#68718a" fill="rgba(104,113,138,.12)" strokeWidth={1.1} dot={false} isAnimationActive={false}/>
+                  <Brush
+                    dataKey="timestamp"
+                    height={30}
+                    travellerWidth={10}
+                    startIndex={navigatorStartIndex}
+                    endIndex={navigatorEndIndex}
+                    onChange={handleBrushChange}
+                    tickFormatter={(value) => formatChartTime(value, fullRangeSpan)}
+                    stroke="#25c78b"
+                    fill="#0a0d14"
+                  />
+                </AreaChart>
               </ResponsiveContainer>
             </div>
             <div className={styles.subCharts}>

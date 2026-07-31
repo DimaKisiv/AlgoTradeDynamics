@@ -11,3 +11,24 @@
 @media(max-width:1000px){.chartSnapshot{grid-template-columns:repeat(2,minmax(0,1fr))}.chartSnapshot>div:first-child{grid-column:span 2}}
 @media(max-width:680px){.chartSnapshot{grid-template-columns:1fr}.chartSnapshot>div:first-child{grid-column:auto}.chartSelects{width:100%}.chartSelects select{flex:1}.chartToggle{padding-left:0}.priceChart{overflow:hidden}}
 .orderMarker{cursor:help;pointer-events:all}
+
+/* Interactive chart controls */
+.chartHint{display:flex;align-items:center;gap:7px}
+.chartSelects .iconWindowButton{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;padding:0}
+.chartSelects .iconWindowButton:disabled{opacity:.35;cursor:not-allowed}
+.toolbarDivider{display:block;width:1px;height:22px;background:var(--line);margin:0 2px}
+.customWindow{padding:6px 8px;border:1px solid rgba(77,157,255,.28);border-radius:6px;color:#77b5ff;background:rgba(77,157,255,.08);font:700 9px var(--font-mono);letter-spacing:.06em}
+.priceChart{cursor:grab;touch-action:none;user-select:none}
+.priceChart.panning{cursor:grabbing}
+.priceChart.panning :global(.recharts-tooltip-wrapper){display:none}
+.markerDetails{display:grid;grid-template-columns:minmax(220px,.72fr) 1.8fr;gap:18px;padding:12px 14px;margin:0 2px 10px;border:1px solid rgba(77,157,255,.24);border-radius:10px;background:linear-gradient(135deg,rgba(77,157,255,.08),rgba(255,255,255,.018))}
+.markerDetailsHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.markerDetailsHeader span,.markerDetailsGrid span{display:block;color:var(--text-tertiary);font-size:9px;text-transform:uppercase;letter-spacing:.1em}.markerDetailsHeader strong{display:block;margin-top:5px;font-size:13px}.markerDetailsHeader button{display:inline-flex;padding:5px;color:var(--text-tertiary);border-radius:6px}.markerDetailsHeader button:hover{background:rgba(255,255,255,.06);color:var(--text-primary)}
+.markerDetailsGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.markerDetailsGrid>div{padding-left:10px;border-left:1px solid var(--line)}.markerDetailsGrid strong{display:block;margin-top:4px;font:650 11px var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.clusterList{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding-top:10px;border-top:1px solid var(--line)}.clusterList button{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:7px;padding:8px;border:1px solid var(--line);border-radius:7px;background:rgba(255,255,255,.02);text-align:left}.clusterList button:hover{border-color:rgba(0,224,143,.25);background:rgba(0,224,143,.04)}.clusterList span{color:var(--text-tertiary);font-size:9px}.clusterList strong{font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.clusterList em{font:600 9px var(--font-mono);color:var(--text-secondary);font-style:normal}.clusterList small{grid-column:1/-1;color:var(--text-tertiary);font-size:10px}
+.navigatorChart{margin-top:10px;padding:9px 10px 4px;border:1px solid var(--line);border-radius:10px;background:#080a10}.navigatorHeader{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 3px 3px}.navigatorHeader span{color:var(--text-tertiary);font-size:9px;text-transform:uppercase;letter-spacing:.1em}.navigatorHeader strong{font:600 10px var(--font-mono);color:var(--text-secondary)}
+.navigatorChart :global(.recharts-brush-slide){fill:rgba(37,199,139,.08);stroke:rgba(37,199,139,.5)}
+.navigatorChart :global(.recharts-brush-traveller rect){fill:#151b22;stroke:#25c78b}
+.navigatorChart :global(.recharts-brush-texts){fill:#7f879c;font-size:9px}
+.orderMarker{cursor:pointer}
+@media(max-width:1000px){.markerDetails{grid-template-columns:1fr}.markerDetailsGrid{grid-template-columns:repeat(3,minmax(0,1fr))}.clusterList{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:680px){.toolbarDivider{display:none}.chartSelects .iconWindowButton{width:28px;height:28px}.markerDetailsGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.clusterList{grid-template-columns:1fr}.navigatorHeader{align-items:flex-start;flex-direction:column}.chartHint{align-items:flex-start}}

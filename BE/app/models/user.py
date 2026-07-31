@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 
-if TYPE_CHECKING:  # уникаємо циклічного імпорту, тип потрібен лише статичному аналізатору
+if TYPE_CHECKING:  # Avoid a runtime import cycle; this type is only needed for static analysis
     from app.models.backtest import BacktestRun
     from app.models.trading_bot import TradingBot
     from app.models.trading_bot_event import TradingBotEvent

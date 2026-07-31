@@ -14,7 +14,6 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./algotrade.db"
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
-    default_dataset: str = "data/btc_usdt_2024.csv"
     bot_worker_enabled: bool = True
     exchange_emulator_url: str = "http://exchange-emulator:8001"
     exchange_emulator_default_api_key: str = "emulator-default-key"
@@ -22,7 +21,7 @@ class Settings(BaseSettings):
     # --- Auth / JWT ---
     jwt_secret_key: str = "dev-secret-change-me-0123456789abcdef0123456789abcdef"
     jwt_algorithm: str = "HS256"
-    access_token_expire_minutes: int = 60 * 24 * 7  # 7 днів
+    access_token_expire_minutes: int = 60 * 24 * 7  # 7 days
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

@@ -10,7 +10,7 @@ from app.core.security import decode_access_token
 from app.db.session import get_db
 from app.models.user import User
 
-# auto_error=False: самі формуємо 401, щоб контролювати повідомлення
+# Use auto_error=False so the API can return a consistent 401 response.
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
@@ -18,7 +18,7 @@ def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     db: Session = Depends(get_db),
 ) -> User:
-    """Дістає користувача з Bearer-токена. 401, якщо токен відсутній/недійсний."""
+    """Resolve the current user from a Bearer token or return HTTP 401."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Не автентифіковано",

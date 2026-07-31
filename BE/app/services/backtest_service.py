@@ -8,7 +8,7 @@ import time
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from sqlalchemy import asc, desc, delete
+from sqlalchemy import asc, desc
 from sqlalchemy.orm import Session
 
 from app.bot_engine.grid_runtime import close_bot_position, tick_grid_bot
@@ -299,7 +299,7 @@ def list_executions(run: BacktestRun) -> list[dict]:
         return []
     emulator = BacktestEmulatorClient(get_settings().exchange_emulator_url)
     try:
-        return _sorted_executions(emulator.executions(run.emulator_account_id, run.symbol, limit=100000))
+        return list(reversed(emulator.executions(run.emulator_account_id, run.symbol, limit=100000)))
     finally:
         emulator.close()
 
@@ -311,207 +311,6 @@ def list_datasets() -> list[dict]:
     finally:
         emulator.close()
 
-
-
-def _execution_sort_key(item: dict[str, Any]) -> tuple[int, int, str]:
-    """Chronological execution order with exits before new entries at the same tick.
-
-    The emulator can fill an old position TP and immediately create/fill the next
-    grid entry at the same simulated timestamp.  Sorting only by timestamp loses
-    that causal order and makes the UI reconstruct 0.003 -> 0.006 -> 0.003 instead
-    of 0.003 -> 0 -> 0.003.
-    """
-    side = str(item.get("side") or "").lower()
-    priority = 0 if side == "sell" else 1
-    return int(item.get("execTime") or 0), priority, str(item.get("execId") or "")
-
-
-def _sorted_executions(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    return sorted(items, key=_execution_sort_key)
-
-
-def _rebuild_cycles_from_executions(
-    db: Session,
-    run: BacktestRun,
-    executions: list[dict[str, Any]],
-) -> list[BacktestCycle]:
-    """Rebuild cycle records from actual fills instead of end-of-tick snapshots.
-
-    A TP fill may flatten the position and the next grid entry may reopen it in the
-    same simulated timestamp. Dashboard snapshots only see the final open position,
-    so cycle boundaries must be derived from executions themselves.
-    """
-    db.execute(delete(BacktestCycle).where(BacktestCycle.run_id == run.id))
-    db.flush()
-
-    order_roles = {
-        str(exchange_id): str(role or "")
-        for exchange_id, role in db.query(
-            TradingBotOrder.exchange_order_id,
-            TradingBotOrder.order_role,
-        ).filter(
-            TradingBotOrder.bot_id == run.temp_bot_id,
-            TradingBotOrder.exchange_order_id.is_not(None),
-        ).all()
-    }
-
-    cycles: list[BacktestCycle] = []
-    current: dict[str, Any] | None = None
-    qty = 0.0
-    avg = 0.0
-    cycle_number = 0
-
-    for item in _sorted_executions(executions):
-        ts = int(item.get("execTime") or 0)
-        side = str(item.get("side") or "").lower()
-        fill_qty = _float(item.get("execQty"))
-        price = _float(item.get("execPrice"))
-        fee = _float(item.get("execFee"))
-        closed_pnl = _float(item.get("closedPnl"))
-        role = order_roles.get(str(item.get("orderId") or ""), "")
-
-        if side == "buy":
-            if qty <= 1e-12:
-                cycle_number += 1
-                current = {
-                    "number": cycle_number,
-                    "started_at": ts,
-                    "last_time": ts,
-                    "entries": 0,
-                    "max_qty": 0.0,
-                    "max_value": 0.0,
-                    "avg_entry": 0.0,
-                    "gross": 0.0,
-                    "fees": 0.0,
-                }
-            before = qty
-            qty += fill_qty
-            avg = (((before * avg) + (fill_qty * price)) / qty) if qty > 0 else 0.0
-            if current is not None:
-                current["last_time"] = ts
-                current["entries"] += 1 if role == "grid_entry" or not role else 0
-                current["max_qty"] = max(current["max_qty"], qty)
-                current["max_value"] = max(current["max_value"], qty * price)
-                current["avg_entry"] = avg
-                current["fees"] += fee
-            continue
-
-        if side != "sell":
-            continue
-
-        if current is None and qty > 1e-12:
-            cycle_number += 1
-            current = {
-                "number": cycle_number,
-                "started_at": ts,
-                "last_time": ts,
-                "entries": 0,
-                "max_qty": qty,
-                "max_value": qty * price,
-                "avg_entry": avg,
-                "gross": 0.0,
-                "fees": 0.0,
-            }
-
-        close_qty = min(fill_qty, qty)
-        qty = max(qty - close_qty, 0.0)
-        if current is not None:
-            current["last_time"] = ts
-            current["gross"] += closed_pnl
-            current["fees"] += fee
-
-        if qty <= 1e-12:
-            qty = 0.0
-            avg = 0.0
-            if current is not None:
-                duration = max((ts - current["started_at"]) / 1000, 0.0)
-                cycle = BacktestCycle(
-                    run_id=run.id,
-                    cycle_number=current["number"],
-                    started_at_ms=current["started_at"],
-                    closed_at_ms=ts,
-                    duration_seconds=duration,
-                    time_in_loss_seconds=0.0,
-                    max_unrealized_loss=0.0,
-                    max_position_qty=current["max_qty"],
-                    max_position_value=current["max_value"],
-                    entries_filled=current["entries"],
-                    avg_entry_price=current["avg_entry"] or None,
-                    exit_price=price,
-                    gross_pnl=current["gross"],
-                    fees=current["fees"],
-                    net_pnl=current["gross"] - current["fees"],
-                    status="closed",
-                    details={"derived_from": "executions"},
-                )
-                db.add(cycle)
-                cycles.append(cycle)
-                current = None
-
-    if current is not None:
-        duration = max((run.end_time - current["started_at"]) / 1000, 0.0)
-        cycle = BacktestCycle(
-            run_id=run.id,
-            cycle_number=current["number"],
-            started_at_ms=current["started_at"],
-            closed_at_ms=None,
-            duration_seconds=duration,
-            time_in_loss_seconds=0.0,
-            max_unrealized_loss=0.0,
-            max_position_qty=max(current["max_qty"], qty),
-            max_position_value=current["max_value"],
-            entries_filled=current["entries"],
-            avg_entry_price=avg or current["avg_entry"] or None,
-            exit_price=None,
-            gross_pnl=current["gross"],
-            fees=current["fees"],
-            net_pnl=current["gross"] - current["fees"],
-            status="open",
-            details={"derived_from": "executions"},
-        )
-        db.add(cycle)
-        cycles.append(cycle)
-
-    db.flush()
-
-    # Enrich exposure/loss metrics from stored chart snapshots. Execution-derived
-    # boundaries remain authoritative; points only provide between-fill market state.
-    points = (
-        db.query(BacktestPoint)
-        .filter(BacktestPoint.run_id == run.id)
-        .order_by(asc(BacktestPoint.timestamp))
-        .all()
-    )
-    for cycle in cycles:
-        cycle_end = cycle.closed_at_ms if cycle.closed_at_ms is not None else run.end_time
-        cycle_points = [
-            point for point in points
-            if cycle.started_at_ms <= point.timestamp <= cycle_end
-        ]
-        if cycle_points:
-            cycle.max_unrealized_loss = min(
-                [0.0, *(_float(point.unrealized_pnl) for point in cycle_points)]
-            )
-            cycle.max_position_qty = max(
-                [cycle.max_position_qty, *(_float(point.position_qty) for point in cycle_points)]
-            )
-            cycle.max_position_value = max(
-                [cycle.max_position_value, *(_float(point.position_value) for point in cycle_points)]
-            )
-            loss_seconds = 0.0
-            for index, point in enumerate(cycle_points):
-                next_time = (
-                    cycle_points[index + 1].timestamp
-                    if index + 1 < len(cycle_points)
-                    else cycle_end
-                )
-                if point.position_qty > 0 and point.unrealized_pnl < 0:
-                    loss_seconds += max((next_time - point.timestamp) / 1000, 0.0)
-            cycle.time_in_loss_seconds = min(loss_seconds, cycle.duration_seconds)
-        db.add(cycle)
-
-    db.flush()
-    return cycles
 
 def _path_for_candle(candle: dict, path_mode: str) -> list[float]:
     # For a long grid strategy, high-before-low is the conservative ambiguous-candle path:
@@ -998,10 +797,19 @@ def run_backtest_job(run_id: int) -> None:
                 (run.end_time - state["deepest_drawdown_time"]) / 1000, 0
             )
 
-        executions = _sorted_executions(
-            emulator.executions(run.emulator_account_id, run.symbol, limit=100000)
-        )
-        cycles = _rebuild_cycles_from_executions(db, run, executions)
+        executions = list(reversed(emulator.executions(run.emulator_account_id, run.symbol, limit=100000)))
+        cycles = list_cycles(db, run.id)
+        # Allocate execution fees and gross PnL to cycle time windows.
+        for cycle in cycles:
+            cycle_execs = [
+                item for item in executions
+                if item.get("execTime", 0) >= cycle.started_at_ms
+                and (cycle.closed_at_ms is None or item.get("execTime", 0) <= cycle.closed_at_ms)
+            ]
+            cycle.fees = sum(_float(item.get("execFee")) for item in cycle_execs)
+            cycle.gross_pnl = sum(_float(item.get("closedPnl")) for item in cycle_execs)
+            cycle.net_pnl = cycle.gross_pnl - cycle.fees
+            db.add(cycle)
 
         run.metrics = _final_metrics(run, final_dashboard, executions, state, cycles)
         run.status = "completed"

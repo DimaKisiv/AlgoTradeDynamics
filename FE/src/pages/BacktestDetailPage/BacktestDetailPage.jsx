@@ -201,13 +201,7 @@ export default function BacktestDetailPage() {
     const byExchangeId = new Map(orders.map((order) => [String(order.exchange_order_id), order]));
     let qty = 0;
     let avg = 0;
-    return [...executions].sort((a, b) => {
-      const timeDiff = asMs(a.execTime) - asMs(b.execTime);
-      if (timeDiff !== 0) return timeDiff;
-      const aPriority = String(a.side).toLowerCase() === "sell" ? 0 : 1;
-      const bPriority = String(b.side).toLowerCase() === "sell" ? 0 : 1;
-      return aPriority - bPriority;
-    }).map((item) => {
+    return [...executions].sort((a, b) => asMs(a.execTime) - asMs(b.execTime)).map((item) => {
       const before = qty;
       const fillQty = asNumber(item.execQty);
       const price = asNumber(item.execPrice);

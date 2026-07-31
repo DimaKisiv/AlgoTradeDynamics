@@ -20,7 +20,7 @@ def create_user(db: Session, email: str, password: str) -> User:
 
 
 def authenticate(db: Session, email: str, password: str) -> User | None:
-    """Повертає користувача при вірних облікових даних, інакше None."""
+    """Return the user for valid credentials, otherwise return None."""
     user = get_user_by_email(db, email)
     if user is None or not verify_password(password, user.hashed_password):
         return None

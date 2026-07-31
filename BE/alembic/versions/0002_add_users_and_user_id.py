@@ -23,9 +23,9 @@ DEMO_PASSWORD = "demo1234"
 
 
 def upgrade() -> None:
-    # 1. Таблиця користувачів.
-    #    NB: index=True на колонці вже створює індекс ix_users_id автоматично —
-    #    окремий op.create_index для id НЕ потрібен (інакше "index already exists").
+    # 1. Create the users table.
+    #    index=True already creates ix_users_id automatically, so an explicit
+    #    op.create_index call for the ID column would create a duplicate index.
     op.create_table(
         "users",
         sa.Column("id", sa.Integer(), primary_key=True, index=True),
@@ -42,7 +42,7 @@ def upgrade() -> None:
 
     conn = op.get_bind()
 
-    # 2. Демо-користувач (щоб застосунок працював одразу після міграції)
+    # 2. Seed the demo user so the application is usable immediately after migration.
     conn.execute(
         sa.text("INSERT INTO users (email, hashed_password) VALUES (:email, :pw)"),
         {"email": DEMO_EMAIL, "pw": hash_password(DEMO_PASSWORD)},
@@ -51,15 +51,15 @@ def upgrade() -> None:
         sa.text("SELECT id FROM users WHERE email = :email"), {"email": DEMO_EMAIL}
     ).scalar_one()
 
-    # 3. Колонка user_id — спершу nullable, щоб backfill-нути наявні записи
+    # 3. Add user_id as nullable first so existing records can be backfilled.
     op.add_column("backtest_runs", sa.Column("user_id", sa.Integer(), nullable=True))
     conn.execute(
         sa.text("UPDATE backtest_runs SET user_id = :uid WHERE user_id IS NULL"),
         {"uid": demo_id},
     )
 
-    # 4. NOT NULL + FK. batch_alter_table: на Postgres — звичайні ALTER,
-    #    на SQLite — коректне перестворення таблиці (SQLite не вміє ALTER constraint).
+    # 4. Apply NOT NULL and FK constraints. batch_alter_table uses regular ALTER
+    #    on PostgreSQL and recreates the table correctly on SQLite.
     with op.batch_alter_table("backtest_runs") as batch_op:
         batch_op.alter_column("user_id", existing_type=sa.Integer(), nullable=False)
         batch_op.create_foreign_key(

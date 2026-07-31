@@ -13,14 +13,14 @@ export function useAuth() {
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // true доки перевіряємо збережений токен
+  const [loading, setLoading] = useState(true); // Remains true while the stored token is being validated
 
   const logout = useCallback(() => {
     setToken(null);
     setUser(null);
   }, []);
 
-  // Гідратація сесії при завантаженні + автологаут на будь-який 401.
+  // Restore the session on startup and sign out automatically on any 401 response.
   useEffect(() => {
     setUnauthorizedHandler(() => setUser(null));
 

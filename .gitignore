@@ -40,3 +40,17 @@ EXCHANGE_EMULATOR/__pycache__/
 EXCHANGE_EMULATOR/**/*.py[cod]
 EXCHANGE_EMULATOR/.pytest_cache/
 EXCHANGE_EMULATOR/*.db
+
+# Python caches and test artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Frontend dependencies and builds
+node_modules/
+dist/
+
+# Local IDE and OS files
+Thumbs.db

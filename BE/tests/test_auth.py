@@ -19,7 +19,7 @@ def test_register_returns_user(client):
     assert body["email"] == email
     assert body["id"] > 0
     assert body["runs_count"] == 0
-    assert "hashed_password" not in body  # ніколи не віддаємо хеш
+    assert "hashed_password" not in body  # Never expose the password hash
 
 
 def test_register_duplicate_email_conflict(client):

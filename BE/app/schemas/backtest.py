@@ -12,7 +12,7 @@ EndBehavior = Literal["keep_open", "force_close"]
 
 class BacktestCreate(BaseModel):
     bot_id: int
-    interval: str = Field(default="1", min_length=1, max_length=10)
+    dataset_id: int = Field(gt=0)
     start_time: int
     end_time: int
     initial_balance: float = Field(default=10_000, gt=0)
@@ -29,6 +29,8 @@ class BacktestRunSummary(BaseModel):
     name: str
     bot_name: str
     symbol: str
+    dataset_id: int | None
+    dataset_name: str | None
     interval: str
     start_time: int
     end_time: int
@@ -102,10 +104,20 @@ class BacktestCycleResponse(BaseModel):
 
 
 class HistoricalDatasetResponse(BaseModel):
+    id: int
+    name: str
     exchange: str
     category: str
     symbol: str
     interval: str
+    source_file: str | None = None
     candles: int
-    from_time: int
-    to_time: int
+    from_time: int | None
+    to_time: int | None
+    requested_start_time: int | None = None
+    requested_end_time: int | None = None
+    expected_candles: int = 0
+    missing_candles: int = 0
+    status: str = "ready"
+    quality: dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime | None = None

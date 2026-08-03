@@ -11,7 +11,7 @@ from sqlalchemy import and_, delete, func, select
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
-from app.models import Account, AccountMarket, Candle, Event, Execution, Market, Order, Position, Scenario
+from app.models import Account, AccountMarket, Candle, Event, Execution, HistoricalDataset, Market, Order, Position, Scenario
 
 ACTIVE_STATUSES = {"New", "Created", "PartiallyFilled", "PendingNew", "Untriggered"}
 MAKER_FEE_RATE = 0.0002
@@ -267,7 +267,8 @@ def account_snapshot(db: Session, account: Account, *, exclude_order_id: str | N
         if position.size <= 0:
             continue
         market = effective_market(db, account.id, position.symbol)
-        unrealized += (market.mark_price - position.avg_price) * position.size
+        direction = 1.0 if position.side == "Buy" else -1.0
+        unrealized += (market.mark_price - position.avg_price) * position.size * direction
         leverage = max(position.leverage, 1.0)
         margin_used += position.size * market.mark_price / leverage
     reserved_order_margin = 0.0
@@ -275,7 +276,7 @@ def account_snapshot(db: Session, account: Account, *, exclude_order_id: str | N
         select(Order).where(
             Order.account_id == account.id,
             Order.status.in_(ACTIVE_STATUSES),
-            Order.side == "Buy",
+            Order.reduce_only.is_(False),
         )
     ).all()
     for order in open_orders:
@@ -308,17 +309,19 @@ def account_snapshot(db: Session, account: Account, *, exclude_order_id: str | N
 
 def position_payload(db: Session, position: Position) -> dict:
     market = effective_market(db, position.account_id, position.symbol)
-    unrealized = (market.mark_price - position.avg_price) * position.size if position.size > 0 else 0.0
+    direction = 1.0 if position.side == "Buy" else -1.0
+    unrealized = (market.mark_price - position.avg_price) * position.size * direction if position.size > 0 else 0.0
     position_value = position.size * market.mark_price
     account = db.get(Account, position.account_id)
     liq_price = 0.0
     if position.size > 0 and account is not None:
-        liq_price = max(position.avg_price - max(account.balance, 0.0) / position.size, 0.0)
+        distance = max(account.balance, 0.0) / position.size
+        liq_price = max(position.avg_price - distance, 0.0) if position.side == "Buy" else position.avg_price + distance
     return {
         "positionIdx": 0,
         "riskId": 0,
         "symbol": position.symbol,
-        "side": "Buy" if position.size > 0 else "",
+        "side": position.side if position.size > 0 else "",
         "size": format_number(position.size),
         "avgPrice": format_number(position.avg_price) if position.size > 0 else "",
         "positionValue": format_number(position_value),
@@ -361,11 +364,17 @@ def _validate_order(db: Session, account: Account, order: Order, market: Market)
     if order.qty * (order.price or market.last_price) < 5:
         return "Order notional is below emulator minimum 5 USDT"
     position = get_or_create_position(db, account.id, order.category, order.symbol)
-    if order.side == "Sell" and order.reduce_only and order.qty > position.size + 1e-12:
-        return "Reduce-only quantity exceeds open position"
-    if order.side == "Sell" and not order.reduce_only:
-        return "Short positions are not implemented in emulator MVP"
-    if order.side == "Buy":
+    if order.reduce_only:
+        if position.size <= 0:
+            return "No open position available to reduce"
+        expected_side = "Sell" if position.side == "Buy" else "Buy"
+        if order.side != expected_side:
+            return "Reduce-only side does not close the open position"
+        if order.qty > position.size + 1e-12:
+            return "Reduce-only quantity exceeds open position"
+    else:
+        if position.size > 0 and position.side != order.side:
+            return "Close the opposite position before reversing side"
         required_margin = order.qty * (order.price or market.last_price) / max(position.leverage, 1.0)
         snapshot = account_snapshot(db, account, exclude_order_id=order.id)
         if required_margin > snapshot["available_balance"] + 1e-9:
@@ -477,24 +486,31 @@ def fill_order(db: Session, order: Order, fill_price: float, *, liquidity: str) 
         fill_price = fill_price * (1 + adjustment if order.side == "Buy" else 1 - adjustment)
 
     closed_pnl = 0.0
-    if order.side == "Buy":
-        old_cost = position.avg_price * position.size
-        new_size = position.size + qty
-        position.avg_price = (old_cost + fill_price * qty) / new_size if new_size > 0 else 0.0
-        position.size = new_size
-        position.side = "Buy"
-    else:
+    if order.reduce_only:
         close_qty = min(qty, position.size)
         if close_qty <= 0:
             order.status = "Rejected"
-            order.reject_reason = "No long position available to reduce"
+            order.reject_reason = "No position available to reduce"
             return
-        closed_pnl = (fill_price - position.avg_price) * close_qty
+        if position.side == "Buy":
+            closed_pnl = (fill_price - position.avg_price) * close_qty
+        else:
+            closed_pnl = (position.avg_price - fill_price) * close_qty
         position.size -= close_qty
         position.realized_pnl += closed_pnl
         if position.size <= 1e-12:
             position.size = 0.0
             position.avg_price = 0.0
+    else:
+        if position.size > 0 and position.side != order.side:
+            order.status = "Rejected"
+            order.reject_reason = "Close the opposite position before reversing side"
+            return
+        old_cost = position.avg_price * position.size
+        new_size = position.size + qty
+        position.avg_price = (old_cost + fill_price * qty) / new_size if new_size > 0 else 0.0
+        position.size = new_size
+        position.side = order.side
 
     fee_rate = account.maker_fee_rate if liquidity == "Maker" else account.taker_fee_rate
     fee = fill_price * qty * fee_rate
@@ -543,7 +559,7 @@ def fill_order(db: Session, order: Order, fill_price: float, *, liquidity: str) 
         f"Position size is now {format_number(position.size)}",
         account_id=account.id,
         symbol=order.symbol,
-        payload={"size": position.size, "avg_price": position.avg_price, "realized_pnl": position.realized_pnl},
+        payload={"side": position.side, "size": position.size, "avg_price": position.avg_price, "realized_pnl": position.realized_pnl},
         created_at=event_time,
     )
 
@@ -556,6 +572,7 @@ def set_account_market_price(
     *,
     mark_price: float | None = None,
     simulation_time: int | None = None,
+    dataset_id: int | None = None,
     emit_event: bool = False,
 ) -> tuple[AccountMarket, int]:
     if price <= 0:
@@ -565,6 +582,8 @@ def set_account_market_price(
     market.last_price = price
     market.mark_price = mark_price if mark_price and mark_price > 0 else price
     market.simulation_time = simulation_time
+    if dataset_id is not None:
+        market.dataset_id = dataset_id
     event_time = market_time(market)
     market.updated_at = event_time
     orders = db.scalars(
@@ -742,16 +761,20 @@ def start_replay(
     db: Session,
     market: Market,
     *,
-    interval: str,
+    dataset_id: int,
     start_time: int,
     end_time: int,
     speed: float,
     path_mode: str,
 ) -> int:
+    dataset = db.get(HistoricalDataset, dataset_id)
+    if dataset is None:
+        raise ValueError("Historical dataset not found")
+    if dataset.symbol != market.symbol:
+        raise ValueError("Dataset symbol does not match selected market")
     count = db.scalar(
         select(func.count(Candle.id)).where(
-            Candle.symbol == market.symbol,
-            Candle.interval == interval,
+            Candle.dataset_id == dataset.id,
             Candle.open_time >= start_time,
             Candle.open_time <= end_time,
         )
@@ -761,8 +784,7 @@ def start_replay(
     first = db.scalar(
         select(Candle)
         .where(
-            Candle.symbol == market.symbol,
-            Candle.interval == interval,
+            Candle.dataset_id == dataset.id,
             Candle.open_time >= start_time,
             Candle.open_time <= end_time,
         )
@@ -771,7 +793,9 @@ def start_replay(
     market.mode = "historical"
     market.status = "running"
     market.runtime_state = {
-        "interval": interval,
+        "dataset_id": dataset.id,
+        "dataset_name": dataset.name,
+        "interval": dataset.interval,
         "start_time": start_time,
         "end_time": end_time,
         "cursor": first.open_time if first else start_time,
@@ -792,12 +816,11 @@ def replay_one_candle(db: Session, market: Market, *, commit: bool = True) -> bo
     state = dict(market.runtime_state or {})
     cursor = int(state.get("cursor", state.get("start_time", 0)))
     end_time = int(state.get("end_time", cursor))
-    interval = str(state.get("interval", "1"))
+    dataset_id = int(state.get("dataset_id", 0))
     candle = db.scalar(
         select(Candle)
         .where(
-            Candle.symbol == market.symbol,
-            Candle.interval == interval,
+            Candle.dataset_id == dataset_id,
             Candle.open_time >= cursor,
             Candle.open_time <= end_time,
         )

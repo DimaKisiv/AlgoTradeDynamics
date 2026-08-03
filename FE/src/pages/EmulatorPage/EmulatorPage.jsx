@@ -61,6 +61,12 @@ const toLocalInput = (timestamp) => {
 };
 
 const fromLocalInput = (value) => new Date(value).getTime();
+const INTERVAL_LABELS = {
+  "1": "1 minute", "3": "3 minutes", "5": "5 minutes", "15": "15 minutes",
+  "30": "30 minutes", "60": "1 hour", "120": "2 hours", "240": "4 hours",
+  "360": "6 hours", "720": "12 hours", D: "1 day", W: "1 week",
+};
+const intervalLabel = (interval) => INTERVAL_LABELS[String(interval)] || String(interval);
 
 function Metric({ label, value, suffix = "", tone = "neutral" }) {
   return (
@@ -127,6 +133,9 @@ export default function EmulatorPage() {
   const [historyFrom, setHistoryFrom] = useState(toLocalInput(now - 7 * 86400000));
   const [historyTo, setHistoryTo] = useState(toLocalInput(now));
   const [historyInterval, setHistoryInterval] = useState("1");
+  const [historySymbol, setHistorySymbol] = useState("BTCUSDT");
+  const [historyName, setHistoryName] = useState("");
+  const [selectedDatasetId, setSelectedDatasetId] = useState("");
   const [replaySpeed, setReplaySpeed] = useState("100");
   const [pathMode, setPathMode] = useState("ohlc");
   const [csvFile, setCsvFile] = useState(null);
@@ -239,20 +248,41 @@ export default function EmulatorPage() {
     "Сценарій збережено.",
   );
 
-  const downloadHistory = () => runAction(
-    () => emulatorApi.downloadHistorical({
-      symbol,
-      category: "linear",
-      interval: historyInterval,
-      start_time: fromLocalInput(historyFrom),
-      end_time: fromLocalInput(historyTo),
-    }),
-    (result) => `Завантажено свічок: ${result?.downloaded || 0}, нових: ${result?.inserted || 0}.`,
-  );
+  const downloadHistory = async () => {
+    const result = await runAction(
+      () => emulatorApi.downloadHistorical({
+        name: historyName.trim() || null,
+        symbol: historySymbol.trim().toUpperCase(),
+        category: "linear",
+        interval: historyInterval,
+        start_time: fromLocalInput(historyFrom),
+        end_time: fromLocalInput(historyTo),
+      }),
+      (value) => `Створено dataset “${value?.dataset?.name || "Historical dataset"}”: ${value?.inserted || 0} свічок.`,
+    );
+    if (result?.dataset?.id) {
+      setSelectedDatasetId(String(result.dataset.id));
+      setHistorySymbol(result.dataset.symbol);
+      setSymbol(result.dataset.symbol);
+    }
+  };
+
+  const importHistory = async () => {
+    if (!csvFile) return;
+    const result = await runAction(
+      () => emulatorApi.importHistorical(historySymbol.trim().toUpperCase(), historyInterval, csvFile, historyName),
+      (value) => `CSV dataset “${value?.dataset?.name || csvFile.name}” імпортовано: ${value?.inserted || 0} свічок.`,
+    );
+    if (result?.dataset?.id) {
+      setSelectedDatasetId(String(result.dataset.id));
+      setHistorySymbol(result.dataset.symbol);
+      setSymbol(result.dataset.symbol);
+    }
+  };
 
   const startReplay = () => runAction(
-    () => emulatorApi.startReplay(symbol, {
-      interval: historyInterval,
+    () => emulatorApi.startReplay(selectedDataset?.symbol || historySymbol.trim().toUpperCase(), {
+      dataset_id: Number(selectedDatasetId),
       start_time: fromLocalInput(historyFrom),
       end_time: fromLocalInput(historyTo),
       speed: Number(replaySpeed),
@@ -262,7 +292,27 @@ export default function EmulatorPage() {
   );
 
   const filteredScenarios = scenarios.filter((item) => item.symbol === symbol);
-  const filteredDatasets = datasets.filter((item) => item.symbol === symbol);
+  const normalizedHistorySymbol = historySymbol.trim().toUpperCase();
+  const filteredDatasets = useMemo(
+    () => datasets.filter((item) => item.symbol === normalizedHistorySymbol),
+    [datasets, normalizedHistorySymbol],
+  );
+  const selectedDataset = filteredDatasets.find((item) => item.id === Number(selectedDatasetId)) || null;
+
+  useEffect(() => {
+    if (filteredDatasets.some((item) => item.id === Number(selectedDatasetId))) return;
+    const first = filteredDatasets[0];
+    setSelectedDatasetId(first ? String(first.id) : "");
+  }, [filteredDatasets, selectedDatasetId]);
+
+  const useDataset = (item) => {
+    setSelectedDatasetId(String(item.id));
+    setHistorySymbol(item.symbol);
+    setSymbol(item.symbol);
+    setHistoryInterval(item.interval);
+    setHistoryFrom(toLocalInput(item.from_time));
+    setHistoryTo(toLocalInput(item.to_time));
+  };
   const activeOrders = orders.filter((order) => isOpenOrderStatus(order.orderStatus));
   const historicalOrders = orders.filter((order) => !isOpenOrderStatus(order.orderStatus));
   const totalOpenPnl = positions.reduce((sum, item) => sum + numberValue(item.unrealisedPnl), 0);
@@ -289,6 +339,7 @@ export default function EmulatorPage() {
               <select value={symbol} onChange={(e) => {
                 const nextSymbol = e.target.value;
                 setSymbol(nextSymbol);
+                setHistorySymbol(nextSymbol);
                 const nextMarket = markets.find((item) => item.symbol === nextSymbol);
                 if (nextMarket) {
                   setManualPrice(String(nextMarket.last_price));
@@ -413,41 +464,68 @@ export default function EmulatorPage() {
         {tab === "historical" && (
           <section className={styles.twoColumns}>
             <Card>
-              <CardHeader eyebrow="Market data" title="Завантажити історію" />
+              <CardHeader eyebrow="Market data" title="Створити historical dataset" />
               <div className={styles.formStack}>
+                <label><span>Symbol</span><input value={historySymbol} placeholder="BTCUSDT" onChange={(e) => setHistorySymbol(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))} /></label>
+                <label><span>Dataset name (optional)</span><input value={historyName} placeholder={`${historySymbol || "SYMBOL"} custom period`} onChange={(e) => setHistoryName(e.target.value)} /></label>
                 <div className={styles.fieldGrid}>
                   <label><span>From</span><input type="datetime-local" value={historyFrom} onChange={(e) => setHistoryFrom(e.target.value)} /></label>
                   <label><span>To</span><input type="datetime-local" value={historyTo} onChange={(e) => setHistoryTo(e.target.value)} /></label>
                 </div>
-                <label><span>Interval</span><select value={historyInterval} onChange={(e) => setHistoryInterval(e.target.value)}><option value="1">1 minute</option><option value="5">5 minutes</option><option value="15">15 minutes</option><option value="60">1 hour</option><option value="D">1 day</option></select></label>
-                <Button icon={<Download size={16} />} disabled={busy} onClick={downloadHistory}>Download from Bybit</Button>
+                <label><span>Candle interval</span><select value={historyInterval} onChange={(e) => setHistoryInterval(e.target.value)}>
+                  {Object.entries(INTERVAL_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                </select></label>
+                <Button icon={<Download size={16} />} disabled={busy || !historySymbol.trim() || !historyFrom || !historyTo} onClick={downloadHistory}>Download new dataset from Bybit</Button>
                 <div className={styles.importRow}>
                   <input type="file" accept=".csv,text/csv" onChange={(e) => setCsvFile(e.target.files?.[0] || null)} />
-                  <Button variant="ghost" icon={<Upload size={16} />} disabled={!csvFile || busy} onClick={() => runAction(() => emulatorApi.importHistorical(symbol, historyInterval, csvFile), "CSV імпортовано.")}>Import CSV</Button>
+                  <Button variant="ghost" icon={<Upload size={16} />} disabled={!csvFile || !historySymbol.trim() || busy} onClick={importHistory}>Import as separate CSV dataset</Button>
                 </div>
+                <p className="text-secondary">Кожне завантаження створює окремий dataset. Набори з однаковим символом та interval не змішуються.</p>
                 <div className={styles.datasetList}>
+                  {filteredDatasets.length === 0 && <p className="text-secondary">Для {historySymbol || "цього символу"} datasets ще немає.</p>}
                   {filteredDatasets.map((item) => (
-                    <div key={`${item.exchange}-${item.interval}`}>
+                    <div key={item.id} className={Number(selectedDatasetId) === item.id ? styles.selectedDataset : ""}>
                       <Database size={15} />
-                      <span>{item.exchange} · {item.interval === "D" ? "1 day" : `${item.interval}m`} · {fmt(item.candles, 0)} candles</span>
-                      <small>{new Date(item.from_time).toLocaleDateString()} — {new Date(item.to_time).toLocaleDateString()}</small>
-                      <button type="button" onClick={() => {
-                        setHistoryInterval(item.interval);
-                        setHistoryFrom(toLocalInput(item.from_time));
-                        setHistoryTo(toLocalInput(item.to_time));
-                      }}>Use</button>
+                      <div className={styles.datasetInfo}>
+                        <strong>{item.name}</strong>
+                        <span>{item.exchange} · {intervalLabel(item.interval)} · {fmt(item.candles, 0)} candles</span>
+                        <small>{new Date(item.from_time).toLocaleString()} — {new Date(item.to_time).toLocaleString()}</small>
+                        <small className={item.missing_candles ? styles.qualityBad : styles.qualityGood}>
+                          {item.missing_candles ? `${item.missing_candles} missing candles` : "Complete sequence"}
+                          {item.quality?.has_volume ? " · volume available" : " · no volume"}
+                        </small>
+                      </div>
+                      <div className={styles.datasetActions}>
+                        <button type="button" onClick={() => useDataset(item)}>Use</button>
+                        <button type="button" className={styles.iconDanger} onClick={() => {
+                          if (window.confirm(`Видалити dataset “${item.name}”?`)) {
+                            runAction(() => emulatorApi.deleteHistorical(item.id), "Dataset видалено.");
+                          }
+                        }}><Trash2 size={15} /></button>
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
             </Card>
             <Card>
-              <CardHeader eyebrow="Replay" title="Програти історію" />
+              <CardHeader eyebrow="Replay" title="Програти конкретний dataset" />
               <div className={styles.formStack}>
+                <label><span>Dataset</span><select value={selectedDatasetId} onChange={(e) => {
+                  const item = filteredDatasets.find((dataset) => dataset.id === Number(e.target.value));
+                  if (item) useDataset(item);
+                }}>
+                  {filteredDatasets.map((item) => <option key={item.id} value={item.id}>{item.name} · {intervalLabel(item.interval)}</option>)}
+                </select></label>
+                {selectedDataset && <div className={styles.datasetSummary}>
+                  <strong>{selectedDataset.symbol} · {intervalLabel(selectedDataset.interval)}</strong>
+                  <span>{fmt(selectedDataset.candles, 0)} candles · {selectedDataset.exchange}</span>
+                  <span>{selectedDataset.missing_candles ? `Warning: ${selectedDataset.missing_candles} missing` : "Dataset sequence is complete"}</span>
+                </div>}
                 <label><span>Speed, candles/sec</span><select value={replaySpeed} onChange={(e) => setReplaySpeed(e.target.value)}><option value="1">1x</option><option value="10">10x</option><option value="100">100x</option><option value="1000">Maximum</option></select></label>
                 <label><span>Intrabar path</span><select value={pathMode} onChange={(e) => setPathMode(e.target.value)}><option value="ohlc">Open → High → Low → Close</option><option value="olhc">Open → Low → High → Close</option><option value="close">Close only</option></select></label>
                 <div className={styles.actionRow}>
-                  <Button icon={<Play size={16} />} disabled={busy} onClick={startReplay}>Start</Button>
+                  <Button icon={<Play size={16} />} disabled={busy || !selectedDatasetId} onClick={startReplay}>Start</Button>
                   <Button variant="ghost" icon={<Pause size={16} />} onClick={() => runAction(() => emulatorApi.pauseMarket(symbol), "Replay paused.")}>Pause</Button>
                   <Button variant="ghost" icon={<Play size={16} />} onClick={() => runAction(() => emulatorApi.resumeMarket(symbol), "Replay resumed.")}>Resume</Button>
                   <Button variant="ghost" icon={<SkipForward size={16} />} onClick={() => runAction(() => emulatorApi.stepReplay(symbol), "Одна свічка програна.")}>Next candle</Button>

@@ -1,6 +1,6 @@
 # AlgoTradeDynamics
 
-Платформа для запуску grid-ботів на Bybit або локальному exchange emulator та для детермінованого тестування **тих самих ботів** на історичних даних.
+Платформа для запуску Grid Bot і Pattern Scalper на Bybit або локальному exchange emulator та для детермінованого тестування **тих самих стратегій** на історичних даних.
 
 Старий окремий MA Crossover / RSI backtester видалено. Нова вкладка **Backtests** бере конфігурацію одного з існуючих ботів, створює її snapshot, запускає приховану тестову копію через той самий trading engine і програє свічки в ізольованому emulator account.
 
@@ -43,7 +43,7 @@ docker compose down -v
 
 ## Важливо при оновленні
 
-Міграція `0008_replace_legacy_backtests` навмисно видаляє таблиці та результати старого MA/RSI backtester-а. Вони несумісні з новими emulator-driven backtests.
+Міграція `0008_replace_legacy_backtests` навмисно видаляє таблиці та результати старого MA/RSI backtester-а. Вони несумісні з новими emulator-driven backtests. Міграція `0009_backtest_dataset_id` додає до кожного нового запуску точний `dataset_id` і назву набору.
 
 При звичайному запуску backend автоматично виконує:
 
@@ -64,26 +64,51 @@ alembic upgrade head
 - постійні тестові акаунти;
 - баланс, equity, позиції, ордери та executions;
 - reset account;
-- завантаження історії з Bybit;
+- завантаження історії з Bybit для довільного символу;
 - імпорт CSV;
+- окремі datasets для різних періодів, джерел та timeframe;
+- перевірка кількості свічок, volume, меж покриття та внутрішніх пропусків;
 - activity/event log.
 
-Вбудовано денні datasets `BTCUSDT` і `ETHUSDT` за 2024 рік. Для точнішого тесту grid-бота рекомендується завантажити `1m` свічки в `Emulator → Historical`.
+Кожне завантаження з Bybit або CSV-імпорт створює **новий незалежний dataset** з власним `dataset_id`. Навіть якщо два набори мають однакові `symbol + interval + timestamps`, їхні свічки не змішуються. Підтримуються `1m`, `3m`, `5m`, `15m`, `30m`, `1h`, `2h`, `4h`, `6h`, `12h`, `1D` і `1W`.
 
-## Новий Bot Backtesting
+Вбудовано денні datasets `BTCUSDT` і `ETHUSDT` за 2024 рік. Для Pattern Scalper зазвичай варто починати з повних `1m`, `5m` або `15m` OHLCV-наборів.
+
+## Типи ботів
+
+### Grid Bot
+
+Існуюча сіткова стратегія: limit-входи нижче поточної ціни, усереднення позиції, один Position TP і перебудова grid після завершення циклу.
+
+### Pattern Scalper
+
+Перша пояснювана версія «розумного» бота. Вона:
+
+- аналізує тільки закриті OHLCV-свічки;
+- використовує EMA trend, RSI, ATR, breakout і volume confirmation;
+- відкриває LONG або SHORT market-угоду;
+- тримає не більше однієї позиції;
+- керує stop-loss, take-profit, maximum holding time і cooldown;
+- обмежує quantity, notional, risk per trade та daily loss;
+- записує signal score, причини входу та indicator snapshot у history/events.
+
+Це rule-based MVP, а не ML-модель. Така база потрібна, щоб спочатку перевірити execution, fees, slippage і risk management, а вже потім навчати модель на коректних результатах.
+
+## Bot Backtesting
 
 ### Створення
 
 На `/backtests`:
 
-1. Обрати існуючого grid-бота.
-2. Обрати dataset, interval і період.
-3. Вказати стартовий баланс, fee rate та slippage.
-4. Обрати intrabar path:
+1. Обрати існуючого Grid Bot або Pattern Scalper.
+2. Обрати конкретний dataset. Його interval підставляється автоматично.
+3. Вибрати точний початок і кінець у межах dataset до хвилини.
+4. Вказати стартовий баланс, fee rate та slippage.
+5. Обрати intrabar path:
    - `Conservative / Open → High → Low → Close`;
    - `Open → Low → High → Close`;
    - `Close only`.
-5. Обрати поведінку наприкінці:
+6. Обрати поведінку наприкінці:
    - залишити відкриту позицію й порахувати unrealized PnL;
    - примусово закрити за фінальною ціною.
 
@@ -94,15 +119,18 @@ alembic upgrade head
 Для кожного backtest створюються:
 
 - immutable snapshot конфігурації бота;
+- точне посилання на один `dataset_id`;
 - прихована тестова копія `TradingBot`;
 - окремий emulator account;
 - account-scoped market price, яка не рухає ціни інших emulator accounts.
 
-Backtest використовує той самий `tick_grid_bot`, reconciliation, lifecycle ордерів, Position TP та cycle rollover, що й звичайний бот.
+Перед запуском backend перевіряє відповідність символу й market category, наявність volume для Pattern Scalper, покриття вибраного проміжку та відсутність пропущених свічок. Усі kline-запити EMA/RSI/ATR/breakout/volume під час тесту прив’язані до того самого dataset, тому інші набори не можуть підмішатися.
+
+Backtest використовує той самий strategy registry, worker tick, exchange adapter, reconciliation і risk logic, що й звичайний бот. Grid зберігає Position TP/cycle rollover, а Pattern Scalper — свої сигнали та керовані виходи.
 
 ### Execution model
 
-Кожна історична свічка програється через її intrabar points. Після fill runner синхронізує бота до стабільного стану перед наступним рухом ціни. Це дозволяє створити або оновити TP всередині тієї ж свічки без очікування звичайного worker interval.
+Кожна історична свічка програється через її intrabar points. Grid runner синхронізує стратегію після fill до стабільного стану. Pattern Scalper виконує tick на кожній simulated point, але формує сигнали лише за вже закритими свічками, без future leakage.
 
 ### Керування
 
@@ -143,8 +171,8 @@ Backtest використовує той самий `tick_grid_bot`, reconciliat
 Графік містить:
 
 - історичну ціну;
-- placed та filled grid entries;
-- створені та виконані Take Profit;
+- placed та filled entries для вибраної стратегії;
+- grid Take Profit або scalper SL/TP/timeout exits;
 - cancelled orders;
 - підсвічені періоди відкритої позиції;
 - підсвічені періоди негативного open PnL;
@@ -177,7 +205,7 @@ Configuration містить snapshot бота, dataset, fee/slippage model, pat
 - exposure;
 - час у позиції/мінусі;
 - fees;
-- grid parameters.
+- strategy parameters.
 
 ## Основні backend endpoints
 
@@ -205,8 +233,8 @@ Frontend використовує React 18, Recharts і Vite. Для production 
 
 ## Поточні обмеження
 
-- backtest runner наразі підтримує grid strategy;
+- Pattern Scalper v1 є rule-based; ML training і автоматичний пошук патернів по всьому ринку ще не додані;
 - історична точність залежить від timeframe та intrabar model;
 - OHLC candle не показує справжній порядок trades усередині інтервалу;
-- partial fills, funding та повний order book model можна додати окремими етапами;
+- partial fills, funding, spread, order-book imbalance та tick-level market data можна додати окремими етапами;
 - background backtest task живе всередині backend process, тому restart backend перериває активний запуск.

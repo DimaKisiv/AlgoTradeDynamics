@@ -10,9 +10,18 @@ import { fmtDateTime, fmtMoneySigned, fmtPctSigned } from "../../lib/format";
 import styles from "./BacktestsPage.module.css";
 
 const ACTIVE = new Set(["queued", "running", "paused"]);
-const toDateInput = (ms) => new Date(ms).toISOString().slice(0, 10);
-const startOfDay = (value) => new Date(`${value}T00:00:00Z`).getTime();
-const endOfDay = (value) => new Date(`${value}T23:59:59.999Z`).getTime();
+const toDateTimeInput = (timestamp) => {
+  const date = new Date(Number(timestamp));
+  const offset = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+};
+const fromDateTimeInput = (value) => new Date(value).getTime();
+const INTERVAL_LABELS = {
+  "1": "1 minute", "3": "3 minutes", "5": "5 minutes", "15": "15 minutes",
+  "30": "30 minutes", "60": "1 hour", "120": "2 hours", "240": "4 hours",
+  "360": "6 hours", "720": "12 hours", D: "1 day", W: "1 week",
+};
+const intervalLabel = (interval) => INTERVAL_LABELS[String(interval)] || String(interval);
 
 function Stat({ label, value, icon }) {
   return <div className={styles.stat}><span>{icon}{label}</span><strong>{value}</strong></div>;
@@ -31,9 +40,9 @@ export default function BacktestsPage() {
   const [selectedRuns, setSelectedRuns] = useState([]);
   const [form, setForm] = useState({
     bot_id: "",
-    interval: "D",
-    from: "2024-01-01",
-    to: "2024-12-31",
+    dataset_id: "",
+    from: "2024-01-01T00:00",
+    to: "2024-12-31T23:59",
     initial_balance: "10000",
     fee_rate: "0.0002",
     slippage_percent: "0",
@@ -53,13 +62,13 @@ export default function BacktestsPage() {
       setForm((current) => {
         if (current.bot_id || !botData.length) return current;
         const bot = botData[0];
-        const matching = datasetData.find((item) => item.symbol === bot.symbol) || datasetData[0];
+        const matching = datasetData.find((item) => item.symbol === bot.symbol && item.category === bot.category) || null;
         return {
           ...current,
           bot_id: String(bot.id),
-          interval: matching?.interval || "1",
-          from: matching ? toDateInput(matching.from_time) : current.from,
-          to: matching ? toDateInput(matching.to_time) : current.to,
+          dataset_id: matching ? String(matching.id) : "",
+          from: matching ? toDateTimeInput(matching.from_time) : current.from,
+          to: matching ? toDateTimeInput(matching.to_time) : current.to,
         };
       });
       setError("");
@@ -76,8 +85,8 @@ export default function BacktestsPage() {
     if (!duplicateId) return;
     backtestsApi.get(duplicateId).then((detail) => {
       setForm({
-        bot_id: String(detail.source_bot_id || ""), interval: detail.interval,
-        from: toDateInput(detail.start_time), to: toDateInput(detail.end_time),
+        bot_id: String(detail.source_bot_id || ""), dataset_id: String(detail.dataset_id || detail.configuration?.dataset?.id || ""),
+        from: toDateTimeInput(detail.start_time), to: toDateTimeInput(detail.end_time),
         initial_balance: String(detail.initial_balance), fee_rate: String(detail.fee_rate),
         slippage_percent: String(detail.slippage_percent), path_mode: detail.path_mode,
         end_behavior: detail.end_behavior, name: `${detail.name} · copy`,
@@ -94,20 +103,30 @@ export default function BacktestsPage() {
 
   const selectedBot = bots.find((item) => item.id === Number(form.bot_id));
   const botDatasets = useMemo(
-    () => datasets.filter((item) => !selectedBot || item.symbol === selectedBot.symbol),
+    () => datasets.filter((item) => !selectedBot || (item.symbol === selectedBot.symbol && item.category === selectedBot.category)),
     [datasets, selectedBot],
   );
-  const selectedDataset = botDatasets.find((item) => item.interval === form.interval);
+  const selectedDataset = botDatasets.find((item) => item.id === Number(form.dataset_id)) || null;
 
   const chooseBot = (botId) => {
     const bot = bots.find((item) => item.id === Number(botId));
-    const matching = datasets.find((item) => item.symbol === bot?.symbol) || null;
+    const matching = datasets.find((item) => item.symbol === bot?.symbol && item.category === bot?.category) || null;
     setForm((current) => ({
       ...current,
       bot_id: String(botId),
-      interval: matching?.interval || current.interval,
-      from: matching ? toDateInput(matching.from_time) : current.from,
-      to: matching ? toDateInput(matching.to_time) : current.to,
+      dataset_id: matching ? String(matching.id) : "",
+      from: matching ? toDateTimeInput(matching.from_time) : current.from,
+      to: matching ? toDateTimeInput(matching.to_time) : current.to,
+    }));
+  };
+
+  const chooseDataset = (datasetId) => {
+    const dataset = botDatasets.find((item) => item.id === Number(datasetId));
+    setForm((current) => ({
+      ...current,
+      dataset_id: String(datasetId),
+      from: dataset ? toDateTimeInput(dataset.from_time) : current.from,
+      to: dataset ? toDateTimeInput(dataset.to_time) : current.to,
     }));
   };
 
@@ -118,9 +137,9 @@ export default function BacktestsPage() {
       setError("");
       const run = await backtestsApi.create({
         bot_id: Number(form.bot_id),
-        interval: form.interval,
-        start_time: startOfDay(form.from),
-        end_time: endOfDay(form.to),
+        dataset_id: Number(form.dataset_id),
+        start_time: fromDateTimeInput(form.from),
+        end_time: fromDateTimeInput(form.to),
         initial_balance: Number(form.initial_balance),
         fee_rate: Number(form.fee_rate),
         slippage_percent: Number(form.slippage_percent),
@@ -151,9 +170,9 @@ export default function BacktestsPage() {
       const detail = await backtestsApi.get(summary.id);
       setForm({
         bot_id: String(detail.source_bot_id || ""),
-        interval: detail.interval,
-        from: toDateInput(detail.start_time),
-        to: toDateInput(detail.end_time),
+        dataset_id: String(detail.dataset_id || detail.configuration?.dataset?.id || ""),
+        from: toDateTimeInput(detail.start_time),
+        to: toDateTimeInput(detail.end_time),
         initial_balance: String(detail.initial_balance),
         fee_rate: String(detail.fee_rate),
         slippage_percent: String(detail.slippage_percent),
@@ -183,7 +202,7 @@ export default function BacktestsPage() {
           <div>
             <span className="eyebrow">Historical Bot Lab</span>
             <h1 className="display-2">Bot <span className="italic-accent">Backtests</span></h1>
-            <p className="lead">Той самий grid worker, ті самі ордери та TP — але на ізольованому акаунті й історичних свічках.</p>
+            <p className="lead">Запускайте Grid Bot або Pattern Scalper на конкретному ізольованому OHLCV dataset без змішування джерел і періодів.</p>
           </div>
           <Button icon={<CirclePlay size={17} />} onClick={() => setShowForm((value) => !value)}>
             {showForm ? "Закрити форму" : "New backtest"}
@@ -209,12 +228,13 @@ export default function BacktestsPage() {
               <label className={styles.wide}><span>Bot</span><select value={form.bot_id} onChange={(e) => chooseBot(e.target.value)} required>
                 {bots.map((bot) => <option key={bot.id} value={bot.id}>{bot.name} · {bot.symbol}</option>)}
               </select></label>
-              <label><span>Dataset interval</span><select value={form.interval} onChange={(e) => setForm({ ...form, interval: e.target.value })}>
-                {botDatasets.map((item) => <option key={`${item.exchange}-${item.interval}`} value={item.interval}>{item.symbol} · {item.interval} · {item.candles.toLocaleString()} candles</option>)}
+              <label className={styles.wide}><span>Historical dataset</span><select value={form.dataset_id} onChange={(e) => chooseDataset(e.target.value)} required>
+                <option value="" disabled>Choose dataset</option>
+                {botDatasets.map((item) => <option key={item.id} value={item.id}>{item.name} · {intervalLabel(item.interval)} · {item.candles.toLocaleString()} candles</option>)}
               </select></label>
               <label><span>Starting balance</span><input type="number" min="0.01" step="0.01" value={form.initial_balance} onChange={(e) => setForm({ ...form, initial_balance: e.target.value })} /></label>
-              <label><span>From</span><input type="date" value={form.from} min={selectedDataset ? toDateInput(selectedDataset.from_time) : undefined} max={selectedDataset ? toDateInput(selectedDataset.to_time) : undefined} onChange={(e) => setForm({ ...form, from: e.target.value })} /></label>
-              <label><span>To</span><input type="date" value={form.to} min={selectedDataset ? toDateInput(selectedDataset.from_time) : undefined} max={selectedDataset ? toDateInput(selectedDataset.to_time) : undefined} onChange={(e) => setForm({ ...form, to: e.target.value })} /></label>
+              <label><span>From</span><input type="datetime-local" step="60" value={form.from} min={selectedDataset ? toDateTimeInput(selectedDataset.from_time) : undefined} max={selectedDataset ? toDateTimeInput(selectedDataset.to_time) : undefined} onChange={(e) => setForm({ ...form, from: e.target.value })} /></label>
+              <label><span>To</span><input type="datetime-local" step="60" value={form.to} min={selectedDataset ? toDateTimeInput(selectedDataset.from_time) : undefined} max={selectedDataset ? toDateTimeInput(selectedDataset.to_time) : undefined} onChange={(e) => setForm({ ...form, to: e.target.value })} /></label>
               <label><span>Execution path</span><select value={form.path_mode} onChange={(e) => setForm({ ...form, path_mode: e.target.value })}>
                 <option value="conservative">Conservative · O→H→L→C</option><option value="ohlc">Open → High → Low → Close</option><option value="olhc">Open → Low → High → Close</option><option value="close">Close only</option>
               </select></label>
@@ -226,7 +246,21 @@ export default function BacktestsPage() {
               <label className={styles.wide}><span>Run name (optional)</span><input value={form.name} placeholder={selectedBot ? `${selectedBot.name} · historical test` : "Backtest name"} onChange={(e) => setForm({ ...form, name: e.target.value })} /></label>
             </div>
             {selectedBot && <div className={styles.snapshot}>
-              <span>{selectedBot.symbol}</span><span>{selectedBot.order_qty} qty</span><span>{selectedBot.grid_orders_count} grid levels</span><span>{selectedBot.grid_step_percent}% step</span><span>{selectedBot.settings?.take_profit_percent ?? 1.5}% TP</span>
+              <span>{selectedBot.strategy_type === "pattern_scalper" ? "Pattern Scalper" : "Grid Bot"}</span>
+              <span>{selectedBot.symbol}</span>
+              <span>{selectedBot.order_qty} qty</span>
+              {selectedBot.strategy_type === "grid" ? <>
+                <span>{selectedBot.grid_orders_count} grid levels</span><span>{selectedBot.grid_step_percent}% step</span>
+              </> : <>
+                <span>{selectedBot.settings?.timeframe || selectedDataset?.interval || "—"} timeframe</span>
+                <span>{selectedBot.settings?.risk_per_trade_percent ?? 0.5}% risk</span>
+              </>}
+              <span>{selectedBot.settings?.take_profit_percent ?? selectedBot.settings?.take_profit_atr ?? 1.5} TP</span>
+            </div>}
+            {selectedDataset && <div className={`${styles.datasetCard} ${selectedDataset.missing_candles ? styles.datasetBad : styles.datasetGood}`}>
+              <div><strong>{selectedDataset.name}</strong><span>{selectedDataset.symbol} · {intervalLabel(selectedDataset.interval)} · {selectedDataset.exchange}</span></div>
+              <div><span>{new Date(selectedDataset.from_time).toLocaleDateString()} — {new Date(selectedDataset.to_time).toLocaleDateString()}</span><span>{selectedDataset.candles.toLocaleString()} candles · {selectedDataset.quality?.has_volume ? "volume available" : "no volume"}</span></div>
+              <b>{selectedDataset.missing_candles ? `${selectedDataset.missing_candles} missing candles` : "Complete dataset"}</b>
             </div>}
             {selectedBot && botDatasets.length === 0 && <div className={styles.datasetWarning}>Для {selectedBot.symbol} ще немає історичних даних. <Link to="/emulator">Відкрий Emulator → Historical</Link>, завантаж свічки з Bybit або імпортуй CSV.</div>}
             <div className={styles.formActions}><Button type="submit" loading={busy} disabled={!bots.length || !selectedDataset}>Start backtest</Button></div>
@@ -243,8 +277,8 @@ export default function BacktestsPage() {
             </tr></thead><tbody>{runs.map((run) => (
               <tr key={run.id}>
                 <td className={styles.selectCell}><input type="checkbox" aria-label={`Select ${run.name}`} disabled={run.status !== "completed"} checked={selectedRuns.includes(run.id)} onChange={() => toggleSelected(run.id)} /></td>
-                <td><Link className={styles.runName} to={`/backtests/${run.id}`}>{run.name}</Link><small>{run.bot_name} · {run.symbol} · {run.interval}</small></td>
-                <td><span className={styles.date}><CalendarRange size={13} />{new Date(run.start_time).toLocaleDateString("uk-UA")} — {new Date(run.end_time).toLocaleDateString("uk-UA")}</span><small>{fmtDateTime(run.created_at)}</small></td>
+                <td><Link className={styles.runName} to={`/backtests/${run.id}`}>{run.name}</Link><small>{run.bot_name} · {run.symbol} · {intervalLabel(run.interval)} · {run.dataset_name || `Dataset #${run.dataset_id || "legacy"}` }</small></td>
+                <td><span className={styles.date}><CalendarRange size={13} />{new Date(run.start_time).toLocaleString("uk-UA")} — {new Date(run.end_time).toLocaleString("uk-UA")}</span><small>{fmtDateTime(run.created_at)}</small></td>
                 <td><StatusBadge status={run.status} />{run.error && <small className={styles.failed}>{run.error}</small>}</td>
                 <td><div className={styles.progress}><i style={{ width: `${run.progress || 0}%` }} /></div><small>{Number(run.progress || 0).toFixed(1)}% · {run.processed_candles}/{run.total_candles}</small></td>
                 <td><PnlValue value={run.metrics?.net_total_pnl}>{run.metrics?.net_total_pnl == null ? "—" : fmtMoneySigned(run.metrics.net_total_pnl)}</PnlValue></td>

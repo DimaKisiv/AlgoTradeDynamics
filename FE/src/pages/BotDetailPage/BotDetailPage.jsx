@@ -206,6 +206,9 @@ export default function BotDetailPage() {
     }
   };
 
+  const isScalper = bot?.strategy_type === "pattern_scalper";
+  const scalperTrade = bot?.settings?.pattern_scalper_state?.current_trade || null;
+  const signalScore = toNumberOrNull(scalperTrade?.signal_score);
   const openOrders = orders.filter((order) => isOpenOrderStatus(order.status));
   const filledOrders = orders.filter((order) => order.status === "Filled");
   const activePositionTakeProfitOrders = orders.filter(
@@ -236,8 +239,11 @@ export default function BotDetailPage() {
       : Number(position.take_profit.qty);
   const tpDistancePercent =
     avgEntryPrice && tpPrice
-      ? ((tpPrice - avgEntryPrice) / avgEntryPrice) * 100
+      ? Math.abs((tpPrice - avgEntryPrice) / avgEntryPrice) * 100
       : null;
+  const activeManagedTakeProfits = isScalper
+    ? (positionSize > 0 && tpPrice != null ? 1 : 0)
+    : activePositionTakeProfitOrders.length;
   const runtimeState = bot?.runtime_state || bot?.runtime_status || "stopped";
   const runtimeLabel = getRuntimeLabel(runtimeState);
   const riskBlocked = Boolean(risk?.blocked);
@@ -303,9 +309,9 @@ export default function BotDetailPage() {
                 <span className="eyebrow">Bot #{bot.id}</span>
                 <h1 className="display-2">{bot.name}</h1>
                 <p className="lead">
-                  Поки бот має статус running, бекендовий worker періодично
-                  синхронізує ордери, підтримує один Position TP для поточної
-                  long-позиції та відновлює рівні сітки після закриття циклів.
+                  {isScalper
+                    ? "Pattern Scalper аналізує лише закриті свічки, шукає підтверджений пробій та керує однією LONG або SHORT позицією через SL, TP, timeout і cooldown."
+                    : "Поки бот має статус running, бекендовий worker синхронізує ордери, підтримує Position TP для long-позиції та відновлює рівні сітки після закриття циклів."}
                 </p>
               </header>
 
@@ -325,9 +331,11 @@ export default function BotDetailPage() {
                   tone={filledOrders.length > 0 ? "positive" : "neutral"}
                 />
                 <SummaryCard
-                  label="Active Position TP"
-                  value={String(activePositionTakeProfitOrders.length)}
-                  tone={activePositionTakeProfitOrders.length > 0 ? "tp" : "neutral"}
+                  label={isScalper ? "Signal score" : "Active Position TP"}
+                  value={isScalper
+                    ? (signalScore == null ? "—" : `${Math.round(signalScore * 100)}%`)
+                    : String(activeManagedTakeProfits)}
+                  tone={(isScalper ? signalScore != null : activeManagedTakeProfits > 0) ? "tp" : "neutral"}
                 />
                 <SummaryCard
                   label="Closed cycles"
@@ -487,12 +495,12 @@ export default function BotDetailPage() {
                       mono
                     />
                     <ConfigItem
-                      label="Active TP Price"
+                      label={isScalper ? "Managed TP Price" : "Active TP Price"}
                       value={tpPrice == null ? "—" : fmtNumber(tpPrice, 4)}
                       mono
                     />
                     <ConfigItem
-                      label="Active TP Qty"
+                      label={isScalper ? "Managed TP Qty" : "Active TP Qty"}
                       value={tpQty == null ? "—" : fmtNumber(tpQty, 6)}
                       mono
                     />
@@ -555,7 +563,7 @@ export default function BotDetailPage() {
                     mono
                   />
                   <ConfigItem
-                    label="Pending Buy Qty"
+                    label={isScalper ? "Pending Entry Qty" : "Pending Buy Qty"}
                     value={formatMaybeNumber(risk?.pending_buy_qty, 6)}
                     mono
                   />
@@ -633,16 +641,24 @@ export default function BotDetailPage() {
                     value={fmtNumber(bot.order_qty, 6)}
                     mono
                   />
-                  <ConfigItem
-                    label="Grid Orders"
-                    value={String(bot.grid_orders_count)}
-                    mono
-                  />
-                  <ConfigItem
-                    label="Grid Step %"
-                    value={fmtNumber(bot.grid_step_percent)}
-                    mono
-                  />
+                  {isScalper ? (
+                    <>
+                      <ConfigItem label="Timeframe" value={`${bot.settings?.timeframe || "5"}m`} mono />
+                      <ConfigItem label="Minimum Signal" value={fmtPct(Number(bot.settings?.minimum_signal_score || 0.7) * 100)} mono />
+                      <ConfigItem label="Stop-loss ATR" value={fmtNumber(bot.settings?.stop_loss_atr || 1.2)} mono />
+                      <ConfigItem label="Take-profit ATR" value={fmtNumber(bot.settings?.take_profit_atr || 1.8)} mono />
+                      <ConfigItem label="Max Holding" value={`${bot.settings?.max_holding_minutes || 30} min`} mono />
+                      <ConfigItem label="Cooldown" value={`${bot.settings?.cooldown_minutes || 5} min`} mono />
+                      <ConfigItem label="Risk / Trade" value={fmtPct(Number(bot.settings?.risk_per_trade_percent || 0.5))} mono />
+                      <ConfigItem label="Daily Loss Limit" value={fmtPct(Number(bot.settings?.max_daily_loss_percent || 2))} mono />
+                      <ConfigItem label="SHORT Enabled" value={bot.settings?.allow_short ? "Yes" : "No"} />
+                    </>
+                  ) : (
+                    <>
+                      <ConfigItem label="Grid Orders" value={String(bot.grid_orders_count)} mono />
+                      <ConfigItem label="Grid Step %" value={fmtNumber(bot.grid_step_percent)} mono />
+                    </>
+                  )}
                   <ConfigItem
                     label="Enabled"
                     value={bot.is_active ? "Yes" : "No"}
@@ -898,6 +914,8 @@ function getRuntimeLabel(value) {
     stopped: "Stopped",
     running: "Running",
     waiting_for_entry: "Waiting for entry",
+    waiting_for_signal: "Waiting for signal",
+    cooldown: "Cooldown",
     position_open: "Position open",
     tp_active: "TP active",
     risk_blocked: "Risk blocked",

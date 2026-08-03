@@ -275,3 +275,20 @@
     justify-content: center;
   }
 }
+
+.strategyFields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: rgba(102, 166, 255, 0.04);
+}
+
+.strategyHint {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.55;
+}

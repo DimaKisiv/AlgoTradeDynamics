@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
+from sqlalchemy import BigInteger, Boolean, DateTime, Float, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -49,7 +49,8 @@ class AccountMarket(Base):
     symbol: Mapped[str] = mapped_column(String(30), index=True, nullable=False)
     last_price: Mapped[float] = mapped_column(Float, nullable=False)
     mark_price: Mapped[float] = mapped_column(Float, nullable=False)
-    simulation_time: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    simulation_time: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    dataset_id: Mapped[int | None] = mapped_column(ForeignKey("historical_datasets.id", ondelete="SET NULL"), nullable=True, index=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
 
 
@@ -130,16 +131,39 @@ class Scenario(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
 
 
-class Candle(Base):
-    __tablename__ = "candles"
-    __table_args__ = (UniqueConstraint("exchange", "category", "symbol", "interval", "open_time", name="uq_candle"),)
+class HistoricalDataset(Base):
+    __tablename__ = "historical_datasets"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(180), nullable=False)
+    exchange: Mapped[str] = mapped_column(String(30), default="bybit", nullable=False)
+    category: Mapped[str] = mapped_column(String(20), default="linear", nullable=False)
+    symbol: Mapped[str] = mapped_column(String(30), index=True, nullable=False)
+    interval: Mapped[str] = mapped_column(String(10), nullable=False)
+    source_file: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    requested_start_time: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    requested_end_time: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    candle_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    from_time: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    to_time: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    expected_candles: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    missing_candles: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    status: Mapped[str] = mapped_column(String(30), default="ready", nullable=False, index=True)
+    quality: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
+
+
+class Candle(Base):
+    __tablename__ = "candles"
+    __table_args__ = (UniqueConstraint("dataset_id", "open_time", name="uq_dataset_candle"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    dataset_id: Mapped[int] = mapped_column(ForeignKey("historical_datasets.id", ondelete="CASCADE"), index=True, nullable=False)
     exchange: Mapped[str] = mapped_column(String(30), default="bybit", nullable=False)
     category: Mapped[str] = mapped_column(String(20), default="linear", nullable=False)
     symbol: Mapped[str] = mapped_column(String(30), index=True, nullable=False)
     interval: Mapped[str] = mapped_column(String(10), default="1", nullable=False)
-    open_time: Mapped[int] = mapped_column(Integer, index=True, nullable=False)
+    open_time: Mapped[int] = mapped_column(BigInteger, index=True, nullable=False)
     open: Mapped[float] = mapped_column(Float, nullable=False)
     high: Mapped[float] = mapped_column(Float, nullable=False)
     low: Mapped[float] = mapped_column(Float, nullable=False)

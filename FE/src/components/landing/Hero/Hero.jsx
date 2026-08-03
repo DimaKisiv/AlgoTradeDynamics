@@ -28,7 +28,7 @@ export default function Hero() {
           </motion.h1>
 
           <motion.p variants={fadeUp} custom={2} className="lead">
-            Оберіть створеного grid-бота й проганяйте його через Bybit-compatible emulator: реальні ордери, TP, комісії, equity, drawdown і повна історія циклів.
+            Оберіть Grid Bot або Pattern Scalper і проганяйте ту саму runtime-логіку через Bybit-compatible emulator: ордери, LONG/SHORT, SL/TP, комісії, equity та drawdown.
           </motion.p>
 
           <motion.div variants={fadeUp} custom={3} className={styles.heroActions}>

@@ -540,3 +540,13 @@
   .orderTabs { width: 100%; }
   .eventMeta { align-items: flex-start; flex-direction: column; gap: 6px; }
 }
+
+.runtimeWaitingForSignal {
+  background: rgba(109, 176, 255, 0.16);
+  color: #7db9ff;
+}
+
+.runtimeCooldown {
+  background: rgba(185, 140, 255, 0.16);
+  color: #c19cff;
+}

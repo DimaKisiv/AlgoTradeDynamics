@@ -99,15 +99,25 @@ def normalize_order_request(order: OrderRequest, rules: InstrumentRules) -> Orde
 
 
 def _requires_reduce_only(order: OrderRequest) -> bool:
-    return order.order_role in {"position_take_profit", "position_close"} or order.order_role.startswith(("take_profit_", "tp_")) or order.order_role == "take_profit_recovered"
+    return (
+        order.order_role in {"position_take_profit", "position_close", "take_profit_recovered"}
+        or order.order_role.startswith((
+            "take_profit_", "tp_", "scalper_take_profit", "scalper_stop_loss",
+            "scalper_timeout", "scalper_manual_close",
+        ))
+    )
 
 
 def validate_order_request(order: OrderRequest, rules: InstrumentRules) -> str | None:
     if _requires_reduce_only(order):
-        if order.side != "Sell":
-            return "Position take-profit orders must use Sell side"
+        long_close = (
+            order.order_role in {"position_take_profit", "position_close", "take_profit_recovered"}
+            or order.order_role.startswith(("take_profit_", "tp_"))
+        )
+        if long_close and order.side != "Sell":
+            return "Long position close orders must use Sell side"
         if not order.reduce_only:
-            return "Position take-profit orders must be reduce-only"
+            return "Position close orders must be reduce-only"
     if order.qty < rules.min_order_qty:
         return f"Order qty {order.qty} is below Bybit minimum {rules.min_order_qty}"
     if order.price is not None and rules.min_notional_value > 0 and (order.qty * order.price) < rules.min_notional_value:
@@ -121,7 +131,7 @@ def validate_order_request(order: OrderRequest, rules: InstrumentRules) -> str |
 def place_order(session, *, category: str, symbol: str, order: OrderRequest) -> dict:
     if _requires_reduce_only(order) and not order.reduce_only:
         raise ValueError(
-            "Position take-profit orders must be reduce-only before placing")
+            "Position close orders must be reduce-only before placing")
     payload = {
         "category": category,
         "symbol": symbol,

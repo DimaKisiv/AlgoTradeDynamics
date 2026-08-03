@@ -436,3 +436,46 @@
 @media (max-width: 760px) {
   .activityOverview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+.selectedDataset {
+  border-color: rgba(95, 255, 181, .42) !important;
+  background: rgba(95, 255, 181, .055) !important;
+}
+
+.datasetInfo {
+  display: flex;
+  flex: 1;
+  min-width: 220px;
+  flex-direction: column;
+  gap: .25rem;
+}
+
+.datasetInfo span {
+  color: var(--text-secondary);
+  font-size: .8rem;
+}
+
+.datasetActions {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  margin-left: auto;
+}
+
+.qualityGood { color: #72e8ad !important; }
+.qualityBad { color: #ffab70 !important; }
+
+.datasetSummary {
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+  padding: .9rem;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, .025);
+}
+
+.datasetSummary span {
+  color: var(--text-secondary);
+  font-size: .82rem;
+}

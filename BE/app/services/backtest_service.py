@@ -11,7 +11,8 @@ from typing import Any
 from sqlalchemy import asc, desc
 from sqlalchemy.orm import Session
 
-from app.bot_engine.grid_runtime import close_bot_position, tick_grid_bot
+from app.bot_engine.bot import tick_bot_once
+from app.bot_engine.strategies import get_strategy
 from app.core.clock import use_simulated_time
 from app.core.config import get_settings
 from app.db.session import SessionLocal
@@ -73,6 +74,18 @@ def _validate_initial_grid_quantity(
     qty_step = _float(lot.get("qtyStep"), 0.000001)
     min_notional = _float(lot.get("minNotionalValue"))
 
+    configured_qty = _float(bot.order_qty)
+    if bot.strategy_type != "grid":
+        required_for_notional = min_notional / first_price if min_notional > 0 and first_price > 0 else 0.0
+        minimum_qty = _ceil_to_step(max(min_order_qty, required_for_notional), qty_step)
+        if configured_qty + 1e-12 < minimum_qty:
+            coin = bot.symbol.removesuffix("USDT")
+            raise ValueError(
+                f"Order quantity is too small for this backtest. Configured: {configured_qty:g} {coin}. "
+                f"Minimum at the starting price is {minimum_qty:g} {coin}."
+            )
+        return
+
     levels = max(int(bot.grid_orders_count or 1), 1)
     step_percent = max(_float(bot.grid_step_percent), 0.0)
     lowest_multiplier = 1.0 - ((levels - 1) * step_percent / 100.0)
@@ -82,7 +95,6 @@ def _validate_initial_grid_quantity(
 
     required_for_notional = min_notional / lowest_grid_price if min_notional > 0 else 0.0
     minimum_qty = _ceil_to_step(max(min_order_qty, required_for_notional), qty_step)
-    configured_qty = _float(bot.order_qty)
 
     if configured_qty + 1e-12 < minimum_qty:
         coin = bot.symbol.removesuffix("USDT")
@@ -140,29 +152,52 @@ def create_backtest(db: Session, payload: BacktestCreate, user_id: int) -> Backt
     )
     if bot is None:
         raise ValueError("Trading bot not found")
-    if bot.strategy_type != "grid":
-        raise ValueError("Only grid bots are supported by the current backtest runner")
+    get_strategy(bot.strategy_type)
+    if bot.strategy_type == "pattern_scalper" and bot.category != "linear":
+        raise ValueError("Pattern Scalper v1 currently supports linear perpetuals only")
 
     settings = get_settings()
     emulator = BacktestEmulatorClient(settings.exchange_emulator_url)
     try:
-        candle_count = emulator.candle_count(
-            symbol=bot.symbol,
-            interval=payload.interval,
+        dataset = emulator.dataset(payload.dataset_id)
+        if str(dataset.get("symbol") or "").upper() != bot.symbol.upper():
+            raise ValueError(
+                f"Dataset {dataset.get('name') or payload.dataset_id} belongs to {dataset.get('symbol')}, "
+                f"but the selected bot trades {bot.symbol}"
+            )
+        if str(dataset.get("category") or "") != bot.category:
+            raise ValueError("Dataset market category does not match the selected bot")
+        if bot.strategy_type == "pattern_scalper" and not bool((dataset.get("quality") or {}).get("has_volume")):
+            raise ValueError("Pattern Scalper requires a dataset with non-zero volume data")
+
+        range_stats = emulator.range_stats(
+            dataset_id=payload.dataset_id,
             start_time=payload.start_time,
             end_time=payload.end_time,
         )
+        candle_count = int(range_stats.get("count") or 0)
         if candle_count <= 0:
-            raise ValueError("No historical candles found for this bot, interval, and period")
+            raise ValueError("No candles exist in the selected dataset and period")
+        if bot.strategy_type == "pattern_scalper" and not bool(range_stats.get("has_volume")):
+            raise ValueError("Pattern Scalper requires non-zero volume inside the selected period")
+        if not range_stats.get("coverage_complete"):
+            raise ValueError("The selected period is outside the dataset coverage")
+        missing = int(range_stats.get("missing_candles") or 0)
+        if missing > 0:
+            first_gap = (range_stats.get("gaps") or [{}])[0]
+            raise ValueError(
+                f"The selected dataset range contains {missing} missing candles. "
+                f"First gap: {first_gap.get('after', 'unknown')} → {first_gap.get('before', 'unknown')}. "
+                "Download the period again or choose a complete range."
+            )
 
         first_candle = emulator.first_candle(
-            symbol=bot.symbol,
-            interval=payload.interval,
+            dataset_id=payload.dataset_id,
             start_time=payload.start_time,
             end_time=payload.end_time,
         )
         if first_candle is None:
-            raise ValueError("No historical candles found for this bot, interval, and period")
+            raise ValueError("No candles exist in the selected dataset and period")
 
         instrument_response = emulator.instrument_info(category=bot.category, symbol=bot.symbol)
         _validate_initial_grid_quantity(
@@ -173,15 +208,18 @@ def create_backtest(db: Session, payload: BacktestCreate, user_id: int) -> Backt
     finally:
         emulator.close()
 
+    interval = str(dataset["interval"])
     snapshot = _bot_snapshot(bot)
-    name = payload.name or f"{bot.name} · {datetime.fromtimestamp(payload.start_time / 1000, tz=timezone.utc).date()}"
+    name = payload.name or f"{bot.name} · {dataset.get('name') or 'dataset'}"
     run = BacktestRun(
         user_id=user_id,
         source_bot_id=bot.id,
+        dataset_id=payload.dataset_id,
+        dataset_name=str(dataset.get("name") or f"Dataset #{payload.dataset_id}"),
         name=name,
         bot_name=bot.name,
         symbol=bot.symbol,
-        interval=payload.interval,
+        interval=interval,
         start_time=payload.start_time,
         end_time=payload.end_time,
         initial_balance=payload.initial_balance,
@@ -193,7 +231,8 @@ def create_backtest(db: Session, payload: BacktestCreate, user_id: int) -> Backt
         total_candles=candle_count,
         bot_snapshot=snapshot,
         configuration={
-            "dataset": {"symbol": bot.symbol, "interval": payload.interval},
+            "dataset": dataset,
+            "range_quality": range_stats,
             "start_time": payload.start_time,
             "end_time": payload.end_time,
             "initial_balance": payload.initial_balance,
@@ -201,7 +240,7 @@ def create_backtest(db: Session, payload: BacktestCreate, user_id: int) -> Backt
             "slippage_percent": payload.slippage_percent,
             "path_mode": payload.path_mode,
             "end_behavior": payload.end_behavior,
-            "application_version": "1.0.0",
+            "application_version": "1.1.0",
         },
         metrics={},
     )
@@ -315,8 +354,8 @@ def list_datasets() -> list[dict]:
 
 
 def _path_for_candle(candle: dict, path_mode: str) -> list[float]:
-    # For a long grid strategy, high-before-low is the conservative ambiguous-candle path:
-    # lower entries filled later cannot unrealistically close at an earlier high in the same candle.
+    # High-before-low is the conservative ambiguous-candle path for the long grid strategy.
+    # Pattern strategies still use only already closed candles for signal generation.
     if path_mode in {"conservative", "ohlc"}:
         return [candle["open"], candle["high"], candle["low"], candle["close"]]
     if path_mode == "olhc":
@@ -338,7 +377,7 @@ def _local_signature(db: Session, bot_id: int) -> tuple:
 def _tick_until_stable(db: Session, bot: TradingBot, max_ticks: int = 7) -> None:
     previous = None
     for _ in range(max_ticks):
-        tick_grid_bot(db, bot)
+        tick_bot_once(db, bot)
         db.refresh(bot)
         if bot.last_error:
             raise RuntimeError(bot.last_error)
@@ -431,6 +470,7 @@ def _new_cycle_state(state: dict, execution: dict) -> dict[str, Any]:
     exec_time = _execution_time(execution)
     return {
         "number": state["cycle_number"],
+        "side": str(execution.get("side") or "Buy").title(),
         "started_at": exec_time,
         "last_time": exec_time,
         "time_in_loss": 0.0,
@@ -450,7 +490,7 @@ def _new_cycle_state(state: dict, execution: dict) -> dict[str, Any]:
 
 
 def _apply_execution_to_cycle_state(state: dict, execution: dict) -> dict[str, Any] | None:
-    side = str(execution.get("side") or "").lower()
+    side = str(execution.get("side") or "").title()
     qty = _float(execution.get("execQty"))
     price = _float(execution.get("execPrice"))
     fee = _float(execution.get("execFee"))
@@ -458,24 +498,31 @@ def _apply_execution_to_cycle_state(state: dict, execution: dict) -> dict[str, A
     exec_time = _execution_time(execution)
     exec_seq = _execution_sequence(execution)
 
+    if side not in {"Buy", "Sell"}:
+        raise RuntimeError(f"Unsupported execution side: {execution.get('side')}")
     if qty <= 0:
         raise RuntimeError(f"Execution {execution.get('execId')} has a non-positive quantity")
 
     position_qty = _float(state.get("execution_position_qty"))
     avg_entry = _float(state.get("execution_avg_entry"))
+    position_side = state.get("execution_position_side")
 
-    if side == "buy":
-        if position_qty <= 1e-12:
-            if state.get("current_cycle") is not None:
-                raise RuntimeError("A new position started while the previous backtest cycle was still open")
-            state["current_cycle"] = _new_cycle_state(state, execution)
+    if position_qty <= 1e-12:
+        if state.get("current_cycle") is not None:
+            raise RuntimeError("A new position started while the previous backtest cycle was still open")
+        state["current_cycle"] = _new_cycle_state(state, execution)
+        state["execution_position_side"] = side
+        position_side = side
 
-        cycle = state["current_cycle"]
+    cycle = state.get("current_cycle")
+    if cycle is None:
+        raise RuntimeError("Execution accounting has no active cycle")
+
+    if side == position_side:
         new_qty = position_qty + qty
         new_avg = ((position_qty * avg_entry) + (qty * price)) / new_qty
         state["execution_position_qty"] = new_qty
         state["execution_avg_entry"] = new_avg
-
         cycle["entries_filled"] += 1
         cycle["fees"] += fee
         cycle["execution_count"] += 1
@@ -488,33 +535,27 @@ def _apply_execution_to_cycle_state(state: dict, execution: dict) -> dict[str, A
         state["max_position_value"] = max(state["max_position_value"], new_qty * price)
         return None
 
-    if side != "sell":
-        raise RuntimeError(f"Unsupported execution side: {execution.get('side')}")
-    if position_qty <= 1e-12 or state.get("current_cycle") is None:
-        raise RuntimeError("A sell execution was received without an open backtest cycle")
+    if position_qty <= 1e-12:
+        raise RuntimeError("A closing execution was received without an open backtest cycle")
     if qty > position_qty + 1e-9:
-        raise RuntimeError(
-            f"Sell execution quantity {qty:g} exceeds reconstructed position {position_qty:g}"
-        )
+        raise RuntimeError(f"Closing execution quantity {qty:g} exceeds reconstructed position {position_qty:g}")
 
-    cycle = state["current_cycle"]
     cycle["fees"] += fee
     cycle["gross_pnl"] += closed_pnl
     cycle["execution_count"] += 1
     cycle["last_time"] = exec_time
     cycle["end_exec_seq"] = exec_seq
     cycle["exit_price"] = price
-
     new_qty = max(position_qty - qty, 0.0)
     state["execution_position_qty"] = new_qty
     if new_qty <= 1e-12:
         state["execution_position_qty"] = 0.0
         state["execution_avg_entry"] = 0.0
+        state["execution_position_side"] = None
         cycle["closed_at"] = exec_time
         state["current_cycle"] = None
         state["closed_cycle_count"] += 1
         return cycle
-
     state["execution_avg_entry"] = avg_entry
     return None
 
@@ -556,6 +597,7 @@ def _store_cycle(db: Session, run_id: int, state: dict) -> BacktestCycle:
             "start_exec_seq": state.get("start_exec_seq"),
             "end_exec_seq": state.get("end_exec_seq"),
             "execution_count": state.get("execution_count", 0),
+            "side": state.get("side"),
         },
     )
     db.add(cycle)
@@ -656,10 +698,12 @@ def run_backtest_job(run_id: int) -> None:
         run.emulator_account_id = int(account["id"])
         snapshot = dict(run.bot_snapshot)
         bot_settings = dict(snapshot.get("settings") or {})
+        bot_settings.pop("pattern_scalper_state", None)
         bot_settings.update({
             "emulator_api_key": account["api_key"],
             "run_interval_seconds": 0,
             "stop_bot_on_error": True,
+            "timeframe": run.interval,
         })
         temp_bot = TradingBot(
             user_id=run.user_id,
@@ -712,14 +756,14 @@ def run_backtest_job(run_id: int) -> None:
             "closed_cycle_count": 0,
             "execution_position_qty": 0.0,
             "execution_avg_entry": 0.0,
+            "execution_position_side": None,
             "last_execution_sequence": 0,
             "processed_execution_ids": set(),
         }
 
         for index, candle in enumerate(
             emulator.candles(
-                symbol=run.symbol,
-                interval=run.interval,
+                dataset_id=int(run.dataset_id or 0),
                 start_time=run.start_time,
                 end_time=run.end_time,
             ),
@@ -778,17 +822,24 @@ def run_backtest_job(run_id: int) -> None:
                         )
 
                 price_result = emulator.set_price(
-                    run.emulator_account_id, run.symbol, _float(price), point_time
+                    run.emulator_account_id,
+                    run.symbol,
+                    _float(price),
+                    point_time,
+                    dataset_id=int(run.dataset_id or 0),
                 )
                 simulated_dt = datetime.fromtimestamp(point_time / 1000, tz=timezone.utc)
-                # The strategy only needs to react when an order was filled. The first
-                # point initializes its grid. This keeps multi-year 1m backtests practical
-                # while still using the exact live bot reconciliation/order logic.
-                ticked = (index == 1 and point_index == 0) or int(price_result.get("filled_orders") or 0) > 0
+                # Grid only needs to react to fills after initialization. Pattern scalper
+                # evaluates each simulated point, while signals still use closed candles only.
+                ticked = (
+                    temp_bot.strategy_type != "grid"
+                    or (index == 1 and point_index == 0)
+                    or int(price_result.get("filled_orders") or 0) > 0
+                )
                 if ticked:
                     with use_simulated_time(simulated_dt):
                         _tick_until_stable(db, temp_bot, max_ticks=5)
-                    if index == 1 and point_index == 0:
+                    if temp_bot.strategy_type == "grid" and index == 1 and point_index == 0:
                         _assert_initial_grid_created(db, temp_bot)
 
                     new_executions = _sort_executions(
@@ -893,7 +944,7 @@ def run_backtest_job(run_id: int) -> None:
         final_values = _dashboard_values(final_dashboard)
         if run.end_behavior == "force_close" and final_values["position_qty"] > 0:
             with use_simulated_time(datetime.fromtimestamp(final_time / 1000, tz=timezone.utc)):
-                close_bot_position(db, temp_bot)
+                get_strategy(temp_bot.strategy_type).close_position(db, temp_bot)
                 db.commit()
                 _tick_until_stable(db, temp_bot)
 

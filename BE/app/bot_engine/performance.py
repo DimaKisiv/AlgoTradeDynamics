@@ -8,7 +8,9 @@ from typing import Any
 from sqlalchemy import asc
 from sqlalchemy.orm import Session
 
-from app.bot_engine.grid_runtime import get_position_snapshot
+from app.bot_engine.bybit.client import get_bybit_session
+from app.bot_engine.grid_runtime import get_order_link_prefix, get_position_snapshot
+from app.bot_engine.strategies import get_strategy
 from app.models.trading_bot import TradingBot
 from app.models.trading_bot_order import TradingBotOrder
 
@@ -97,8 +99,129 @@ def _pct(value: Decimal, base: Decimal) -> Decimal | None:
     return (value / base) * Decimal("100")
 
 
+
+def _execution_history(session, bot: TradingBot, *, max_pages: int = 100) -> list[dict[str, Any]]:
+    executions: list[dict[str, Any]] = []
+    cursor: str | None = None
+    seen_cursors: set[str] = set()
+    for _ in range(max_pages):
+        params: dict[str, Any] = {"category": bot.category, "symbol": bot.symbol, "limit": 100}
+        if cursor:
+            params["cursor"] = cursor
+        response = session.get_executions(**params)
+        result = response.get("result", {})
+        executions.extend(result.get("list", []) or [])
+        next_cursor = str(result.get("nextPageCursor") or "")
+        if not next_cursor or next_cursor in seen_cursors:
+            break
+        seen_cursors.add(next_cursor)
+        cursor = next_cursor
+    return executions
+
+
+def _get_scalper_performance(db: Session, bot: TradingBot) -> dict[str, Any]:
+    session = get_bybit_session(bot)
+    prefix = get_order_link_prefix(bot)
+    executions = []
+    for item in _execution_history(session, bot):
+        if str(item.get("orderLinkId") or "").startswith(prefix):
+            executions.append(item)
+    executions.sort(key=lambda item: (int(item.get("execTime") or 0), int(item.get("execSeq") or 0)))
+
+    position_side: str | None = None
+    position_qty = ZERO
+    average_entry = ZERO
+    cycle_fees = ZERO
+    cycle_gross = ZERO
+    cycle_entry_cost = ZERO
+    closed_cycles = 0
+    winning_cycles = 0
+    gross_realized = ZERO
+    closed_fees = ZERO
+    total_fees = ZERO
+    total_entry_cost = ZERO
+    total_exit_value = ZERO
+
+    for item in executions:
+        side = str(item.get("side") or "").title()
+        qty = _to_decimal(item.get("execQty"))
+        price = _to_decimal(item.get("execPrice"))
+        fee = _to_decimal(item.get("execFee"))
+        pnl = _to_decimal(item.get("closedPnl"))
+        if side not in {"Buy", "Sell"} or qty <= 0 or price <= 0:
+            continue
+        total_fees += fee
+        if position_qty <= 0:
+            position_side = side
+            position_qty = qty
+            average_entry = price
+            cycle_fees = fee
+            cycle_gross = ZERO
+            cycle_entry_cost = qty * price
+            total_entry_cost += qty * price
+            continue
+        if side == position_side:
+            new_qty = position_qty + qty
+            average_entry = ((position_qty * average_entry) + (qty * price)) / new_qty
+            position_qty = new_qty
+            cycle_fees += fee
+            cycle_entry_cost += qty * price
+            total_entry_cost += qty * price
+            continue
+
+        close_qty = min(qty, position_qty)
+        gross_realized += pnl
+        cycle_gross += pnl
+        cycle_fees += fee
+        total_exit_value += close_qty * price
+        position_qty -= close_qty
+        if position_qty <= Decimal("1e-12"):
+            net_cycle = cycle_gross - cycle_fees
+            closed_cycles += 1
+            if net_cycle > 0:
+                winning_cycles += 1
+            closed_fees += cycle_fees
+            position_qty = ZERO
+            average_entry = ZERO
+            position_side = None
+            cycle_fees = ZERO
+            cycle_gross = ZERO
+            cycle_entry_cost = ZERO
+
+    net_realized = gross_realized - closed_fees
+    average_cycle = net_realized / closed_cycles if closed_cycles else ZERO
+    win_rate = Decimal(winning_cycles) / Decimal(closed_cycles) * Decimal("100") if closed_cycles else ZERO
+    try:
+        position = get_strategy(bot.strategy_type).get_position(db, bot)
+    except Exception:  # noqa: BLE001
+        position = None
+    unrealized = _to_decimal(position.get("unrealized_pnl")) if position else ZERO
+    open_qty = _to_decimal(position.get("size")) if position else ZERO
+    open_value = _to_decimal(position.get("position_value")) if position else ZERO
+    total_pnl = net_realized + unrealized
+    return {
+        "closed_cycles": closed_cycles,
+        "winning_cycles": winning_cycles,
+        "win_rate_percent": _format_decimal(win_rate),
+        "gross_realized_pnl": _format_decimal(gross_realized),
+        "closed_fees": _format_decimal(closed_fees),
+        "total_fees": _format_decimal(total_fees),
+        "net_realized_pnl": _format_decimal(net_realized),
+        "realized_pnl_percent": _format_decimal(_pct(net_realized, total_entry_cost)),
+        "average_cycle_pnl": _format_decimal(average_cycle),
+        "unrealized_pnl": _format_decimal(unrealized),
+        "total_pnl": _format_decimal(total_pnl),
+        "total_pnl_percent": _format_decimal(_pct(total_pnl, total_entry_cost)),
+        "open_position_qty": _format_decimal(open_qty),
+        "open_position_value": _format_decimal(open_value),
+        "total_buy_cost": _format_decimal(total_entry_cost),
+        "total_sell_value": _format_decimal(total_exit_value),
+    }
+
 def get_performance_summary(db: Session, bot: TradingBot) -> dict[str, Any]:
-    """Calculate a best-effort PnL summary from local filled orders plus open position PnL."""
+    """Calculate a best-effort PnL summary from executions and open position PnL."""
+    if bot.strategy_type == "pattern_scalper":
+        return _get_scalper_performance(db, bot)
     orders = (
         db.query(TradingBotOrder)
         .filter(TradingBotOrder.bot_id == bot.id, TradingBotOrder.user_id == bot.user_id)

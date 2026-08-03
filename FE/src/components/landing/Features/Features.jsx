@@ -14,7 +14,7 @@ const FEATURES = [
     icon: <Cpu size={22} />,
     title: 'Той самий bot worker',
     text:
-      'Backtest запускає snapshot вашого існуючого grid-бота через той самий order lifecycle, TP та reconciliation, що й emulator/live runtime.',
+      'Backtest запускає snapshot Grid Bot або Pattern Scalper через той самий strategy registry, order lifecycle, risk logic та emulator/live runtime.',
   },
   {
     icon: <ShieldAlert size={22} />,
@@ -26,7 +26,7 @@ const FEATURES = [
     icon: <LineChart size={22} />,
     title: 'Equity curve у реальному часі',
     text:
-      'Графік ціни показує grid fills, take profits, cancelled orders, equity, drawdown і position exposure.',
+      'Графік ціни показує entries/exits вибраної стратегії, cancelled orders, equity, drawdown і position exposure.',
   },
   {
     icon: <BarChart3 size={22} />,

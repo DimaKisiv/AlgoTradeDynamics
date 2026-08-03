@@ -23,20 +23,27 @@ class BacktestEmulatorClient:
     def datasets(self) -> list[dict]:
         return self._request("GET", "/api/admin/historical/datasets")
 
-    def candle_count(self, *, symbol: str, interval: str, start_time: int, end_time: int) -> int:
+    def dataset(self, dataset_id: int) -> dict:
+        return self._request("GET", f"/api/admin/historical/datasets/{dataset_id}")
+
+    def range_stats(self, *, dataset_id: int, start_time: int, end_time: int) -> dict:
+        return self._request(
+            "GET", f"/api/admin/historical/datasets/{dataset_id}/range-stats",
+            params={"start_time": start_time, "end_time": end_time},
+        )
+
+    def candle_count(self, *, dataset_id: int, start_time: int, end_time: int) -> int:
         payload = self._request(
             "GET", "/api/admin/historical/count",
-            params={"symbol": symbol, "interval": interval, "start_time": start_time, "end_time": end_time},
+            params={"dataset_id": dataset_id, "start_time": start_time, "end_time": end_time},
         )
         return int(payload.get("count", 0))
 
-
-    def first_candle(self, *, symbol: str, interval: str, start_time: int, end_time: int) -> dict | None:
+    def first_candle(self, *, dataset_id: int, start_time: int, end_time: int) -> dict | None:
         payload = self._request(
             "GET", "/api/admin/historical/candles",
             params={
-                "symbol": symbol,
-                "interval": interval,
+                "dataset_id": dataset_id,
                 "start_time": start_time,
                 "end_time": end_time,
                 "limit": 1,
@@ -51,12 +58,11 @@ class BacktestEmulatorClient:
             params={"category": category, "symbol": symbol},
         )
 
-    def candles(self, *, symbol: str, interval: str, start_time: int, end_time: int) -> Iterator[dict]:
+    def candles(self, *, dataset_id: int, start_time: int, end_time: int) -> Iterator[dict]:
         after_time = None
         while True:
             params: dict[str, Any] = {
-                "symbol": symbol,
-                "interval": interval,
+                "dataset_id": dataset_id,
                 "start_time": start_time,
                 "end_time": end_time,
                 "limit": 5000,
@@ -92,11 +98,19 @@ class BacktestEmulatorClient:
             "POST", f"/api/admin/accounts/{account_id}/reset", json={"balance": balance}
         )
 
-    def set_price(self, account_id: int, symbol: str, price: float, simulation_time: int) -> dict:
+    def set_price(
+        self, account_id: int, symbol: str, price: float, simulation_time: int, *, dataset_id: int
+    ) -> dict:
         return self._request(
             "POST",
             f"/api/admin/markets/{symbol}/price",
-            json={"price": price, "mark_price": price, "simulation_time": simulation_time, "account_id": account_id},
+            json={
+                "price": price,
+                "mark_price": price,
+                "simulation_time": simulation_time,
+                "account_id": account_id,
+                "dataset_id": dataset_id,
+            },
         )
 
     def dashboard(self, account_id: int, symbol: str) -> dict:

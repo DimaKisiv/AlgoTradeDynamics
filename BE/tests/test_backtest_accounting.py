@@ -72,3 +72,24 @@ def test_tp_close_then_new_entry_creates_two_distinct_cycles():
     assert second["max_qty"] == 0.002
     assert second["fees"] == 0.04
     assert state["max_position_qty"] == 0.002
+
+
+def test_short_entry_and_buy_close_create_closed_cycle():
+    state = _state()
+    closed = []
+    executions = [
+        _execution(1, 1000, "Sell", 0.01, 2000, fee=0.01),
+        _execution(2, 2000, "Buy", 0.01, 1900, fee=0.01, closed_pnl=1.0),
+    ]
+
+    for execution in executions:
+        result = _apply_execution_to_cycle_state(state, execution)
+        if result is not None:
+            closed.append(result)
+
+    assert len(closed) == 1
+    assert closed[0]["side"] == "Sell"
+    assert closed[0]["gross_pnl"] == 1.0
+    assert closed[0]["fees"] == 0.02
+    assert state["execution_position_qty"] == 0
+    assert state["current_cycle"] is None

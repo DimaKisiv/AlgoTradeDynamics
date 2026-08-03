@@ -4,7 +4,7 @@ from __future__ import annotations
 import asyncio
 
 from app.bot_engine.events import log_bot_event
-from app.bot_engine.grid_runtime import tick_grid_bot
+from app.bot_engine.bot import tick_bot_once
 from app.db.session import SessionLocal
 from app.models.trading_bot import TradingBot
 
@@ -36,7 +36,7 @@ async def tick_running_bots(app) -> None:
                     if current_bot is None or current_bot.runtime_status != "running":
                         continue
                     try:
-                        tick_grid_bot(bot_db, current_bot)
+                        tick_bot_once(bot_db, current_bot)
                     except Exception as exc:
                         current_bot.runtime_status = "error"
                         current_bot.last_error = str(exc)

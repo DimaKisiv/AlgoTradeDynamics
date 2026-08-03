@@ -4,16 +4,10 @@ from datetime import datetime, timezone
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
-from app.bot_engine.bot import run_grid_bot_once, stop_grid_bot_once, sync_grid_bot_orders, sync_bot_orders
+from app.bot_engine.bot import run_bot_once, stop_bot_once, sync_bot_orders_once
+from app.bot_engine.grid_runtime import sync_bot_orders
 from app.bot_engine.performance import get_performance_summary
-from app.bot_engine.grid_runtime import (
-    cancel_all_bot_orders,
-    close_bot_position,
-    get_effective_bot_settings,
-    get_position_snapshot,
-    get_risk_summary,
-    get_runtime_state,
-)
+from app.bot_engine.strategies import get_strategy
 from app.models.trading_bot import TradingBot
 from app.models.trading_bot_event import TradingBotEvent
 from app.models.trading_bot_order import TradingBotOrder
@@ -25,8 +19,15 @@ def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _validate_strategy_configuration(strategy_type: str, category: str) -> None:
+    get_strategy(strategy_type)
+    if strategy_type == "pattern_scalper" and category != "linear":
+        raise ValueError("Pattern Scalper v1 currently supports linear perpetuals only")
+
+
 def _serialize_trading_bot(db: Session, bot: TradingBot) -> dict:
-    runtime_state, last_risk_message = get_runtime_state(db, bot)
+    strategy = get_strategy(bot.strategy_type)
+    runtime_state, last_risk_message = strategy.get_runtime_state(db, bot)
     return {
         "id": bot.id,
         "user_id": bot.user_id,
@@ -40,7 +41,7 @@ def _serialize_trading_bot(db: Session, bot: TradingBot) -> dict:
         "grid_orders_count": bot.grid_orders_count,
         "grid_step_percent": bot.grid_step_percent,
         "is_active": bot.is_active,
-        "settings": get_effective_bot_settings(bot),
+        "settings": strategy.get_effective_settings(bot),
         "order_link_generation": bot.order_link_generation,
         "runtime_status": bot.runtime_status,
         "runtime_state": runtime_state,
@@ -59,102 +60,73 @@ def serialize_trading_bot(db: Session, bot: TradingBot) -> dict:
 
 
 def list_trading_bots(db: Session, user_id: int, limit: int = 100) -> list[TradingBot]:
-    bots = (
-        db.query(TradingBot)
-        .filter(TradingBot.user_id == user_id, TradingBot.is_backtest.is_(False))
-        .order_by(desc(TradingBot.updated_at), desc(TradingBot.id))
-        .limit(limit)
-        .all()
-    )
+    bots = db.query(TradingBot).filter(
+        TradingBot.user_id == user_id, TradingBot.is_backtest.is_(False)
+    ).order_by(desc(TradingBot.updated_at), desc(TradingBot.id)).limit(limit).all()
     return [_serialize_trading_bot(db, bot) for bot in bots]
 
 
 def get_trading_bot(db: Session, bot_id: int, user_id: int) -> TradingBot | None:
-    return (
-        db.query(TradingBot)
-        .filter(
-            TradingBot.id == bot_id, TradingBot.user_id == user_id, TradingBot.is_backtest.is_(False)
-        )
-        .first()
-    )
+    return db.query(TradingBot).filter(
+        TradingBot.id == bot_id,
+        TradingBot.user_id == user_id,
+        TradingBot.is_backtest.is_(False),
+    ).first()
 
 
 def create_trading_bot(db: Session, payload: TradingBotCreate, user_id: int) -> TradingBot:
     bot = TradingBot(user_id=user_id, **payload.model_dump())
-    db.add(bot)
-    db.commit()
-    db.refresh(bot)
+    _validate_strategy_configuration(bot.strategy_type, bot.category)
+    db.add(bot); db.commit(); db.refresh(bot)
     return _serialize_trading_bot(db, bot)
 
 
-def update_trading_bot(
-    db: Session,
-    bot: TradingBot,
-    payload: TradingBotUpdate,
-) -> TradingBot:
+def update_trading_bot(db: Session, bot: TradingBot, payload: TradingBotUpdate) -> TradingBot:
     updates = payload.model_dump(exclude_unset=True)
+    strategy_type = updates.get("strategy_type", bot.strategy_type)
+    category = updates.get("category", bot.category)
+    _validate_strategy_configuration(strategy_type, category)
     for field, value in updates.items():
         setattr(bot, field, value)
-    db.add(bot)
-    db.commit()
-    db.refresh(bot)
+    db.add(bot); db.commit(); db.refresh(bot)
     return _serialize_trading_bot(db, bot)
 
 
 def delete_trading_bot(db: Session, bot: TradingBot) -> None:
-    db.delete(bot)
-    db.commit()
+    db.delete(bot); db.commit()
 
 
 def list_trading_bot_orders(db: Session, bot_id: int, user_id: int) -> list[TradingBotOrder]:
-    return (
-        db.query(TradingBotOrder)
-        .filter(TradingBotOrder.bot_id == bot_id, TradingBotOrder.user_id == user_id)
-        .order_by(desc(TradingBotOrder.created_at), desc(TradingBotOrder.id))
-        .all()
-    )
+    return db.query(TradingBotOrder).filter(
+        TradingBotOrder.bot_id == bot_id, TradingBotOrder.user_id == user_id
+    ).order_by(desc(TradingBotOrder.created_at), desc(TradingBotOrder.id)).all()
 
 
 def list_trading_bot_events(db: Session, bot_id: int, user_id: int, limit: int = 100) -> list[TradingBotEvent]:
-    return (
-        db.query(TradingBotEvent)
-        .filter(TradingBotEvent.bot_id == bot_id, TradingBotEvent.user_id == user_id)
-        .order_by(desc(TradingBotEvent.created_at), desc(TradingBotEvent.id))
-        .limit(limit)
-        .all()
-    )
+    return db.query(TradingBotEvent).filter(
+        TradingBotEvent.bot_id == bot_id, TradingBotEvent.user_id == user_id
+    ).order_by(desc(TradingBotEvent.created_at), desc(TradingBotEvent.id)).limit(limit).all()
 
 
 def start_trading_bot_cycle(db: Session, bot: TradingBot, current_user: User) -> dict:
-    result = run_grid_bot_once(db, bot, current_user)
-    return {
-        **result,
-        "bot": _serialize_trading_bot(db, result["bot"]),
-    }
+    result = run_bot_once(db, bot, current_user)
+    return {**result, "bot": _serialize_trading_bot(db, result["bot"])}
 
 
 def stop_trading_bot_cycle(db: Session, bot: TradingBot, current_user: User) -> TradingBot:
-    stopped = stop_grid_bot_once(db, bot, current_user)
-    return _serialize_trading_bot(db, stopped)
+    return _serialize_trading_bot(db, stop_bot_once(db, bot, current_user))
 
 
 def sync_trading_bot_orders(db: Session, bot: TradingBot, current_user: User) -> list[TradingBotOrder]:
-    return sync_grid_bot_orders(db, bot, current_user)
+    return sync_bot_orders_once(db, bot, current_user)
 
 
 def cancel_trading_bot_orders(db: Session, bot: TradingBot, current_user: User) -> list[TradingBotOrder]:
     if bot.user_id != current_user.id:
         raise PermissionError("Trading bot access denied")
-
-    # Stop bot first so the worker does not recreate cancelled orders.
-    bot.runtime_status = "stopped"
-    bot.stopped_at = _utcnow()
-    bot.last_error = None
-    db.add(bot)
-    db.flush()
-
-    cancelled = cancel_all_bot_orders(db, bot)
-
+    bot.runtime_status = "stopped"; bot.stopped_at = _utcnow(); bot.last_error = None
+    db.add(bot); db.flush()
+    cancelled = get_strategy(bot.strategy_type).cancel_orders(db, bot)
     db.commit()
     return cancelled
 
@@ -162,57 +134,36 @@ def cancel_trading_bot_orders(db: Session, bot: TradingBot, current_user: User) 
 def clear_trading_bot_history(db: Session, bot: TradingBot, current_user: User) -> dict:
     if bot.user_id != current_user.id:
         raise PermissionError("Trading bot access denied")
-
     exchange_cancel_error = None
     exchange_orders_cancelled = 0
-
-    # Stop first so worker does not recreate orders while we clear history.
     bot.runtime_status = "stopped"
     bot.stopped_at = _utcnow()
     bot.started_at = None
     bot.last_run_at = None
     bot.last_error = None
-    db.add(bot)
-    db.flush()
-
-    # Best effort: sync and cancel current bot orders on exchange.
+    settings = dict(bot.settings or {})
+    settings.pop("pattern_scalper_state", None)
+    bot.settings = settings
+    db.add(bot); db.flush()
     try:
+        # Keep legacy reconciliation for old grid orders, then use the selected strategy.
         sync_bot_orders(db, bot, include_legacy=True)
-        cancelled = cancel_all_bot_orders(db, bot)
+        cancelled = get_strategy(bot.strategy_type).cancel_orders(db, bot)
         exchange_orders_cancelled = len(cancelled)
         db.flush()
     except Exception as exc:  # noqa: BLE001
         exchange_cancel_error = str(exc)
-
-    orders_deleted = (
-        db.query(TradingBotOrder)
-        .filter(
-            TradingBotOrder.bot_id == bot.id,
-            TradingBotOrder.user_id == current_user.id,
-        )
-        .delete(synchronize_session=False)
-    )
-
-    events_deleted = (
-        db.query(TradingBotEvent)
-        .filter(
-            TradingBotEvent.bot_id == bot.id,
-            TradingBotEvent.user_id == current_user.id,
-        )
-        .delete(synchronize_session=False)
-    )
-
+    orders_deleted = db.query(TradingBotOrder).filter(
+        TradingBotOrder.bot_id == bot.id, TradingBotOrder.user_id == current_user.id
+    ).delete(synchronize_session=False)
+    events_deleted = db.query(TradingBotEvent).filter(
+        TradingBotEvent.bot_id == bot.id, TradingBotEvent.user_id == current_user.id
+    ).delete(synchronize_session=False)
     bot.order_link_generation += 1
-
-    db.add(bot)
-    db.commit()
-    db.refresh(bot)
-
+    db.add(bot); db.commit(); db.refresh(bot)
     return {
-        "message": "Bot history cleared",
-        "bot_id": bot.id,
-        "orders_deleted": orders_deleted,
-        "events_deleted": events_deleted,
+        "message": "Bot history cleared", "bot_id": bot.id,
+        "orders_deleted": orders_deleted, "events_deleted": events_deleted,
         "exchange_orders_cancelled": exchange_orders_cancelled,
         "exchange_cancel_error": exchange_cancel_error,
     }
@@ -221,13 +172,13 @@ def clear_trading_bot_history(db: Session, bot: TradingBot, current_user: User) 
 def get_trading_bot_position(db: Session, bot: TradingBot, current_user: User) -> dict:
     if bot.user_id != current_user.id:
         raise PermissionError("Trading bot access denied")
-    return get_position_snapshot(db, bot)
+    return get_strategy(bot.strategy_type).get_position(db, bot)
 
 
 def get_trading_bot_risk(db: Session, bot: TradingBot, current_user: User) -> dict:
     if bot.user_id != current_user.id:
         raise PermissionError("Trading bot access denied")
-    return get_risk_summary(db, bot)
+    return get_strategy(bot.strategy_type).get_risk(db, bot)
 
 
 def get_trading_bot_performance(db: Session, bot: TradingBot, current_user: User) -> dict:
@@ -241,6 +192,6 @@ def close_trading_bot_position(db: Session, bot: TradingBot, current_user: User,
         raise PermissionError("Trading bot access denied")
     if not confirm:
         raise ValueError("Position close requires confirm=true")
-    result = close_bot_position(db, bot)
+    result = get_strategy(bot.strategy_type).close_position(db, bot)
     db.commit()
     return result

@@ -29,6 +29,8 @@ class BacktestRun(Base):
     )
     temp_bot_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     emulator_account_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    dataset_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    dataset_name: Mapped[str | None] = mapped_column(String(180), nullable=True)
 
     name: Mapped[str] = mapped_column(String(180), nullable=False)
     bot_name: Mapped[str] = mapped_column(String(120), nullable=False)

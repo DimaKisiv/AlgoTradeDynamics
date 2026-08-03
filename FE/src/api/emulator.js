@@ -50,15 +50,18 @@ export const emulatorApi = {
 
   datasets: () => emulatorRequest("/api/admin/historical/datasets"),
   downloadHistorical: (payload) => emulatorRequest("/api/admin/historical/download", jsonOptions("POST", payload)),
-  importHistorical: (symbol, interval, file) => {
+  importHistorical: (symbol, interval, file, name = "") => {
     const body = new FormData();
     body.append("file", file);
-    return emulatorRequest(`/api/admin/historical/import-csv?symbol=${encodeURIComponent(symbol)}&interval=${encodeURIComponent(interval)}`, {
+    const query = new URLSearchParams({ symbol, interval });
+    if (name.trim()) query.set("name", name.trim());
+    return emulatorRequest(`/api/admin/historical/import-csv?${query.toString()}`, {
       method: "POST",
       body,
     });
   },
-  deleteHistorical: (symbol, interval) => emulatorRequest(`/api/admin/historical/${symbol}?interval=${encodeURIComponent(interval)}`, { method: "DELETE" }),
+  datasetRangeStats: (datasetId, startTime, endTime) => emulatorRequest(`/api/admin/historical/datasets/${datasetId}/range-stats?start_time=${startTime}&end_time=${endTime}`),
+  deleteHistorical: (datasetId) => emulatorRequest(`/api/admin/historical/datasets/${datasetId}`, { method: "DELETE" }),
   startReplay: (symbol, payload) => emulatorRequest(`/api/admin/markets/${symbol}/replay/start`, jsonOptions("POST", payload)),
   stepReplay: (symbol) => emulatorRequest(`/api/admin/markets/${symbol}/replay/step`, { method: "POST" }),
 

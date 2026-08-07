@@ -22,7 +22,7 @@ def _utcnow() -> datetime:
 def _validate_strategy_configuration(strategy_type: str, category: str) -> None:
     get_strategy(strategy_type)
     if strategy_type == "pattern_scalper" and category != "linear":
-        raise ValueError("Pattern Scalper v1 currently supports linear perpetuals only")
+        raise ValueError("Pattern Scalper currently supports linear perpetuals only")
 
 
 def _serialize_trading_bot(db: Session, bot: TradingBot) -> dict:

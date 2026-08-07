@@ -233,8 +233,34 @@ Frontend використовує React 18, Recharts і Vite. Для production 
 
 ## Поточні обмеження
 
-- Pattern Scalper v1 є rule-based; ML training і автоматичний пошук патернів по всьому ринку ще не додані;
+- Pattern Scalper є rule-based; ML training і автоматичний пошук патернів по всьому ринку ще не додані;
 - історична точність залежить від timeframe та intrabar model;
 - OHLC candle не показує справжній порядок trades усередині інтервалу;
 - partial fills, funding, spread, order-book imbalance та tick-level market data можна додати окремими етапами;
 - background backtest task живе всередині backend process, тому restart backend перериває активний запуск.
+
+### Pattern Scalper quality entry revision 2
+
+Нові та legacy Pattern Scalper bots використовують більш вибірковий entry profile, щоб зменшити churn та fees:
+
+- minimum signal score: `0.85`;
+- volume confirmation: `3.0x` від середнього volume;
+- EMA trend confirmation обов’язковий;
+- breakout confirmation обов’язковий;
+- breakout має пройти додатковий `0.05 ATR` buffer;
+- volume confirmation обов’язковий;
+- cooldown: `15 min`;
+- SL/TP залишені `1.2 ATR / 1.8 ATR`, щоб не змішувати entry optimization з exit optimization.
+
+Legacy bots без `strategy_revision` автоматично отримують ці stricter effective settings, але вже більш строгі user values не послаблюються. Backtest snapshot зберігає саме effective settings, тому Configuration відповідає реально використаній логіці.
+
+Scalper backtest Summary також показує окремі TP / SL / Timeout counts і net PnL та average fee per cycle.
+
+## Backtest engines
+
+Historical backtests are strategy-specific:
+
+- `grid` uses the full exchange-emulator replay engine because limit-order fills, grid rebuilds and order lifecycle behavior are part of the strategy.
+- `pattern_scalper` uses the fast in-memory historical engine. It loads the selected dataset, calculates the same EMA/RSI/ATR/breakout/volume signal logic locally, simulates market fills with the configured fees and slippage, and persists the same chart/cycle/order/execution result contract without creating an emulator account.
+
+The emulator itself is unchanged and remains available for manual/scenario/historical replay and grid backtests.

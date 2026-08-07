@@ -36,12 +36,12 @@ const INITIAL_FORM = {
   grid_step_percent: "5",
   timeframe: "5",
   lookback_candles: "200",
-  minimum_signal_score: "0.70",
-  volume_multiplier: "1.2",
+  minimum_signal_score: "0.85",
+  volume_multiplier: "3.0",
   stop_loss_atr: "1.2",
   take_profit_atr: "1.8",
   max_holding_minutes: "30",
-  cooldown_minutes: "5",
+  cooldown_minutes: "15",
   risk_per_trade_percent: "0.5",
   max_daily_loss_percent: "2",
   allow_short: true,
@@ -66,6 +66,12 @@ const SCALPER_SETTING_KEYS = [
   "max_position_qty",
   "max_open_orders",
   "pattern_scalper_state",
+  "strategy_revision",
+  "require_trend_confirmation",
+  "require_breakout_confirmation",
+  "require_volume_confirmation",
+  "breakout_buffer_atr",
+  "minimum_body_atr",
 ];
 
 const SELECT_OPTIONS = {
@@ -101,12 +107,12 @@ function toFormState(bot) {
     grid_step_percent: String(bot.grid_step_percent),
     timeframe: String(bot.settings?.timeframe ?? "5"),
     lookback_candles: String(bot.settings?.lookback_candles ?? "200"),
-    minimum_signal_score: String(bot.settings?.minimum_signal_score ?? "0.70"),
-    volume_multiplier: String(bot.settings?.volume_multiplier ?? "1.2"),
+    minimum_signal_score: String(bot.settings?.minimum_signal_score ?? "0.85"),
+    volume_multiplier: String(bot.settings?.volume_multiplier ?? "3.0"),
     stop_loss_atr: String(bot.settings?.stop_loss_atr ?? "1.2"),
     take_profit_atr: String(bot.settings?.take_profit_atr ?? "1.8"),
     max_holding_minutes: String(bot.settings?.max_holding_minutes ?? "30"),
-    cooldown_minutes: String(bot.settings?.cooldown_minutes ?? "5"),
+    cooldown_minutes: String(bot.settings?.cooldown_minutes ?? "15"),
     risk_per_trade_percent: String(bot.settings?.risk_per_trade_percent ?? "0.5"),
     max_daily_loss_percent: String(bot.settings?.max_daily_loss_percent ?? "2"),
     allow_short: bot.settings?.allow_short ?? true,
@@ -140,6 +146,12 @@ function toPayload(form) {
       position_sizing: "risk_capped",
       max_position_qty: Number(form.order_qty),
       max_open_orders: 1,
+      strategy_revision: 2,
+      require_trend_confirmation: true,
+      require_breakout_confirmation: true,
+      require_volume_confirmation: true,
+      breakout_buffer_atr: 0.05,
+      minimum_body_atr: 0.25,
     });
   }
   return {
@@ -375,7 +387,7 @@ export default function BotsPage() {
                       ) : (
                         <>
                           <div><dt>Timeframe</dt><dd className="mono">{bot.settings?.timeframe || "5"}m</dd></div>
-                          <div><dt>Min Signal</dt><dd className="mono">{Math.round(Number(bot.settings?.minimum_signal_score || 0.7) * 100)}%</dd></div>
+                          <div><dt>Min Signal</dt><dd className="mono">{Math.round(Number(bot.settings?.minimum_signal_score || 0.85) * 100)}%</dd></div>
                         </>
                       )}
                       <div><dt>Runtime</dt><dd className="mono">{bot.runtime_status}</dd></div>
@@ -468,7 +480,7 @@ export default function BotsPage() {
                   ) : (
                     <div className={styles.strategyFields}>
                       <p className={styles.strategyHint}>
-                        Scalper працює лише з Linear Perpetuals, шукає підтверджений пробій за EMA, RSI, ATR та обсягом, тримає одну позицію і керує SL/TP сам.
+                        Scalper працює лише з Linear Perpetuals. Quality mode вимагає одночасно EMA trend + ATR-buffered breakout + сильний volume spike; RSI та candle body підсилюють score. Це спеціально зменшує зайві входи та fees.
                       </p>
                       <div className={styles.fieldGrid}>
                         <label className={styles.field}><span>Timeframe</span><select name="timeframe" value={form.timeframe} onChange={handleChange}><option value="1">1m</option><option value="3">3m</option><option value="5">5m</option><option value="15">15m</option><option value="30">30m</option><option value="60">1h</option></select></label>

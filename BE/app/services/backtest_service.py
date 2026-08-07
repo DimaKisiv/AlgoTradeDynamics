@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from sqlalchemy import asc, desc
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, object_session
 
 from app.bot_engine.bot import tick_bot_once
 from app.bot_engine.strategies import get_strategy
@@ -120,7 +120,7 @@ def _bot_snapshot(bot: TradingBot) -> dict[str, Any]:
         "grid_orders_count": bot.grid_orders_count,
         "grid_step_percent": bot.grid_step_percent,
         "is_active": bot.is_active,
-        "settings": dict(bot.settings or {}),
+        "settings": dict(get_strategy(bot.strategy_type).get_effective_settings(bot)),
     }
 
 
@@ -154,7 +154,7 @@ def create_backtest(db: Session, payload: BacktestCreate, user_id: int) -> Backt
         raise ValueError("Trading bot not found")
     get_strategy(bot.strategy_type)
     if bot.strategy_type == "pattern_scalper" and bot.category != "linear":
-        raise ValueError("Pattern Scalper v1 currently supports linear perpetuals only")
+        raise ValueError("Pattern Scalper currently supports linear perpetuals only")
 
     settings = get_settings()
     emulator = BacktestEmulatorClient(settings.exchange_emulator_url)
@@ -240,7 +240,8 @@ def create_backtest(db: Session, payload: BacktestCreate, user_id: int) -> Backt
             "slippage_percent": payload.slippage_percent,
             "path_mode": payload.path_mode,
             "end_behavior": payload.end_behavior,
-            "application_version": "1.1.0",
+            "application_version": "1.3.0",
+            "backtest_engine": "fast_scalper" if bot.strategy_type == "pattern_scalper" else "emulator",
         },
         metrics={},
     )
@@ -335,7 +336,31 @@ def list_events(db: Session, run: BacktestRun, limit: int = 5000) -> list[Tradin
 
 def list_executions(run: BacktestRun) -> list[dict]:
     if not run.emulator_account_id:
-        return []
+        # Fast Pattern Scalper backtests persist their synthetic executions on the
+        # filled TradingBotOrder rows so the existing results UI keeps the same
+        # execution contract without needing a full emulator account.
+        if not run.temp_bot_id:
+            return []
+        db = object_session(run)
+        owns_session = db is None
+        if db is None:
+            db = SessionLocal()
+        try:
+            orders = (
+                db.query(TradingBotOrder)
+                .filter(TradingBotOrder.bot_id == run.temp_bot_id)
+                .order_by(asc(TradingBotOrder.created_at), asc(TradingBotOrder.id))
+                .all()
+            )
+            executions = []
+            for order in orders:
+                execution = (order.raw_response or {}).get("execution")
+                if isinstance(execution, dict):
+                    executions.append(execution)
+            return _sort_executions(executions)
+        finally:
+            if owns_session:
+                db.close()
     emulator = BacktestEmulatorClient(get_settings().exchange_emulator_url)
     try:
         return _sort_executions(
@@ -598,6 +623,7 @@ def _store_cycle(db: Session, run_id: int, state: dict) -> BacktestCycle:
             "end_exec_seq": state.get("end_exec_seq"),
             "execution_count": state.get("execution_count", 0),
             "side": state.get("side"),
+            **dict(state.get("details") or {}),
         },
     )
     db.add(cycle)
@@ -675,7 +701,7 @@ def _final_metrics(
     }
 
 
-def run_backtest_job(run_id: int) -> None:
+def _run_emulator_backtest_job(run_id: int) -> None:
     db = SessionLocal()
     emulator = BacktestEmulatorClient(get_settings().exchange_emulator_url, timeout=60)
     run: BacktestRun | None = None
@@ -1043,3 +1069,21 @@ def run_backtest_job(run_id: int) -> None:
     finally:
         emulator.close()
         db.close()
+
+
+def run_backtest_job(run_id: int) -> None:
+    """Dispatch a backtest to the engine that matches the strategy mechanics."""
+    db = SessionLocal()
+    try:
+        run = db.get(BacktestRun, run_id)
+        if run is None or run.status != "queued":
+            return
+        strategy_type = str((run.bot_snapshot or {}).get("strategy_type") or "grid")
+    finally:
+        db.close()
+
+    if strategy_type == "pattern_scalper":
+        from app.services.fast_scalper_backtest import run_fast_scalper_backtest_job
+        run_fast_scalper_backtest_job(run_id)
+        return
+    _run_emulator_backtest_job(run_id)

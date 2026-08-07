@@ -644,11 +644,11 @@ export default function BotDetailPage() {
                   {isScalper ? (
                     <>
                       <ConfigItem label="Timeframe" value={`${bot.settings?.timeframe || "5"}m`} mono />
-                      <ConfigItem label="Minimum Signal" value={fmtPct(Number(bot.settings?.minimum_signal_score || 0.7) * 100)} mono />
+                      <ConfigItem label="Minimum Signal" value={fmtPct(Number(bot.settings?.minimum_signal_score || 0.85) * 100)} mono />
                       <ConfigItem label="Stop-loss ATR" value={fmtNumber(bot.settings?.stop_loss_atr || 1.2)} mono />
                       <ConfigItem label="Take-profit ATR" value={fmtNumber(bot.settings?.take_profit_atr || 1.8)} mono />
                       <ConfigItem label="Max Holding" value={`${bot.settings?.max_holding_minutes || 30} min`} mono />
-                      <ConfigItem label="Cooldown" value={`${bot.settings?.cooldown_minutes || 5} min`} mono />
+                      <ConfigItem label="Cooldown" value={`${bot.settings?.cooldown_minutes || 15} min`} mono />
                       <ConfigItem label="Risk / Trade" value={fmtPct(Number(bot.settings?.risk_per_trade_percent || 0.5))} mono />
                       <ConfigItem label="Daily Loss Limit" value={fmtPct(Number(bot.settings?.max_daily_loss_percent || 2))} mono />
                       <ConfigItem label="SHORT Enabled" value={bot.settings?.allow_short ? "Yes" : "No"} />

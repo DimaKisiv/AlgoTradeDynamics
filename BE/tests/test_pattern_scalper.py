@@ -1,9 +1,11 @@
 from math import sin
 
-from app.bot_engine.strategies.pattern_scalper import Candle, _signal
+from app.bot_engine.strategies.pattern_scalper import Candle, _settings, _signal
+from app.models.trading_bot import TradingBot
 
 
 SETTINGS = {
+    "strategy_revision": 2,
     "ema_fast_period": 20,
     "ema_slow_period": 50,
     "rsi_period": 14,
@@ -59,3 +61,37 @@ def test_pattern_scalper_detects_short_breakout():
     assert signal.side == "Sell"
     assert signal.score >= SETTINGS["minimum_signal_score"]
     assert signal.atr > 0
+
+
+def test_v1_bot_is_upgraded_to_quality_entry_defaults():
+    bot = TradingBot(
+        user_id=1,
+        name="legacy scalper",
+        strategy_type="pattern_scalper",
+        category="linear",
+        symbol="BTCUSDT",
+        order_qty=0.001,
+        settings={
+            "minimum_signal_score": 0.70,
+            "volume_multiplier": 1.2,
+            "cooldown_minutes": 5,
+        },
+    )
+    settings = _settings(bot)
+    assert settings["strategy_revision"] == 2
+    assert settings["minimum_signal_score"] == 0.85
+    assert settings["volume_multiplier"] == 3.0
+    assert settings["cooldown_minutes"] == 15.0
+    assert settings["require_trend_confirmation"] is True
+    assert settings["require_breakout_confirmation"] is True
+    assert settings["require_volume_confirmation"] is True
+
+
+def test_quality_mode_rejects_breakout_without_required_volume():
+    settings = {**SETTINGS, "minimum_signal_score": 0.70, "volume_multiplier": 3.0}
+    candles = _trend_candles(1)
+    latest = candles[-1]
+    candles[-1] = Candle(
+        latest.open_time, latest.open, latest.high, latest.low, latest.close, 150
+    )
+    assert _signal(candles, settings) is None

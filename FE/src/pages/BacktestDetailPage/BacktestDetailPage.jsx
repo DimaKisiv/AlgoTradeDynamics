@@ -316,6 +316,8 @@ export default function BacktestDetailPage() {
   };
 
   const metrics = run?.metrics || {};
+  const isScalper = run?.bot_snapshot?.strategy_type === "pattern_scalper";
+
   const normalizedPoints = useMemo(() => points
     .map((point) => ({ ...point, timestamp: asMs(point.timestamp) }))
     .filter((point) => Number.isFinite(point.timestamp))
@@ -370,9 +372,12 @@ export default function BacktestDetailPage() {
     executions.forEach((execution) => {
       const order = orderByExchangeId.get(String(execution.orderId));
       const role = order?.order_role || (String(execution.side).toLowerCase() === "sell" ? "position_take_profit" : "grid_entry");
+      const isScalperEntry = role.startsWith("scalper_entry");
+      const isScalperExit = role.startsWith("scalper_") && !isScalperEntry;
       const isTp = role.includes("take_profit") || role.includes("tp");
-      if (isTp && !filters.tp) return;
-      if (!isTp && !filters.entries) return;
+      const isExit = isTp || isScalperExit;
+      if (isExit && !filters.tp) return;
+      if (!isExit && !filters.entries) return;
       const level = String(order?.order_link_id || "").match(/entry-(\d+)/)?.[1];
       result.push({
         id: `execution-${execution.execId || `${execution.execTime}-${execution.execSeq}`}`,
@@ -386,7 +391,12 @@ export default function BacktestDetailPage() {
         closedPnl: asNumber(execution.closedPnl),
         side: execution.side,
         role,
-        label: isTp ? "Take profit filled" : `Grid #${level || "?"} filled`,
+        label: role.includes("stop_loss") ? "Stop loss filled"
+          : role.includes("timeout") ? "Timeout exit filled"
+          : role.includes("manual_close") ? "End-of-test exit filled"
+          : isTp ? "Take profit filled"
+          : isScalperEntry ? (role.includes("short") ? "SHORT entry filled" : "LONG entry filled")
+          : `Grid #${level || "?"} filled`,
         status: "Filled",
         kind: "filled",
       });
@@ -674,15 +684,26 @@ export default function BacktestDetailPage() {
       const fillQty = asNumber(item.execQty);
       const price = asNumber(item.execPrice);
       const isBuy = String(item.side).toLowerCase() === "buy";
-      if (isBuy) {
+      const order = byExchangeId.get(String(item.orderId));
+      const role = order?.order_role || (isBuy ? "grid_entry" : "position_take_profit");
+      if (role === "scalper_entry_long") {
+        qty = fillQty;
+        avg = price;
+      } else if (role === "scalper_entry_short") {
+        qty = -fillQty;
+        avg = price;
+      } else if (role.startsWith("scalper_") && !role.startsWith("scalper_entry")) {
+        qty = 0;
+        avg = 0;
+      } else if (isBuy) {
+        const absoluteBefore = Math.max(before, 0);
         qty += fillQty;
-        avg = qty > 0 ? ((before * avg) + (fillQty * price)) / qty : 0;
+        avg = qty > 0 ? ((absoluteBefore * avg) + (fillQty * price)) / qty : 0;
       } else {
         qty = Math.max(qty - fillQty, 0);
         if (qty === 0) avg = 0;
       }
-      const order = byExchangeId.get(String(item.orderId));
-      return { ...item, before, after: qty, average: avg, role: order?.order_role || (isBuy ? "grid_entry" : "position_take_profit") };
+      return { ...item, before, after: qty, average: avg, role };
     });
   }, [orderedExecutions, orders]);
 
@@ -691,7 +712,7 @@ export default function BacktestDetailPage() {
     if (eventFilter === "all") return true;
     if (eventFilter === "errors") return /error|failed|reject/.test(type);
     if (eventFilter === "risk") return /risk|blocked|limit|warning/.test(type);
-    return /filled|created|cancel|completed|started|stopped|risk|error|failed/.test(type);
+    return /filled|created|entered|signal|cancel|completed|started|stopped|risk|error|failed/.test(type);
   }), [events, eventFilter]);
 
   const selectedMarkerCycle = useMemo(() => {
@@ -752,8 +773,11 @@ export default function BacktestDetailPage() {
               <Metric label="Worst open loss" value={fmtMoneySigned(metrics.maximum_unrealized_loss)} tone="negative"/><Metric label="Max position qty" value={fmtNumber(metrics.maximum_position_qty,6)}/><Metric label="Max position value" value={fmtMoney(metrics.maximum_position_value)}/><Metric label="Max used margin" value={fmtMoney(metrics.maximum_used_margin)}/><Metric label="Lowest available" value={fmtMoney(metrics.lowest_available_balance)}/><Metric label="Max entries filled" value={metrics.maximum_grid_levels_filled ?? 0}/><Metric label="Open at end" value={metrics.open_position_at_end?"Yes":"No"}/><Metric label="Open orders at end" value={metrics.open_orders_at_end ?? "—"}/>
             </div></section>
             <section className={styles.panel}><h2>Cycles</h2><div className={styles.metricGrid}>
-              <Metric label="Closed cycles" value={metrics.closed_cycles ?? 0}/><Metric label="Winning" value={metrics.winning_cycles ?? 0}/><Metric label="Losing" value={metrics.losing_cycles ?? 0}/><Metric label="Executions" value={metrics.executions_count ?? 0}/><Metric label="Final position" value={fmtNumber(metrics.open_position_qty,6)}/><Metric label="Avg entry at end" value={metrics.open_avg_entry_price?fmtMoney(metrics.open_avg_entry_price):"—"}/>
+              <Metric label="Closed cycles" value={metrics.closed_cycles ?? 0}/><Metric label="Winning" value={metrics.winning_cycles ?? 0}/><Metric label="Losing" value={metrics.losing_cycles ?? 0}/><Metric label="Executions" value={metrics.executions_count ?? 0}/>{isScalper && <Metric label="LONG trades" value={metrics.long_trades ?? 0}/>} {isScalper && <Metric label="SHORT trades" value={metrics.short_trades ?? 0}/>}<Metric label="Final position" value={fmtNumber(metrics.open_position_qty,6)}/><Metric label="Avg entry at end" value={metrics.open_avg_entry_price?fmtMoney(metrics.open_avg_entry_price):"—"}/>
             </div></section>
+            {isScalper && <section className={styles.panel}><h2>Scalper exits</h2><div className={styles.metricGrid}>
+              <Metric label="Take profit" value={metrics.take_profit_cycles ?? 0} hint={fmtMoneySigned(metrics.take_profit_net_pnl ?? 0)}/><Metric label="Stop loss" value={metrics.stop_loss_cycles ?? 0} hint={fmtMoneySigned(metrics.stop_loss_net_pnl ?? 0)}/><Metric label="Timeout" value={metrics.timeout_cycles ?? 0} hint={fmtMoneySigned(metrics.timeout_net_pnl ?? 0)}/><Metric label="Other exits" value={metrics.other_exit_cycles ?? 0} hint={fmtMoneySigned(metrics.other_exit_net_pnl ?? 0)}/><Metric label="Avg fee / cycle" value={fmtMoney(metrics.average_fee_per_cycle ?? 0)}/>
+            </div></section>}
           </div>
         </>}
 
@@ -761,7 +785,7 @@ export default function BacktestDetailPage() {
           <div className={styles.chartToolbar}>
             <div className={styles.checks}>
               <ChartToggle checked={filters.entries} onChange={(e) => setFilters({ ...filters, entries: e.target.checked })} label="Entry fills" color="#25c78b"/>
-              <ChartToggle checked={filters.tp} onChange={(e) => setFilters({ ...filters, tp: e.target.checked })} label="Take-profit fills" color="#b98cff"/>
+              <ChartToggle checked={filters.tp} onChange={(e) => setFilters({ ...filters, tp: e.target.checked })} label={isScalper ? "Exit fills" : "Take-profit fills"} color="#b98cff"/>
               <ChartToggle checked={filters.cancelled} onChange={(e) => setFilters({ ...filters, cancelled: e.target.checked })} label="Cancelled orders" color="#929bb0"/>
               <ChartToggle checked={filters.position} onChange={(e) => setFilters({ ...filters, position: e.target.checked })} label="Position open" color="#4d9dff" type="band"/>
               <ChartToggle checked={filters.loss} onChange={(e) => setFilters({ ...filters, loss: e.target.checked })} label="Open loss" color="#f05b63" type="band"/>
@@ -831,7 +855,7 @@ export default function BacktestDetailPage() {
                     shape={(props) => <OrderMarker {...props} payload={marker} onSelect={(selected) => { setSelectedMarker(selected); setFocusTime(selected.timestamp); }}/>} 
                   />)}
                   {selectedCycle && selectedCycle !== openCycle && <ReferenceLine x={asMs(selectedCycle.started_at_ms)} stroke="#25c78b" strokeDasharray="3 4" label={{ value: `Cycle #${selectedCycle.cycle_number} entry`, position: "insideTopLeft", fill: "#25c78b", fontSize: 10 }}/>} 
-                  {selectedCycle?.closed_at_ms && <ReferenceLine x={asMs(selectedCycle.closed_at_ms)} stroke="#b98cff" strokeDasharray="3 4" label={{ value: "TP close", position: "insideTopRight", fill: "#b98cff", fontSize: 10 }}/>} 
+                  {selectedCycle?.closed_at_ms && <ReferenceLine x={asMs(selectedCycle.closed_at_ms)} stroke="#b98cff" strokeDasharray="3 4" label={{ value: isScalper ? "Exit close" : "TP close", position: "insideTopRight", fill: "#b98cff", fontSize: 10 }}/>} 
                   {showOpenCycleStart && <ReferenceLine x={openCycleStart} stroke="#ffc24b" strokeDasharray="5 4" label={{ value: `Open cycle #${openCycle.cycle_number}`, position: "insideTopRight", fill: "#ffc24b", fontSize: 10 }}/>} 
                   {focusTime && focusTime >= periodStart && focusTime <= periodEnd && <ReferenceLine x={focusTime} stroke="#4d9dff" strokeDasharray="4 4"/>}
                 </ComposedChart>

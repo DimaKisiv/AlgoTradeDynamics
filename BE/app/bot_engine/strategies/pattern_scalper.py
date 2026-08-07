@@ -1,6 +1,6 @@
 """Explainable EMA/RSI/ATR breakout scalper.
 
-This first version is intentionally rule based. It uses only closed candles,
+The strategy is intentionally rule based. It uses only closed candles,
 opens at most one long or short position, and manages stop-loss, take-profit,
 maximum holding time, cooldown and daily loss limits in the shared worker.
 """
@@ -90,7 +90,14 @@ def _interval_seconds(interval: str) -> int:
 
 
 def _settings(bot: TradingBot) -> dict:
+    # Revision 2 is deliberately more selective.  The first year-long BTC test
+    # showed that the raw signal logic was close to flat before fees, while the
+    # large number of marginal entries made fees dominate the result.  Existing
+    # v1 bots are upgraded in-memory to the safer floor values below, while any
+    # user setting that is already stricter is preserved.
+    raw = dict(bot.settings or {})
     value = {
+        "strategy_revision": 2,
         "timeframe": "5",
         "lookback_candles": 200,
         "ema_fast_period": 20,
@@ -99,8 +106,13 @@ def _settings(bot: TradingBot) -> dict:
         "atr_period": 14,
         "breakout_lookback": 20,
         "volume_lookback": 20,
-        "volume_multiplier": 1.2,
-        "minimum_signal_score": 0.70,
+        "volume_multiplier": 3.0,
+        "minimum_signal_score": 0.85,
+        "require_trend_confirmation": True,
+        "require_breakout_confirmation": True,
+        "require_volume_confirmation": True,
+        "breakout_buffer_atr": 0.05,
+        "minimum_body_atr": 0.25,
         "rsi_long_min": 50.0,
         "rsi_long_max": 72.0,
         "rsi_short_min": 28.0,
@@ -108,7 +120,7 @@ def _settings(bot: TradingBot) -> dict:
         "stop_loss_atr": 1.2,
         "take_profit_atr": 1.8,
         "max_holding_minutes": 30,
-        "cooldown_minutes": 5,
+        "cooldown_minutes": 15,
         "risk_per_trade_percent": 0.5,
         "max_daily_loss_percent": 2.0,
         "allow_short": True,
@@ -121,7 +133,20 @@ def _settings(bot: TradingBot) -> dict:
         "cancel_orders_on_stop": True,
         "run_interval_seconds": 5,
     }
-    value.update(dict(bot.settings or {}))
+    value.update(raw)
+
+    revision = int(_float(raw.get("strategy_revision"), 1))
+    if revision < 2:
+        value["strategy_revision"] = 2
+        value["minimum_signal_score"] = max(_float(value.get("minimum_signal_score"), 0.0), 0.85)
+        value["volume_multiplier"] = max(_float(value.get("volume_multiplier"), 0.0), 3.0)
+        value["cooldown_minutes"] = max(_float(value.get("cooldown_minutes"), 0.0), 15.0)
+        value["require_trend_confirmation"] = True
+        value["require_breakout_confirmation"] = True
+        value["require_volume_confirmation"] = True
+        value["breakout_buffer_atr"] = max(_float(value.get("breakout_buffer_atr"), 0.0), 0.05)
+        value["minimum_body_atr"] = max(_float(value.get("minimum_body_atr"), 0.0), 0.25)
+
     value["timeframe"] = str(value.get("timeframe") or "5")
     for key, minimum in (
         ("lookback_candles", 60), ("ema_fast_period", 2), ("ema_slow_period", 3),
@@ -233,40 +258,60 @@ def _signal(candles: list[Candle], settings: dict) -> Signal | None:
     average_volume = sum(item.volume for item in volume_window) / len(volume_window)
     volume_ratio = latest.volume / average_volume if average_volume > 0 else 1.0
     body_atr = abs(latest.close - latest.open) / atr
+    breakout_buffer = atr * max(_float(settings.get("breakout_buffer_atr"), 0.05), 0.0)
+
+    long_trend = fast > slow and fast > fast_previous
+    short_trend = fast < slow and fast < fast_previous
+    long_breakout = latest.close > previous_high + breakout_buffer
+    short_breakout = latest.close < previous_low - breakout_buffer
+    volume_confirmed = volume_ratio >= _float(settings["volume_multiplier"], 3.0)
+    long_rsi = _float(settings["rsi_long_min"], 50) <= rsi <= _float(settings["rsi_long_max"], 72)
+    short_rsi = _float(settings["rsi_short_min"], 28) <= rsi <= _float(settings["rsi_short_max"], 50)
+    minimum_body_atr = max(_float(settings.get("minimum_body_atr"), 0.25), 0.0)
+    long_body = latest.close > latest.open and body_atr >= minimum_body_atr
+    short_body = latest.close < latest.open and body_atr >= minimum_body_atr
 
     long_score, short_score = 0.0, 0.0
     long_reasons: list[str] = []
     short_reasons: list[str] = []
-    if fast > slow and fast > fast_previous:
+    if long_trend:
         long_score += 0.25; long_reasons.append("EMA trend is bullish")
-    if latest.close > previous_high:
+    if long_breakout:
         long_score += 0.30; long_reasons.append("Closed above the recent high")
-    if volume_ratio >= _float(settings["volume_multiplier"], 1.2):
+    if volume_confirmed:
         long_score += 0.20; long_reasons.append(f"Volume is {volume_ratio:.2f}× average")
-    if _float(settings["rsi_long_min"], 50) <= rsi <= _float(settings["rsi_long_max"], 72):
+    if long_rsi:
         long_score += 0.15; long_reasons.append(f"RSI confirms momentum ({rsi:.1f})")
-    if latest.close > latest.open and body_atr >= 0.25:
+    if long_body:
         long_score += 0.10; long_reasons.append("Bullish candle has meaningful range")
 
-    if fast < slow and fast < fast_previous:
+    if short_trend:
         short_score += 0.25; short_reasons.append("EMA trend is bearish")
-    if latest.close < previous_low:
+    if short_breakout:
         short_score += 0.30; short_reasons.append("Closed below the recent low")
-    if volume_ratio >= _float(settings["volume_multiplier"], 1.2):
+    if volume_confirmed:
         short_score += 0.20; short_reasons.append(f"Volume is {volume_ratio:.2f}× average")
-    if _float(settings["rsi_short_min"], 28) <= rsi <= _float(settings["rsi_short_max"], 50):
+    if short_rsi:
         short_score += 0.15; short_reasons.append(f"RSI confirms momentum ({rsi:.1f})")
-    if latest.close < latest.open and body_atr >= 0.25:
+    if short_body:
         short_score += 0.10; short_reasons.append("Bearish candle has meaningful range")
+
+    require_trend = bool(settings.get("require_trend_confirmation", True))
+    require_breakout = bool(settings.get("require_breakout_confirmation", True))
+    require_volume = bool(settings.get("require_volume_confirmation", True))
+    long_qualified = (not require_trend or long_trend) and (not require_breakout or long_breakout) and (not require_volume or volume_confirmed)
+    short_qualified = (not require_trend or short_trend) and (not require_breakout or short_breakout) and (not require_volume or volume_confirmed)
 
     indicators = {
         "ema_fast": fast, "ema_slow": slow, "rsi": rsi, "atr": atr,
-        "volume_ratio": volume_ratio, "previous_high": previous_high, "previous_low": previous_low,
+        "volume_ratio": volume_ratio, "body_atr": body_atr,
+        "breakout_buffer": breakout_buffer,
+        "previous_high": previous_high, "previous_low": previous_low,
     }
-    minimum = _float(settings["minimum_signal_score"], 0.7)
-    if long_score >= minimum and long_score >= short_score:
+    minimum = _float(settings["minimum_signal_score"], 0.85)
+    if long_qualified and long_score >= minimum and long_score >= short_score:
         return Signal("Buy", long_score, latest.close, atr, latest.open_time, long_reasons, indicators)
-    if bool(settings.get("allow_short", True)) and short_score >= minimum:
+    if bool(settings.get("allow_short", True)) and short_qualified and short_score >= minimum:
         return Signal("Sell", short_score, latest.close, atr, latest.open_time, short_reasons, indicators)
     return None
 
@@ -453,7 +498,7 @@ class PatternScalperStrategy:
 
     def validate_start(self, db, bot: TradingBot) -> None:
         if bot.category != "linear":
-            raise ValueError("Pattern Scalper v1 currently supports linear perpetuals only")
+            raise ValueError("Pattern Scalper currently supports linear perpetuals only")
         message = ensure_live_trading_allowed(db, bot)
         if message:
             raise ValueError(message)
@@ -464,6 +509,10 @@ class PatternScalperStrategy:
             raise ValueError("ATR stop-loss and take-profit multipliers must be greater than zero")
         if not 0 < _float(settings["minimum_signal_score"]) <= 1:
             raise ValueError("Minimum signal score must be between 0 and 1")
+        if _float(settings["volume_multiplier"]) <= 0:
+            raise ValueError("Volume multiplier must be greater than zero")
+        if _float(settings.get("breakout_buffer_atr"), 0.0) < 0:
+            raise ValueError("Breakout ATR buffer cannot be negative")
 
     def sync_orders(self, db, bot: TradingBot) -> list[TradingBotOrder]:
         return [change["order"] for change in sync_bot_orders(db, bot)]

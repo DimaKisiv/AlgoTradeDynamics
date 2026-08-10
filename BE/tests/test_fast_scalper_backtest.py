@@ -99,7 +99,49 @@ def test_fast_engine_persists_compatible_results(tmp_path):
     start_ms = 1_700_000_000_000
     settings = {
         **SETTINGS,
+        "strategy_revision": 4,
         "timeframe": "5",
+        "context_timeframe": "5",
+        "volume_multiplier": 1.2,
+        "pattern_volume_multiplier": 1.2,
+        "minimum_signal_score": 0.70,
+        "require_trend_confirmation": True,
+        "require_breakout_confirmation": True,
+        "require_volume_confirmation": True,
+        "require_rsi_confirmation": False,
+        "require_retest_confirmation": True,
+        "breakout_buffer_atr": 0.01,
+        "minimum_body_atr": 0.05,
+        "maximum_breakout_body_atr": 5.0,
+        "minimum_ema_separation_atr": 0.0,
+        "minimum_ema_slope_atr": 0.0,
+        "minimum_breakout_close_location": 0.55,
+        "retest_tolerance_atr": 0.8,
+        "retest_max_penetration_atr": 0.8,
+        "retest_reclaim_atr": 0.0,
+        "minimum_confirmation_body_atr": 0.0,
+        "context_ema_fast_period": 12,
+        "context_ema_slow_period": 36,
+        "context_structure_lookback": 12,
+        "context_min_ema_separation_atr": 0.03,
+        "context_min_ema_slope_atr": 0.005,
+        "enable_breakout_retest": True,
+        "enable_flag": True,
+        "enable_triangle": True,
+        "enable_double_top_bottom": True,
+        "enable_liquidity_sweep": True,
+        "flag_impulse_lookback": 6,
+        "flag_pullback_lookback": 5,
+        "flag_min_impulse_atr": 1.2,
+        "flag_max_retrace": 0.7,
+        "triangle_lookback": 12,
+        "triangle_min_contraction": 0.2,
+        "double_pattern_lookback": 32,
+        "double_pattern_tolerance_atr": 0.45,
+        "double_pattern_min_separation": 5,
+        "liquidity_sweep_lookback": 20,
+        "liquidity_sweep_penetration_atr": 0.08,
+        "liquidity_sweep_reclaim_atr": 0.04,
         "stop_loss_atr": 1.2,
         "take_profit_atr": 1.8,
         "max_holding_minutes": 30,
@@ -155,18 +197,27 @@ def test_fast_engine_persists_compatible_results(tmp_path):
             }
 
         def candles(self, **_):
+            generated = []
             price = 100.0
             for index in range(count):
-                direction = 1 if (index // 80) % 2 == 0 else -1
+                phase = index % 80
                 open_price = price
-                close = open_price + direction * 0.06 + sin(index / 5) * 0.03
                 volume = 100.0
-                if index % 23 == 0:
-                    close += direction * 0.5
-                    volume = 220.0
-                high = max(open_price, close) + 0.08
-                low = min(open_price, close) - 0.08
-                yield {
+                if 20 <= phase <= 25:
+                    close = open_price + 0.28
+                    volume = 160.0
+                elif 26 <= phase <= 30:
+                    close = open_price - 0.10
+                    volume = 80.0
+                elif phase == 31 and len(generated) >= 5:
+                    level = max(item["high"] for item in generated[-5:])
+                    close = max(open_price + 0.05, level + 0.18)
+                    volume = 260.0
+                else:
+                    close = open_price + 0.035
+                high = max(open_price, close) + 0.04
+                low = min(open_price, close) - 0.04
+                item = {
                     "open_time": start_ms + index * 300_000,
                     "open": open_price,
                     "high": high,
@@ -174,6 +225,8 @@ def test_fast_engine_persists_compatible_results(tmp_path):
                     "close": close,
                     "volume": volume,
                 }
+                generated.append(item)
+                yield item
                 price = close
 
         def close(self):
@@ -204,4 +257,9 @@ def test_fast_engine_persists_compatible_results(tmp_path):
     )
     assert exit_count == run.metrics["closed_cycles"]
     assert run.metrics["average_fee_per_cycle"] >= 0
+    assert run.configuration["engine_version"] == 4
+    assert run.metrics["pattern_performance"]
+    assert any(item["pattern"] == "bull_flag" for item in run.metrics["pattern_performance"])
+    first_cycle = db.query(BacktestCycle).filter_by(run_id=run.id).order_by(BacktestCycle.cycle_number).first()
+    assert (first_cycle.details or {}).get("signal_pattern")
     db.close()

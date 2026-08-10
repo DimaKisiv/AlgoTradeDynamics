@@ -310,7 +310,7 @@ export default function BotDetailPage() {
                 <h1 className="display-2">{bot.name}</h1>
                 <p className="lead">
                   {isScalper
-                    ? "Pattern Scalper аналізує лише закриті свічки, шукає підтверджений пробій та керує однією LONG або SHORT позицією через SL, TP, timeout і cooldown."
+                    ? "Pattern Scalper аналізує лише закриті свічки, чекає breakout, а потім retest і утримання пробитого рівня перед входом. Після входу керує однією LONG або SHORT позицією через SL, TP, timeout і cooldown."
                     : "Поки бот має статус running, бекендовий worker синхронізує ордери, підтримує Position TP для long-позиції та відновлює рівні сітки після закриття циклів."}
                 </p>
               </header>
@@ -644,6 +644,9 @@ export default function BotDetailPage() {
                   {isScalper ? (
                     <>
                       <ConfigItem label="Timeframe" value={`${bot.settings?.timeframe || "5"}m`} mono />
+                      <ConfigItem label="Entry Model" value={Number(bot.settings?.strategy_revision || 4) >= 4 ? "Market context + patterns" : Number(bot.settings?.strategy_revision || 3) >= 3 ? "Breakout → Retest" : "Breakout"} />
+                      <ConfigItem label="Context TF" value={`${bot.settings?.context_timeframe || "5"}m`} mono />
+                      <ConfigItem label="Patterns" value={Number(bot.settings?.strategy_revision || 4) >= 4 ? "Retest · Flag · Triangle · Double · Sweep" : "Breakout"} />
                       <ConfigItem label="Minimum Signal" value={fmtPct(Number(bot.settings?.minimum_signal_score || 0.85) * 100)} mono />
                       <ConfigItem label="Stop-loss ATR" value={fmtNumber(bot.settings?.stop_loss_atr || 1.2)} mono />
                       <ConfigItem label="Take-profit ATR" value={fmtNumber(bot.settings?.take_profit_atr || 1.8)} mono />

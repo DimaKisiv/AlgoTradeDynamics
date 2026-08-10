@@ -240,7 +240,7 @@ def create_backtest(db: Session, payload: BacktestCreate, user_id: int) -> Backt
             "slippage_percent": payload.slippage_percent,
             "path_mode": payload.path_mode,
             "end_behavior": payload.end_behavior,
-            "application_version": "1.3.0",
+            "application_version": "1.5.0",
             "backtest_engine": "fast_scalper" if bot.strategy_type == "pattern_scalper" else "emulator",
         },
         metrics={},

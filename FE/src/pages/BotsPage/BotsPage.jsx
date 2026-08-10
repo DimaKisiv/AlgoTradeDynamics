@@ -34,10 +34,10 @@ const INITIAL_FORM = {
   order_qty: "0.001",
   grid_orders_count: "2",
   grid_step_percent: "5",
-  timeframe: "5",
+  timeframe: "1",
   lookback_candles: "200",
   minimum_signal_score: "0.85",
-  volume_multiplier: "3.0",
+  volume_multiplier: "1.5",
   stop_loss_atr: "1.2",
   take_profit_atr: "1.8",
   max_holding_minutes: "30",
@@ -45,6 +45,11 @@ const INITIAL_FORM = {
   risk_per_trade_percent: "0.5",
   max_daily_loss_percent: "2",
   allow_short: true,
+  enable_breakout_retest: true,
+  enable_flag: true,
+  enable_triangle: true,
+  enable_double_top_bottom: true,
+  enable_liquidity_sweep: true,
   is_active: true,
   emulator_api_key: "emulator-default-key",
   settings: {},
@@ -72,6 +77,40 @@ const SCALPER_SETTING_KEYS = [
   "require_volume_confirmation",
   "breakout_buffer_atr",
   "minimum_body_atr",
+  "require_rsi_confirmation",
+  "require_retest_confirmation",
+  "maximum_breakout_body_atr",
+  "minimum_ema_separation_atr",
+  "minimum_ema_slope_atr",
+  "minimum_breakout_close_location",
+  "retest_tolerance_atr",
+  "retest_max_penetration_atr",
+  "retest_reclaim_atr",
+  "minimum_confirmation_body_atr",
+  "context_timeframe",
+  "context_ema_fast_period",
+  "context_ema_slow_period",
+  "context_structure_lookback",
+  "context_min_ema_separation_atr",
+  "context_min_ema_slope_atr",
+  "pattern_volume_multiplier",
+  "enable_breakout_retest",
+  "enable_flag",
+  "enable_triangle",
+  "enable_double_top_bottom",
+  "enable_liquidity_sweep",
+  "flag_impulse_lookback",
+  "flag_pullback_lookback",
+  "flag_min_impulse_atr",
+  "flag_max_retrace",
+  "triangle_lookback",
+  "triangle_min_contraction",
+  "double_pattern_lookback",
+  "double_pattern_tolerance_atr",
+  "double_pattern_min_separation",
+  "liquidity_sweep_lookback",
+  "liquidity_sweep_penetration_atr",
+  "liquidity_sweep_reclaim_atr",
 ];
 
 const SELECT_OPTIONS = {
@@ -105,10 +144,10 @@ function toFormState(bot) {
     order_qty: String(bot.order_qty),
     grid_orders_count: String(bot.grid_orders_count),
     grid_step_percent: String(bot.grid_step_percent),
-    timeframe: String(bot.settings?.timeframe ?? "5"),
+    timeframe: String(bot.settings?.timeframe ?? "1"),
     lookback_candles: String(bot.settings?.lookback_candles ?? "200"),
     minimum_signal_score: String(bot.settings?.minimum_signal_score ?? "0.85"),
-    volume_multiplier: String(bot.settings?.volume_multiplier ?? "3.0"),
+    volume_multiplier: String(bot.settings?.pattern_volume_multiplier ?? bot.settings?.volume_multiplier ?? "1.5"),
     stop_loss_atr: String(bot.settings?.stop_loss_atr ?? "1.2"),
     take_profit_atr: String(bot.settings?.take_profit_atr ?? "1.8"),
     max_holding_minutes: String(bot.settings?.max_holding_minutes ?? "30"),
@@ -116,6 +155,11 @@ function toFormState(bot) {
     risk_per_trade_percent: String(bot.settings?.risk_per_trade_percent ?? "0.5"),
     max_daily_loss_percent: String(bot.settings?.max_daily_loss_percent ?? "2"),
     allow_short: bot.settings?.allow_short ?? true,
+    enable_breakout_retest: bot.settings?.enable_breakout_retest ?? true,
+    enable_flag: bot.settings?.enable_flag ?? true,
+    enable_triangle: bot.settings?.enable_triangle ?? true,
+    enable_double_top_bottom: bot.settings?.enable_double_top_bottom ?? true,
+    enable_liquidity_sweep: bot.settings?.enable_liquidity_sweep ?? true,
     is_active: Boolean(bot.is_active),
     emulator_api_key: bot.settings?.emulator_api_key || "emulator-default-key",
     settings: bot.settings || {},
@@ -146,12 +190,47 @@ function toPayload(form) {
       position_sizing: "risk_capped",
       max_position_qty: Number(form.order_qty),
       max_open_orders: 1,
-      strategy_revision: 2,
-      require_trend_confirmation: true,
+      strategy_revision: 4,
+      context_timeframe: "5",
+      pattern_volume_multiplier: Number(form.volume_multiplier),
+      enable_breakout_retest: form.enable_breakout_retest,
+      enable_flag: form.enable_flag,
+      enable_triangle: form.enable_triangle,
+      enable_double_top_bottom: form.enable_double_top_bottom,
+      enable_liquidity_sweep: form.enable_liquidity_sweep,
+      context_ema_fast_period: 12,
+      context_ema_slow_period: 36,
+      context_structure_lookback: 12,
+      context_min_ema_separation_atr: 0.10,
+      context_min_ema_slope_atr: 0.02,
+      flag_impulse_lookback: 6,
+      flag_pullback_lookback: 5,
+      flag_min_impulse_atr: 1.6,
+      flag_max_retrace: 0.62,
+      triangle_lookback: 12,
+      triangle_min_contraction: 0.22,
+      double_pattern_lookback: 32,
+      double_pattern_tolerance_atr: 0.45,
+      double_pattern_min_separation: 5,
+      liquidity_sweep_lookback: 20,
+      liquidity_sweep_penetration_atr: 0.08,
+      liquidity_sweep_reclaim_atr: 0.04,
+      // Revision-3 breakout/retest knobs remain for the breakout_retest sub-pattern.
+      require_trend_confirmation: false,
       require_breakout_confirmation: true,
       require_volume_confirmation: true,
-      breakout_buffer_atr: 0.05,
+      require_rsi_confirmation: false,
+      require_retest_confirmation: true,
+      breakout_buffer_atr: 0.08,
       minimum_body_atr: 0.25,
+      maximum_breakout_body_atr: 1.6,
+      minimum_ema_separation_atr: 0.08,
+      minimum_ema_slope_atr: 0.015,
+      minimum_breakout_close_location: 0.65,
+      retest_tolerance_atr: 0.25,
+      retest_max_penetration_atr: 0.35,
+      retest_reclaim_atr: 0.03,
+      minimum_confirmation_body_atr: 0.08,
     });
   }
   return {
@@ -241,6 +320,10 @@ export default function BotsPage() {
       };
       if (name === "strategy_type" && value === "pattern_scalper") {
         next.category = "linear";
+        if (!editingBotId) {
+          next.timeframe = "1";
+          next.volume_multiplier = "1.5";
+        }
       }
       return next;
     });
@@ -386,7 +469,8 @@ export default function BotsPage() {
                         </>
                       ) : (
                         <>
-                          <div><dt>Timeframe</dt><dd className="mono">{bot.settings?.timeframe || "5"}m</dd></div>
+                          <div><dt>Entry TF</dt><dd className="mono">{bot.settings?.timeframe || "1"}m</dd></div>
+                          <div><dt>Context TF</dt><dd className="mono">{bot.settings?.context_timeframe || "5"}m</dd></div>
                           <div><dt>Min Signal</dt><dd className="mono">{Math.round(Number(bot.settings?.minimum_signal_score || 0.85) * 100)}%</dd></div>
                         </>
                       )}
@@ -480,7 +564,7 @@ export default function BotsPage() {
                   ) : (
                     <div className={styles.strategyFields}>
                       <p className={styles.strategyHint}>
-                        Scalper працює лише з Linear Perpetuals. Quality mode вимагає одночасно EMA trend + ATR-buffered breakout + сильний volume spike; RSI та candle body підсилюють score. Це спеціально зменшує зайві входи та fees.
+                        Revision 4: EMA більше не є сигналом входу. Бот визначає 5m market context, а угоду відкриває лише коли на entry timeframe сформувався ввімкнений price-action pattern і його підтверджують context, volume/RSI та candle structure. Для scalping рекомендовано 1m entry + 5m context.
                       </p>
                       <div className={styles.fieldGrid}>
                         <label className={styles.field}><span>Timeframe</span><select name="timeframe" value={form.timeframe} onChange={handleChange}><option value="1">1m</option><option value="3">3m</option><option value="5">5m</option><option value="15">15m</option><option value="30">30m</option><option value="60">1h</option></select></label>
@@ -501,6 +585,13 @@ export default function BotsPage() {
                       <div className={styles.fieldGrid}>
                         <label className={styles.field}><span>Risk per trade %</span><input name="risk_per_trade_percent" type="number" min="0.01" max="10" step="0.01" value={form.risk_per_trade_percent} onChange={handleChange} required /></label>
                         <label className={styles.field}><span>Daily loss limit %</span><input name="max_daily_loss_percent" type="number" min="0.1" max="100" step="0.1" value={form.max_daily_loss_percent} onChange={handleChange} required /></label>
+                      </div>
+                      <div className={styles.fieldGrid}>
+                        <label className={styles.toggle}><input name="enable_breakout_retest" type="checkbox" checked={form.enable_breakout_retest} onChange={handleChange} /><span>Breakout + Retest</span></label>
+                        <label className={styles.toggle}><input name="enable_flag" type="checkbox" checked={form.enable_flag} onChange={handleChange} /><span>Bull / Bear Flag</span></label>
+                        <label className={styles.toggle}><input name="enable_triangle" type="checkbox" checked={form.enable_triangle} onChange={handleChange} /><span>Triangle / Compression</span></label>
+                        <label className={styles.toggle}><input name="enable_double_top_bottom" type="checkbox" checked={form.enable_double_top_bottom} onChange={handleChange} /><span>Double Top / Bottom</span></label>
+                        <label className={styles.toggle}><input name="enable_liquidity_sweep" type="checkbox" checked={form.enable_liquidity_sweep} onChange={handleChange} /><span>Liquidity Sweep</span></label>
                       </div>
                       <label className={styles.toggle}><input name="allow_short" type="checkbox" checked={form.allow_short} onChange={handleChange} /><span>Дозволити SHORT</span></label>
                     </div>

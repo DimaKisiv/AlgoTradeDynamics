@@ -778,6 +778,9 @@ export default function BacktestDetailPage() {
             {isScalper && <section className={styles.panel}><h2>Scalper exits</h2><div className={styles.metricGrid}>
               <Metric label="Take profit" value={metrics.take_profit_cycles ?? 0} hint={fmtMoneySigned(metrics.take_profit_net_pnl ?? 0)}/><Metric label="Stop loss" value={metrics.stop_loss_cycles ?? 0} hint={fmtMoneySigned(metrics.stop_loss_net_pnl ?? 0)}/><Metric label="Timeout" value={metrics.timeout_cycles ?? 0} hint={fmtMoneySigned(metrics.timeout_net_pnl ?? 0)}/><Metric label="Other exits" value={metrics.other_exit_cycles ?? 0} hint={fmtMoneySigned(metrics.other_exit_net_pnl ?? 0)}/><Metric label="Avg fee / cycle" value={fmtMoney(metrics.average_fee_per_cycle ?? 0)}/>
             </div></section>}
+            {isScalper && Array.isArray(metrics.pattern_performance) && metrics.pattern_performance.length > 0 && <section className={styles.panel}><h2>Pattern performance</h2><div className={styles.metricGrid}>
+              {metrics.pattern_performance.map((item) => <Metric key={item.pattern} label={String(item.pattern || "unknown").replaceAll("_", " ")} value={`${item.trades ?? 0} trades`} hint={`${fmtMoneySigned(item.net_pnl ?? 0)} · ${fmtNumber(item.win_rate_percent ?? 0, 1)}% wins`}/>)}
+            </div></section>}
           </div>
         </>}
 

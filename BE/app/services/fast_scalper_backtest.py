@@ -18,7 +18,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from app.bot_engine.orders import InstrumentRules, round_to_step
-from app.bot_engine.strategies.pattern_scalper import Candle, Signal, _levels, _settings
+from app.bot_engine.strategies.pattern_scalper import Candle, Signal, _levels, _settings, _signal
 from app.core.config import get_settings
 from app.db.session import SessionLocal
 from app.models.backtest import BacktestCycle, BacktestPoint, BacktestRun
@@ -155,6 +155,11 @@ class PatternSignalCache:
     def signal(self) -> Signal | None:
         settings = self.settings
         candles = list(self.candles)
+        if int(_float(settings.get("strategy_revision"), 1)) >= 3:
+            # Revision 3 is intentionally state-like but expressed entirely from
+            # the last closed candles (breakout candle + following retest candle).
+            # Reusing the shared signal function guarantees demo/live parity.
+            return _signal(candles, settings)
         required = max(
             settings["ema_slow_period"] + 3,
             settings["rsi_period"] + 2,
@@ -580,6 +585,7 @@ class FastScalperBacktestEngine:
             self.state["current_cycle"]["details"] = {
                 "signal_score": signal.score,
                 "signal_reasons": signal.reasons,
+                "signal_pattern": signal.pattern,
                 "indicators": signal.indicators,
                 "signal_candle_time": signal.candle_time,
             }
@@ -642,6 +648,7 @@ class FastScalperBacktestEngine:
         payload = {
             "signal_score": signal.score,
             "signal_reasons": signal.reasons,
+            "signal_pattern": signal.pattern,
             "indicators": signal.indicators,
             "signal_candle_time": signal.candle_time,
             "entry_price": raw_price,
@@ -662,6 +669,7 @@ class FastScalperBacktestEngine:
         self._event("scalper_signal_entered", "Pattern scalper opened a position", timestamp_ms, {
             "side": signal.side,
             "score": signal.score,
+            "pattern": signal.pattern,
             "reasons": signal.reasons,
             "entry_price": raw_price,
             "fill_price": fill_price,
@@ -888,6 +896,27 @@ class FastScalperBacktestEngine:
         def exit_pnl(role: str) -> float:
             return sum(cycle.net_pnl for cycle in exit_groups[role])
 
+        pattern_groups: dict[str, list[BacktestCycle]] = {}
+        for cycle in closed:
+            details = cycle.details or {}
+            pattern = str(details.get("signal_pattern") or (details.get("indicators") or {}).get("pattern") or "legacy")
+            pattern_groups.setdefault(pattern, []).append(cycle)
+        pattern_performance = []
+        for pattern, group in sorted(pattern_groups.items()):
+            wins = [cycle for cycle in group if cycle.net_pnl > 0]
+            pattern_performance.append({
+                "pattern": pattern,
+                "trades": len(group),
+                "wins": len(wins),
+                "losses": len(group) - len(wins),
+                "win_rate_percent": (len(wins) / len(group) * 100.0) if group else 0.0,
+                "gross_pnl": sum(cycle.gross_pnl for cycle in group),
+                "fees": sum(cycle.fees for cycle in group),
+                "net_pnl": sum(cycle.net_pnl for cycle in group),
+                "average_pnl": (sum(cycle.net_pnl for cycle in group) / len(group)) if group else 0.0,
+            })
+        pattern_performance.sort(key=lambda item: (item["net_pnl"], item["trades"]), reverse=True)
+
         return {
             "backtest_engine": "fast_scalper",
             "initial_balance": self.run.initial_balance,
@@ -943,6 +972,7 @@ class FastScalperBacktestEngine:
             "other_exit_cycles": len(exit_groups["other"]),
             "other_exit_net_pnl": exit_pnl("other"),
             "average_fee_per_cycle": (fees / len(closed)) if closed else 0.0,
+            "pattern_performance": pattern_performance,
             "candles_processed": self.run.processed_candles,
             "execution_duration_seconds": max(
                 (_utcnow() - (self.run.started_at if self.run.started_at and self.run.started_at.tzinfo else self.run.started_at.replace(tzinfo=timezone.utc))).total_seconds()
@@ -958,7 +988,7 @@ class FastScalperBacktestEngine:
         self.run.emulator_account_id = None
         configuration = dict(self.run.configuration or {})
         configuration["backtest_engine"] = "fast_scalper"
-        configuration["engine_version"] = 2
+        configuration["engine_version"] = 4
         self.run.configuration = configuration
         self.db.add(self.run)
         self.db.commit()

@@ -82,15 +82,17 @@ alembic upgrade head
 
 ### Pattern Scalper
 
-Перша пояснювана версія «розумного» бота. Вона:
+Rule-based multi-pattern scalper. Revision 4:
 
 - аналізує тільки закриті OHLCV-свічки;
-- використовує EMA trend, RSI, ATR, breakout і volume confirmation;
-- відкриває LONG або SHORT market-угоду;
-- тримає не більше однієї позиції;
+- за замовчуванням використовує `1m` entry candles і агрегований `5m` market context;
+- EMA більше не є сигналом входу: EMA + higher-high/higher-low structure лише класифікують `bullish trend / bearish trend / range / transition`;
+- угода створюється тільки конкретним price-action setup: `Breakout + Retest`, `Bull/Bear Flag`, `Triangle/Compression`, `Double Top/Bottom` або `Liquidity Sweep`;
+- кожен pattern перевіряється на сумісність із market regime, volume, RSI та candle confirmation;
+- відкриває LONG або SHORT market-угоду та тримає не більше однієї позиції;
 - керує stop-loss, take-profit, maximum holding time і cooldown;
 - обмежує quantity, notional, risk per trade та daily loss;
-- записує signal score, причини входу та indicator snapshot у history/events.
+- записує pattern name, signal score, причини входу, market regime та indicator snapshot у history/events.
 
 Це rule-based MVP, а не ML-модель. Така база потрібна, щоб спочатку перевірити execution, fees, slippage і risk management, а вже потім навчати модель на коректних результатах.
 
@@ -239,22 +241,20 @@ Frontend використовує React 18, Recharts і Vite. Для production 
 - partial fills, funding, spread, order-book imbalance та tick-level market data можна додати окремими етапами;
 - background backtest task живе всередині backend process, тому restart backend перериває активний запуск.
 
-### Pattern Scalper quality entry revision 2
+### Pattern Scalper revision 4 — context + pattern engine
 
-Нові та legacy Pattern Scalper bots використовують більш вибірковий entry profile, щоб зменшити churn та fees:
+Revision 4 прибирає EMA з ролі самостійного entry signal. Pipeline:
 
-- minimum signal score: `0.85`;
-- volume confirmation: `3.0x` від середнього volume;
-- EMA trend confirmation обов’язковий;
-- breakout confirmation обов’язковий;
-- breakout має пройти додатковий `0.05 ATR` buffer;
-- volume confirmation обов’язковий;
-- cooldown: `15 min`;
-- SL/TP залишені `1.2 ATR / 1.8 ATR`, щоб не змішувати entry optimization з exit optimization.
+1. з entry candles будується higher-timeframe context (`5m` за замовчуванням);
+2. EMA + price structure визначають regime: bullish trend, bearish trend, range або transition;
+3. на entry timeframe шукаються конкретні setup-и: Breakout+Retest, Bull/Bear Flag, Triangle/Compression, Double Top/Bottom, Liquidity Sweep;
+4. continuation patterns дозволяються лише у сумісному trend context; reversal patterns можуть працювати в range/transition або проти зрілого тренду;
+5. volume, RSI і confirmation candle додають незалежні підтвердження;
+6. тільки pattern із достатнім score створює LONG/SHORT entry.
 
-Legacy bots без `strategy_revision` автоматично отримують ці stricter effective settings, але вже більш строгі user values не послаблюються. Backtest snapshot зберігає саме effective settings, тому Configuration відповідає реально використаній логіці.
+Default profile: `1m entry + 5m context`, minimum score `0.85`, pattern volume `1.5x`, cooldown `15 min`, SL/TP `1.2 ATR / 1.8 ATR`. Existing bots отримують revision 4 effective settings у runtime/backtest, але їхній явно збережений entry timeframe не переписується автоматично.
 
-Scalper backtest Summary також показує окремі TP / SL / Timeout counts і net PnL та average fee per cycle.
+Fast backtest і demo/testnet/runtime використовують спільний `_signal` контракт, тому pattern/context logic однакова в historical і runtime режимах. Backtest Summary додатково показує PnL, trade count і win rate окремо для кожного pattern, а також TP / SL / Timeout counts і net PnL.
 
 ## Backtest engines
 

@@ -84,3 +84,169 @@
 .logout:hover {
   background: var(--danger-glow);
 }
+
+.stack {
+  max-width: 680px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.stack .card {
+  max-width: none;
+  width: 100%;
+  margin: 0;
+}
+
+.telegramHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  font-size: 24px;
+}
+
+.connectedBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border: 1px solid var(--success-glow, rgba(87, 215, 141, 0.28));
+  border-radius: 999px;
+  color: var(--success, #69d79b);
+  background: var(--success-soft, rgba(87, 215, 141, 0.08));
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.telegramConnect {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.muted {
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.notice,
+.successMessage,
+.errorMessage {
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.notice {
+  color: var(--text-secondary);
+  border: 1px solid var(--line);
+  background: var(--surface-strong);
+}
+
+.successMessage {
+  color: var(--success, #69d79b);
+  border: 1px solid var(--success-glow, rgba(87, 215, 141, 0.28));
+  background: var(--success-soft, rgba(87, 215, 141, 0.08));
+}
+
+.errorMessage {
+  color: var(--danger);
+  border: 1px solid var(--danger-glow);
+  background: var(--danger-soft);
+}
+
+.primaryAction,
+.disconnect {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 11px 16px;
+  border-radius: var(--r-md);
+  font-weight: 700;
+  transition: opacity var(--t-fast), background var(--t-fast);
+}
+
+.primaryAction {
+  color: var(--bg, #071019);
+  background: var(--accent, #8ee5ff);
+  border: 1px solid transparent;
+}
+
+.disconnect {
+  color: var(--danger);
+  background: var(--danger-soft);
+  border: 1px solid var(--danger-glow);
+}
+
+.primaryAction:disabled,
+.disconnect:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.preferences {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.switchRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+
+.switchRow:last-child {
+  border-bottom: none;
+}
+
+.switchRow span {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.switchRow strong {
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.switchRow small {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.switchRow input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent, #8ee5ff);
+}
+
+@media (max-width: 640px) {
+  .telegramHead,
+  .row,
+  .switchRow {
+    align-items: flex-start;
+  }
+
+  .row {
+    flex-direction: column;
+  }
+}

@@ -21,7 +21,36 @@ class Settings(BaseSettings):
     # --- Auth / JWT ---
     jwt_secret_key: str = "dev-secret-change-me-0123456789abcdef0123456789abcdef"
     jwt_algorithm: str = "HS256"
-    access_token_expire_minutes: int = 60 * 24 * 7  # 7 days
+    # Access tokens are deliberately short-lived; a refresh-token cookie renews them.
+    access_token_expire_minutes: int = 30
+    refresh_token_expire_days: int = 7
+    refresh_cookie_name: str = "atd_refresh_token"
+    refresh_cookie_secure: bool = False
+    refresh_cookie_samesite: str = "lax"
+
+    # --- API rate limiting (single-process MVP) ---
+    rate_limit_enabled: bool = True
+    rate_limit_trust_proxy_headers: bool = False
+
+    rate_limit_login_requests: int = 5
+    rate_limit_login_window_seconds: int = 60
+    rate_limit_register_requests: int = 5
+    rate_limit_register_window_seconds: int = 60
+    rate_limit_refresh_requests: int = 30
+    rate_limit_refresh_window_seconds: int = 60
+
+    rate_limit_api_requests: int = 300
+    rate_limit_api_window_seconds: int = 60
+    rate_limit_api_write_requests: int = 120
+    rate_limit_api_write_window_seconds: int = 60
+
+    # --- Telegram notifications (single shared bot, per-user chat binding) ---
+    telegram_bot_token: str = ""
+    telegram_bot_username: str = ""
+    telegram_polling_enabled: bool = True
+    telegram_link_expire_minutes: int = 10
+    telegram_poll_timeout_seconds: int = 20
+    telegram_delivery_interval_seconds: int = 2
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

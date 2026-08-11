@@ -1,5 +1,5 @@
 /** Authentication API calls. */
-import { request, setToken } from './client';
+import { refreshAccessToken, request, setToken } from './client';
 
 export function register({ email, password }) {
   return request('/auth/register', {
@@ -19,4 +19,16 @@ export async function login({ email, password }) {
 
 export function fetchMe() {
   return request('/auth/me');
+}
+
+export function refreshSession() {
+  return refreshAccessToken();
+}
+
+export async function logout() {
+  try {
+    await request('/auth/logout', { method: 'POST' });
+  } finally {
+    setToken(null);
+  }
 }

@@ -12,6 +12,10 @@ if TYPE_CHECKING:  # Avoid a runtime import cycle; this type is only needed for 
     from app.models.trading_bot import TradingBot
     from app.models.trading_bot_event import TradingBotEvent
     from app.models.trading_bot_order import TradingBotOrder
+    from app.models.refresh_token import RefreshToken
+    from app.models.telegram_notification import (
+        TelegramLinkToken, TelegramNotificationChannel, TelegramNotificationDelivery,
+    )
 
 
 def _utcnow() -> datetime:
@@ -40,4 +44,16 @@ class User(Base):
     )
     trading_bot_events: Mapped[list["TradingBotEvent"]] = relationship(
         "TradingBotEvent", back_populates="user", cascade="all, delete-orphan"
+    )
+    refresh_tokens: Mapped[list["RefreshToken"]] = relationship(
+        "RefreshToken", back_populates="user", cascade="all, delete-orphan"
+    )
+    telegram_notification_channel: Mapped["TelegramNotificationChannel | None"] = relationship(
+        "TelegramNotificationChannel", back_populates="user", cascade="all, delete-orphan", uselist=False
+    )
+    telegram_link_tokens: Mapped[list["TelegramLinkToken"]] = relationship(
+        "TelegramLinkToken", back_populates="user", cascade="all, delete-orphan"
+    )
+    telegram_notification_deliveries: Mapped[list["TelegramNotificationDelivery"]] = relationship(
+        "TelegramNotificationDelivery", back_populates="user", cascade="all, delete-orphan"
     )

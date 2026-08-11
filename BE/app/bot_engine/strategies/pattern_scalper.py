@@ -1464,7 +1464,12 @@ class PatternScalperStrategy:
                     state["pending_exit"] = None
                     state["last_exit_at"] = utcnow().isoformat()
                     _save_state(db, bot, state)
-                    log_bot_event(db, bot, "scalper_position_closed", "Scalper position is closed", {"entry_order_link_id": trade.get("entry_order_link_id")})
+                    log_bot_event(db, bot, "scalper_position_closed", "Scalper position is closed", {
+                        "entry_order_link_id": trade.get("entry_order_link_id"),
+                        "side": trade.get("side"),
+                        "entry_price": trade.get("entry_price"),
+                        "exit_reason": pending_exit.get("reason") if pending_exit else None,
+                    })
                     trade = {}
                     pending_exit = {}
             elif not position and pending_exit:

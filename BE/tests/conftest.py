@@ -12,6 +12,9 @@ if TEST_DB_FILE.exists():
     TEST_DB_FILE.unlink()
 os.environ["DATABASE_URL"] = f"sqlite:///{TEST_DB_FILE}"
 os.environ["BOT_WORKER_ENABLED"] = "false"
+os.environ["RATE_LIMIT_ENABLED"] = "false"
+os.environ["TELEGRAM_BOT_TOKEN"] = ""
+os.environ["TELEGRAM_BOT_USERNAME"] = ""
 
 
 @pytest.fixture(scope="session")

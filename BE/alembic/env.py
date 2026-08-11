@@ -7,7 +7,7 @@ from alembic import context
 
 from app.core.config import get_settings
 from app.db.base import Base
-from app.models import backtest, trading_bot, trading_bot_event, trading_bot_order, user  # noqa: F401
+from app.models import backtest, refresh_token, trading_bot, trading_bot_event, trading_bot_order, user  # noqa: F401
 
 config = context.config
 

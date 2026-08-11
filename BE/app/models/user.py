@@ -12,6 +12,7 @@ if TYPE_CHECKING:  # Avoid a runtime import cycle; this type is only needed for 
     from app.models.trading_bot import TradingBot
     from app.models.trading_bot_event import TradingBotEvent
     from app.models.trading_bot_order import TradingBotOrder
+    from app.models.refresh_token import RefreshToken
 
 
 def _utcnow() -> datetime:
@@ -40,4 +41,7 @@ class User(Base):
     )
     trading_bot_events: Mapped[list["TradingBotEvent"]] = relationship(
         "TradingBotEvent", back_populates="user", cascade="all, delete-orphan"
+    )
+    refresh_tokens: Mapped[list["RefreshToken"]] = relationship(
+        "RefreshToken", back_populates="user", cascade="all, delete-orphan"
     )

@@ -46,7 +46,11 @@ services:
       ENVIRONMENT: development
       JWT_SECRET_KEY: dev-secret-change-me-0123456789abcdef0123456789abcdef
       JWT_ALGORITHM: HS256
-      ACCESS_TOKEN_EXPIRE_MINUTES: 10080
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      REFRESH_TOKEN_EXPIRE_DAYS: 7
+      REFRESH_COOKIE_NAME: atd_refresh_token
+      REFRESH_COOKIE_SECURE: "false"
+      REFRESH_COOKIE_SAMESITE: lax
       EXCHANGE_EMULATOR_URL: http://exchange-emulator:8001
       EXCHANGE_EMULATOR_DEFAULT_API_KEY: emulator-default-key
       BYBIT_DEMO_API_KEY: ${BYBIT_DEMO_API_KEY:-}

@@ -14,7 +14,7 @@ from app.core.config import get_settings
 from app.core.logging import configure_logging, get_logger
 from app.db.base import Base
 from app.db.session import engine
-from app.models import backtest, trading_bot, trading_bot_event, trading_bot_order, user  # noqa: F401  (register models)
+from app.models import backtest, refresh_token, trading_bot, trading_bot_event, trading_bot_order, user  # noqa: F401  (register models)
 
 configure_logging()
 logger = get_logger(__name__)

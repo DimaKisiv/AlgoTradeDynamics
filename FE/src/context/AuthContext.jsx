@@ -13,24 +13,28 @@ export function useAuth() {
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // Remains true while the stored token is being validated
+  const [loading, setLoading] = useState(true);
 
   const logout = useCallback(() => {
+    // Clear UI state immediately, then revoke the HttpOnly refresh session server-side.
     setToken(null);
     setUser(null);
+    authApi.logout().catch(() => {});
   }, []);
 
-  // Restore the session on startup and sign out automatically on any 401 response.
+  // Restore a session on startup. If the access JWT expired, the HTTP client
+  // transparently rotates the refresh cookie and retries /auth/me once.
   useEffect(() => {
     setUnauthorizedHandler(() => setUser(null));
 
     let active = true;
     (async () => {
-      if (!getToken()) {
-        setLoading(false);
-        return;
-      }
       try {
+        if (!getToken()) {
+          // Allows restoring a session from the HttpOnly refresh cookie even when
+          // localStorage was cleared or the access token was never persisted.
+          await authApi.refreshSession();
+        }
         const me = await authApi.fetchMe();
         if (active) {setUser(me);}
       } catch {
@@ -43,6 +47,7 @@ export function AuthProvider({ children }) {
 
     return () => {
       active = false;
+      setUnauthorizedHandler(null);
     };
   }, []);
 

@@ -21,7 +21,12 @@ class Settings(BaseSettings):
     # --- Auth / JWT ---
     jwt_secret_key: str = "dev-secret-change-me-0123456789abcdef0123456789abcdef"
     jwt_algorithm: str = "HS256"
-    access_token_expire_minutes: int = 60 * 24 * 7  # 7 days
+    # Access tokens are deliberately short-lived; a refresh-token cookie renews them.
+    access_token_expire_minutes: int = 30
+    refresh_token_expire_days: int = 7
+    refresh_cookie_name: str = "atd_refresh_token"
+    refresh_cookie_secure: bool = False
+    refresh_cookie_samesite: str = "lax"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

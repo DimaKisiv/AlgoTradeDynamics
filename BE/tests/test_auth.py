@@ -58,3 +58,72 @@ def test_invalid_token_rejected(client):
     assert client.get("/api/auth/me", headers=headers).status_code == 401
 
 
+
+
+def test_login_sets_refresh_cookie(client):
+    email = f"cookie_{uuid.uuid4().hex[:10]}@test.dev"
+    password = "secret123"
+    client.post("/api/auth/register", json={"email": email, "password": password})
+
+    resp = client.post("/api/auth/login", json={"email": email, "password": password})
+
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["access_token"]
+    assert resp.json()["expires_in"] > 0
+    assert client.cookies.get("atd_refresh_token")
+    set_cookie = resp.headers.get("set-cookie", "").lower()
+    assert "httponly" in set_cookie
+
+
+def test_refresh_rotates_token_and_returns_new_access_token(client):
+    email = f"refresh_{uuid.uuid4().hex[:10]}@test.dev"
+    password = "secret123"
+    client.post("/api/auth/register", json={"email": email, "password": password})
+    login_resp = client.post(
+        "/api/auth/login", json={"email": email, "password": password}
+    )
+    first_refresh = client.cookies.get("atd_refresh_token")
+    first_access = login_resp.json()["access_token"]
+
+    refresh_resp = client.post("/api/auth/refresh")
+
+    assert refresh_resp.status_code == 200, refresh_resp.text
+    assert refresh_resp.json()["access_token"]
+    assert refresh_resp.json()["access_token"] != first_access
+    second_refresh = client.cookies.get("atd_refresh_token")
+    assert second_refresh
+    assert second_refresh != first_refresh
+
+
+def test_rotated_refresh_token_cannot_be_reused(client):
+    email = f"reuse_{uuid.uuid4().hex[:10]}@test.dev"
+    password = "secret123"
+    client.post("/api/auth/register", json={"email": email, "password": password})
+    client.post("/api/auth/login", json={"email": email, "password": password})
+    old_refresh = client.cookies.get("atd_refresh_token")
+
+    assert client.post("/api/auth/refresh").status_code == 200
+
+    # Simulate an attacker trying the already-rotated token again.
+    client.cookies.set("atd_refresh_token", old_refresh, path="/api/auth")
+    reused = client.post("/api/auth/refresh")
+    assert reused.status_code == 401
+
+
+def test_logout_revokes_refresh_session(client):
+    email = f"logout_{uuid.uuid4().hex[:10]}@test.dev"
+    password = "secret123"
+    client.post("/api/auth/register", json={"email": email, "password": password})
+    client.post("/api/auth/login", json={"email": email, "password": password})
+    refresh_token = client.cookies.get("atd_refresh_token")
+
+    logout_resp = client.post("/api/auth/logout")
+    assert logout_resp.status_code == 204, logout_resp.text
+
+    client.cookies.set("atd_refresh_token", refresh_token, path="/api/auth")
+    assert client.post("/api/auth/refresh").status_code == 401
+
+
+def test_refresh_requires_cookie(client):
+    client.cookies.clear()
+    assert client.post("/api/auth/refresh").status_code == 401

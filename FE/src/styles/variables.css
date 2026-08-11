@@ -42,9 +42,11 @@
   --gradient-glow: linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 60%);
 
   /* Typography */
-  --font-display: 'Space Grotesk', system-ui, -apple-system, sans-serif;
-  --font-body: 'Space Grotesk', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  /*--font-display: 'Space Grotesk', system-ui, -apple-system, sans-serif;*/
+  /*--font-body: 'Space Grotesk', system-ui, -apple-system, sans-serif;*/
+  /*--font-mono: 'JetBrains Mono', 'Fira Code', monospace;*/
+  --font-display: 'Arial', system-ui, -apple-system, sans-serif;
+  --font-body: 'Arial', system-ui, -apple-system, sans-serif;
 
   /* Spacing scale */
   --space-1: 4px;

@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import styles from './RegisterPage.module.css';
 
 export default function RegisterPage() {
+  const { t } = useLanguage();
   const { register } = useAuth();
   const navigate = useNavigate();
 
@@ -17,7 +19,7 @@ export default function RegisterPage() {
     e.preventDefault();
     setError('');
     if (password.length < 6) {
-      setError('Пароль має містити щонайменше 6 символів');
+      setError(t('register.shortPassword'));
       return;
     }
     setLoading(true);
@@ -25,7 +27,7 @@ export default function RegisterPage() {
       await register(email, password);
       navigate('/app', { replace: true });
     } catch (err) {
-      setError(err.detail || err.message || 'Не вдалося зареєструватися');
+      setError(err.detail || err.message || t('register.errorFallback'));
     } finally {
       setLoading(false);
     }
@@ -34,15 +36,15 @@ export default function RegisterPage() {
   return (
     <main className={styles.auth}>
       <div className={`${styles.card} glass-strong`}>
-        <span className="eyebrow">Реєстрація</span>
-        <h1 className={`display-3 ${styles.title}`}>Створіть акаунт.</h1>
+        <span className="eyebrow">{t('register.eyebrow')}</span>
+        <h1 className={`display-3 ${styles.title}`}>{t('register.title')}</h1>
         <p className="lead">
-          Зареєструйтеся, щоб створювати ботів, запускати emulator і зберігати історичні тести.
+          {t('register.lead')}
         </p>
 
         <form className={styles.form} onSubmit={handleSubmit}>
           <label className={styles.field}>
-            <span>Email</span>
+            <span>{t('register.email')}</span>
             <input
               type="email"
               value={email}
@@ -53,28 +55,28 @@ export default function RegisterPage() {
             />
           </label>
           <label className={styles.field}>
-            <span>Пароль</span>
+            <span>{t('register.password')}</span>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="new-password"
-              placeholder="мінімум 6 символів"
+              placeholder={t('register.passwordPlaceholder')}
               minLength={6}
               required
             />
-            <span className={styles.hint}>Щонайменше 6 символів.</span>
+            <span className={styles.hint}>{t('register.passwordHint')}</span>
           </label>
 
           {error && <div className={styles.error} role="alert">⚠ {error}</div>}
 
           <button type="submit" className={styles.submit} disabled={loading}>
-            {loading ? 'Створення…' : 'Зареєструватися'}
+            {loading ? t('register.submitLoading') : t('register.submit')}
           </button>
         </form>
 
         <p className={styles.switch}>
-          Вже маєте акаунт? <Link to="/login">Увійти</Link>
+          {t('register.haveAccount')} <Link to="/login">{t('register.loginLink')}</Link>
         </p>
       </div>
     </main>

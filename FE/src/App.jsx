@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 import { AuthProvider } from "./context/AuthContext";
+import { LanguageProvider } from "./context/LanguageContext";
 import Navbar from "./components/layout/Navbar/Navbar";
 import Footer from "./components/layout/Footer/Footer";
 import ProtectedRoute from "./components/routing/ProtectedRoute";
@@ -20,25 +21,26 @@ const protectedPage = (component) => <ProtectedRoute>{component}</ProtectedRoute
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Navbar />
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />
-          <Route path="/register" element={<GuestRoute><RegisterPage /></GuestRoute>} />
-          <Route path="/bots" element={protectedPage(<BotsPage />)} />
-          <Route path="/bots/:botId" element={protectedPage(<BotDetailPage />)} />
-          <Route path="/emulator" element={protectedPage(<EmulatorPage />)} />
-          <Route path="/backtests" element={protectedPage(<BacktestsPage />)} />
-          <Route path="/backtests/compare" element={protectedPage(<BacktestComparePage />)} />
-          <Route path="/backtests/:id" element={protectedPage(<BacktestDetailPage />)} />
-          <Route path="/account" element={protectedPage(<AccountPage />)} />
-          <Route path="*" element={<LandingPage />} />
-        </Routes>
-        <Footer />
-      </BrowserRouter>
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <Navbar />
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />
+            <Route path="/register" element={<GuestRoute><RegisterPage /></GuestRoute>} />
+            <Route path="/bots" element={protectedPage(<BotsPage />)} />
+            <Route path="/bots/:botId" element={protectedPage(<BotDetailPage />)} />
+            <Route path="/emulator" element={protectedPage(<EmulatorPage />)} />
+            <Route path="/backtests" element={protectedPage(<BacktestsPage />)} />
+            <Route path="/backtests/compare" element={protectedPage(<BacktestComparePage />)} />
+            <Route path="/backtests/:id" element={protectedPage(<BacktestDetailPage />)} />
+            <Route path="/account" element={protectedPage(<AccountPage />)} />
+            <Route path="*" element={<LandingPage />} />
+          </Routes>
+          <Footer />
+        </BrowserRouter>
+      </AuthProvider>
+    </LanguageProvider>
   );
 }
-

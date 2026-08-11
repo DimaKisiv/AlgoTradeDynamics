@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, ShieldCheck, Sparkles, TrendingUp } from 'lucide-react';
+import { useLanguage } from '../../../context/LanguageContext';
 import styles from './Hero.module.css';
 
 const fadeUp = {
@@ -13,38 +14,40 @@ const fadeUp = {
 };
 
 export default function Hero() {
+  const { t } = useLanguage();
+
   return (
     <section className={styles.hero}>
       <div className={`container ${styles.heroInner}`}>
         <motion.div initial="hidden" animate="visible" className={styles.heroContent}>
           <motion.div variants={fadeUp} custom={0} className="pill">
             <span className="dot" />
-            <span>Real bot worker · Exchange emulator · Historical replay</span>
+            <span>{t('hero.pill')}</span>
           </motion.div>
 
           <motion.h1 variants={fadeUp} custom={1} className={`display-1 ${styles.heroTitle}`}>
-            Тестуйте торгового бота{' '}
-            <span className="italic-accent">без ризику</span> для капіталу.
+            {t('hero.titleStart')}{' '}
+            <span className="italic-accent">{t('hero.titleAccent')}</span> {t('hero.titleEnd')}
           </motion.h1>
 
           <motion.p variants={fadeUp} custom={2} className="lead">
-            Оберіть Grid Bot або Pattern Scalper і проганяйте ту саму runtime-логіку через Bybit-compatible emulator: ордери, LONG/SHORT, SL/TP, комісії, equity та drawdown.
+            {t('hero.lead')}
           </motion.p>
 
           <motion.div variants={fadeUp} custom={3} className={styles.heroActions}>
             <Link to="/backtests" className={styles.heroPrimary}>
-              <span>Запустити Backtest</span>
+              <span>{t('hero.startBacktest')}</span>
               <ArrowRight size={18} />
             </Link>
             <a href="#how-it-works" className={styles.heroSecondary}>
-              Як це працює
+              {t('hero.howItWorks')}
             </a>
           </motion.div>
 
           <motion.div variants={fadeUp} custom={4} className={styles.heroBadges}>
-            <span><Sparkles size={14} /> Real bot logic</span>
-            <span><ShieldCheck size={14} /> Risk-controlled</span>
-            <span><TrendingUp size={14} /> Historical datasets</span>
+            <span><Sparkles size={14} /> {t('hero.badgeLogic')}</span>
+            <span><ShieldCheck size={14} /> {t('hero.badgeRisk')}</span>
+            <span><TrendingUp size={14} /> {t('hero.badgeData')}</span>
           </motion.div>
         </motion.div>
 
@@ -63,12 +66,12 @@ export default function Hero() {
               <div className={styles.heroWindowStat}>
                 <p className="eyebrow">P&L</p>
                 <h3 className="display-3">+18.4%</h3>
-                <p className="text-tertiary">за 366 днів</p>
+                <p className="text-tertiary">{t('hero.periodLabel')}</p>
               </div>
               <div className={`${styles.heroWindowStat} ${styles.heroWindowStatRight}`}>
                 <p className="eyebrow">Win Rate</p>
                 <h3 className="display-3">58.6%</h3>
-                <p className="text-tertiary">time in position</p>
+                <p className="text-tertiary">{t('hero.winRateLabel')}</p>
               </div>
               <svg viewBox="0 0 540 200" className={styles.heroSparkline} preserveAspectRatio="none">
                 <defs>
@@ -112,14 +115,14 @@ export default function Hero() {
           <div className={`${styles.heroChip} ${styles.heroChip1} glass`}>
             <ShieldCheck size={14} />
             <div>
-              <p className={styles.heroChipLabel}>Grid levels</p>
+              <p className={styles.heroChipLabel}>{t('hero.chipGrid')}</p>
               <p className={styles.heroChipValue}>2</p>
             </div>
           </div>
           <div className={`${styles.heroChip} ${styles.heroChip2} glass`}>
             <TrendingUp size={14} />
             <div>
-              <p className={styles.heroChipLabel}>Max DD</p>
+              <p className={styles.heroChipLabel}>{t('hero.chipDd')}</p>
               <p className={styles.heroChipValue}>20%</p>
             </div>
           </div>

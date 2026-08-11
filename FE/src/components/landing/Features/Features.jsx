@@ -7,48 +7,21 @@ import {
   ShieldAlert,
   Workflow,
 } from 'lucide-react';
+import { useLanguage } from '../../../context/LanguageContext';
 import styles from './Features.module.css';
 
-const FEATURES = [
-  {
-    icon: <Cpu size={22} />,
-    title: 'Той самий bot worker',
-    text:
-      'Backtest запускає snapshot Grid Bot або Pattern Scalper через той самий strategy registry, order lifecycle, risk logic та emulator/live runtime.',
-  },
-  {
-    icon: <ShieldAlert size={22} />,
-    title: 'Risk-controlled execution',
-    text:
-      'Ізольований тестовий акаунт, баланс, leverage, fees, slippage та execution path не торкаються звичайної історії бота.',
-  },
-  {
-    icon: <LineChart size={22} />,
-    title: 'Equity curve у реальному часі',
-    text:
-      'Графік ціни показує entries/exits вибраної стратегії, cancelled orders, equity, drawdown і position exposure.',
-  },
-  {
-    icon: <BarChart3 size={22} />,
-    title: 'Глибокі метрики',
-    text:
-      'PnL, fees, max drawdown, worst unrealized loss, time in position, time in loss, recovery та max exposure.',
-  },
-  {
-    icon: <Workflow size={22} />,
-    title: 'Журнал угод',
-    text:
-      'Orders, executions, position changes, cycles і worker events з переходом із таблиці до потрібного моменту графіка.',
-  },
-  {
-    icon: <GanttChartSquare size={22} />,
-    title: 'Історія запусків',
-    text:
-      'Кожен backtest зберігається в базі даних. Можна порівнювати конфігурації, відкривати минулі запуски та аналізувати тренди.',
-  },
+const FEATURE_ICONS = [
+  <Cpu size={22} key="cpu" />,
+  <ShieldAlert size={22} key="shield" />,
+  <LineChart size={22} key="line" />,
+  <BarChart3 size={22} key="bar" />,
+  <Workflow size={22} key="workflow" />,
+  <GanttChartSquare size={22} key="gantt" />,
 ];
 
 export default function Features() {
+  const { t } = useLanguage();
+  const items = t('features.items');
   const headerRef = useScrollReveal();
   const gridRef = useScrollReveal({ threshold: 0.1 });
 
@@ -56,21 +29,20 @@ export default function Features() {
     <section id="features" className={styles.features}>
       <div className="container">
         <div ref={headerRef} className="section-header reveal">
-          <span className="eyebrow">Що всередині</span>
+          <span className="eyebrow">{t('features.eyebrow')}</span>
           <h2 className="display-2">
-            Усе для зрілого <span className="italic-accent">backtesting</span>.
-            <br />Без зайвого шуму.
+            {t('features.titleStart')} <span className="italic-accent">{t('features.titleAccent')}</span>.
+            <br />{t('features.titleEnd')}
           </h2>
           <p className="lead">
-            MVP сфокусований на одній задачі — дати трейдеру безпечне середовище для перевірки
-            ідеї перед тим, як ризикувати реальним капіталом.
+            {t('features.lead')}
           </p>
         </div>
 
         <div ref={gridRef} className={`${styles.featuresGrid} reveal stagger`}>
-          {FEATURES.map((feature, i) => (
+          {items.map((feature, i) => (
             <article key={feature.title} className={`${styles.feature} glass`} style={{ '--i': i }}>
-              <div className={styles.featureIcon}>{feature.icon}</div>
+              <div className={styles.featureIcon}>{FEATURE_ICONS[i]}</div>
               <h3 className={styles.featureTitle}>{feature.title}</h3>
               <p className={styles.featureText}>{feature.text}</p>
             </article>

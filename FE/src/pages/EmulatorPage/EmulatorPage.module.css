@@ -356,7 +356,6 @@
   border-radius: 7px;
   background: rgba(255, 255, 255, .03);
   color: var(--text-secondary);
-  font-family: var(--font-mono);
   font-size: 11px;
 }
 
@@ -406,7 +405,6 @@
 .dateText,
 .mutedNumber {
   color: var(--text-tertiary);
-  font-family: var(--font-mono);
   font-size: 11px;
 }
 

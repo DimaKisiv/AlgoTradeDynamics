@@ -120,7 +120,6 @@
 .heroWindowBar span:nth-child(3) { background: #00e08f; }
 .heroWindowBar p {
   margin-left: auto;
-  font-family: var(--font-mono);
   font-size: 11px;
   color: var(--text-tertiary);
   letter-spacing: 0.02em;
@@ -173,7 +172,6 @@
   color: var(--text-tertiary);
 }
 .heroChipValue {
-  font-family: var(--font-mono);
   font-weight: 600;
   font-size: 14px;
   color: var(--text-primary);

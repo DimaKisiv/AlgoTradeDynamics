@@ -1,3 +1,8 @@
+.header {
+  display: flex;
+  padding: 0 20px;
+}
+
 .nav {
   position: fixed;
   top: 0;
@@ -10,6 +15,7 @@
   transition: background var(--t-base), backdrop-filter var(--t-base),
     border-color var(--t-base);
   border-bottom: 1px solid transparent;
+  padding: 0 20px;
 }
 
 .navScrolled {
@@ -155,7 +161,40 @@
 .navCtaBtn span { transition: transform var(--t-fast); }
 .navCtaBtn:hover span { transform: translateX(3px); }
 
+.langSwitch {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.langButton {
+  min-width: 38px;
+  padding: 6px 10px;
+  border-radius: var(--r-full);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+  transition: color var(--t-fast), background var(--t-fast);
+}
+
+.langButton:hover {
+  color: var(--text-primary);
+}
+
+.langButtonActive {
+  color: var(--text-primary);
+  background: var(--surface-elevated);
+}
+
 @media (max-width: 720px) {
   .navLinks { display: none; }
   .navAccountEmail { display: none; }
+  .langButton {
+    min-width: 34px;
+    padding: 6px 8px;
+  }
 }

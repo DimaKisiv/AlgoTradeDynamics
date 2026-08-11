@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import styles from './LoginPage.module.css';
 
 export default function LoginPage() {
+  const { t } = useLanguage();
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -24,7 +26,7 @@ export default function LoginPage() {
       await login(email, password);
       navigate(from, { replace: true });
     } catch (err) {
-      setError(err.detail || err.message || 'Не вдалося увійти');
+      setError(err.detail || err.message || t('login.errorFallback'));
     } finally {
       setLoading(false);
     }
@@ -33,13 +35,13 @@ export default function LoginPage() {
   return (
     <main className={styles.auth}>
       <div className={`${styles.card} glass-strong`}>
-        <span className="eyebrow">Вхід</span>
-        <h1 className={`display-3 ${styles.title}`}>З поверненням.</h1>
-        <p className="lead">Увійдіть, щоб працювати з ботами, emulator та backtests.</p>
+        <span className="eyebrow">{t('login.eyebrow')}</span>
+        <h1 className={`display-3 ${styles.title}`}>{t('login.title')}</h1>
+        <p className="lead">{t('login.lead')}</p>
 
         <form className={styles.form} onSubmit={handleSubmit}>
           <label className={styles.field}>
-            <span>Email</span>
+            <span>{t('login.email')}</span>
             <input
               type="email"
               value={email}
@@ -50,7 +52,7 @@ export default function LoginPage() {
             />
           </label>
           <label className={styles.field}>
-            <span>Пароль</span>
+            <span>{t('login.password')}</span>
             <input
               type="password"
               value={password}
@@ -64,14 +66,14 @@ export default function LoginPage() {
           {error && <div className={styles.error} role="alert">⚠ {error}</div>}
 
           <button type="submit" className={styles.submit} disabled={loading}>
-            {loading ? 'Вхід…' : 'Увійти'}
+            {loading ? t('login.submitLoading') : t('login.submit')}
           </button>
         </form>
 
         <p className={styles.switch}>
-          Немає акаунта? <Link to="/register">Зареєструватися</Link>
+          {t('login.noAccount')} <Link to="/register">{t('login.registerLink')}</Link>
         </p>
-        <p className={styles.demo}>Демо: demo@algotrade.dev / demo1234</p>
+        <p className={styles.demo}>{t('login.demo')}: demo@algotrade.dev / demo1234</p>
       </div>
     </main>
   );

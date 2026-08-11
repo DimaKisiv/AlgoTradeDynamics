@@ -1,7 +1,10 @@
 import { Github } from 'lucide-react';
+import { useLanguage } from '../../../context/LanguageContext';
 import styles from './Footer.module.css';
 
 export default function Footer() {
+  const { t } = useLanguage();
+
   return (
     <footer className={styles.footer}>
       <div className={`container ${styles.footerInner}`}>
@@ -10,22 +13,22 @@ export default function Footer() {
           <div>
             <p className={styles.footerName}>AlgoTradeDynamics</p>
             <p className={styles.footerCaption}>
-              Дипломний MVP · Neoversity MSc Computer Science · 2026
+              {t('footer.caption')}
             </p>
           </div>
         </div>
 
         <div className={styles.footerCols}>
           <div>
-            <p className={styles.footerTitle}>Продукт</p>
+            <p className={styles.footerTitle}>{t('footer.product')}</p>
             <ul>
-              <li><a href="/backtests">Backtest engine</a></li>
-              <li><a href="/bots">Trading bots</a></li>
+              <li><a href="/backtests">{t('footer.backtestEngine')}</a></li>
+              <li><a href="/bots">{t('footer.tradingBots')}</a></li>
               <li><a href="http://localhost:8000/docs" target="_blank" rel="noreferrer">API · Swagger</a></li>
             </ul>
           </div>
           <div>
-            <p className={styles.footerTitle}>Команда</p>
+            <p className={styles.footerTitle}>{t('footer.team')}</p>
             <ul>
               <li>Дмитро Кісів</li>
               <li>Ілля Артюшенко</li>
@@ -37,10 +40,9 @@ export default function Footer() {
 
       <div className={`${styles.footerBase} container`}>
         <p className={styles.footerLegal}>
-          Цей MVP не виконує реальних торгових операцій і не є фінансовою порадою. Призначений лише
-          для тестування алгоритмів на локальному exchange emulator.
+          {t('footer.legal')}
         </p>
-        <a className={styles.footerGithub} href="#" aria-label="GitHub">
+        <a className={styles.footerGithub} href="#" aria-label={t('footer.githubAria')}>
           <Github size={16} />
         </a>
       </div>

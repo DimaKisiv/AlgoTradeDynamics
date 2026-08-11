@@ -350,7 +350,6 @@
 
 .orderTotals b {
   color: var(--text-primary);
-  font-family: var(--font-mono);
 }
 
 .orderTabs {
@@ -393,7 +392,6 @@
   border-radius: 5px;
   background: rgba(255, 255, 255, .06);
   color: var(--text-tertiary);
-  font-family: var(--font-mono);
   font-size: 10px;
 }
 

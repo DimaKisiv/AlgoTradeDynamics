@@ -17,4 +17,8 @@ def log_bot_event(db, bot: TradingBot, event_type: str, message: str, payload: d
     )
     db.add(event)
     db.flush()
+    # Queue external delivery in the same DB transaction. Telegram I/O is handled
+    # asynchronously by the notification outbox worker, never inside bot runtime.
+    from app.services.telegram_notifications import enqueue_event_notification
+    enqueue_event_notification(db, event)
     return event

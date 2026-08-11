@@ -935,7 +935,11 @@ def sync_position_take_profit(db, bot: TradingBot) -> tuple[list[TradingBotOrder
     event_type = "position_take_profit_updated" if active_position_tps else "position_take_profit_created"
     message = "Updated position take-profit order" if active_position_tps else "Created position take-profit order"
     log_bot_event(db, bot, event_type, message, {
-                  "order_link_id": target_order.order_link_id})
+        "order_link_id": target_order.order_link_id,
+        "side": target_order.side,
+        "qty": target_order.qty,
+        "price": target_order.price,
+    })
     return changed_orders, position["size"]
 
 
@@ -1150,7 +1154,11 @@ def create_missing_grid_entries(db, bot: TradingBot, current_position_size: floa
         pending_buy_qty += created.qty
         current_open_orders += 1
         log_bot_event(db, bot, "grid_entry_created", "Created grid entry order", {
-                      "order_link_id": order.order_link_id})
+            "order_link_id": order.order_link_id,
+            "side": order.side,
+            "qty": order.qty,
+            "price": order.price,
+        })
 
     return created_orders
 
@@ -1260,18 +1268,31 @@ def tick_grid_bot(db, bot: TradingBot) -> dict:
             if change["became_filled"] and order.order_role.startswith("grid_entry_"):
                 if order.filled_event_logged_at is None:
                     log_bot_event(db, bot, "grid_entry_filled", "Grid entry filled", {
-                                  "order_link_id": order.order_link_id})
+                        "order_link_id": order.order_link_id,
+                        "side": order.side,
+                        "qty": order.qty,
+                        "price": order.price,
+                    })
                     _mark_order_filled_logged(order)
                     db.add(order)
             if change["became_filled"] and order.order_role == POSITION_TP_ROLE:
                 if order.filled_event_logged_at is None:
                     log_bot_event(db, bot, "position_take_profit_filled",
-                                  "Position take-profit filled", {"order_link_id": order.order_link_id})
+                        "Position take-profit filled", {
+                            "order_link_id": order.order_link_id,
+                            "side": order.side,
+                            "qty": order.qty,
+                            "price": order.price,
+                        })
                     _mark_order_filled_logged(order)
                     db.add(order)
             if change["status_changed"] and change["new_status"] == "Rejected":
                 log_bot_event(db, bot, "order_rejected", "Order rejected", {
-                              "order_link_id": order.order_link_id})
+                    "order_link_id": order.order_link_id,
+                    "side": order.side,
+                    "qty": order.qty,
+                    "price": order.price,
+                })
 
         rollover_changes, rollover_triggered, cancellation_confirmed = (
             _rollover_completed_take_profit_cycle(db, bot)

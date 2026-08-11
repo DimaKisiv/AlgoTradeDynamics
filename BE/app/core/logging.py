@@ -25,6 +25,10 @@ def configure_logging() -> None:
     # Tame noisy libs.
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
     logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
+    # Telegram Bot API credentials live in the request URL; do not let HTTP client
+    # INFO logs print outgoing URLs containing the secret bot token.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 
 def get_logger(name: str) -> logging.Logger:

@@ -44,6 +44,14 @@ class Settings(BaseSettings):
     rate_limit_api_write_requests: int = 120
     rate_limit_api_write_window_seconds: int = 60
 
+    # --- Telegram notifications (single shared bot, per-user chat binding) ---
+    telegram_bot_token: str = ""
+    telegram_bot_username: str = ""
+    telegram_polling_enabled: bool = True
+    telegram_link_expire_minutes: int = 10
+    telegram_poll_timeout_seconds: int = 20
+    telegram_delivery_interval_seconds: int = 2
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     @property

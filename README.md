@@ -282,3 +282,28 @@ Default limits:
 Ліміти конфігуруються env-параметрами `RATE_LIMIT_*`. `RATE_LIMIT_TRUST_PROXY_HEADERS=false` навмисно не довіряє `X-Forwarded-For`; вмикати його варто лише за reverse proxy, який перезаписує/очищає proxy headers.
 
 Для horizontal scaling limiter треба перенести в shared storage (наприклад Redis), оскільки поточні counters живуть у пам'яті одного backend process.
+
+## Telegram notifications
+
+AlgoTradeDynamics can use one shared Telegram bot for all platform users. Each application user securely links their own Telegram chat from **Account → Telegram → Connect Telegram**. The backend stores the per-user `chat_id`; the shared bot token remains only on the backend.
+
+1. In Telegram open `@BotFather` and create one bot with `/newbot`.
+2. Copy `.env.example` to `.env` in the project root.
+3. Set:
+
+```env
+TELEGRAM_BOT_TOKEN=<token from BotFather>
+TELEGRAM_BOT_USERNAME=<bot username without @>
+```
+
+4. Restart the stack:
+
+```bash
+docker compose down
+docker compose up --build
+```
+
+5. Sign in to AlgoTradeDynamics, open `/account`, click **Connect Telegram**, then press **Start** in Telegram.
+6. Use **Test notification** to verify delivery.
+
+For the local/demo MVP the backend uses Telegram `getUpdates` long polling, so no public webhook URL is required. Link codes are random, one-time, and expire after 10 minutes. A user can independently enable/disable trade events, bot start/stop events, risk warnings, and errors. Backtest events are intentionally excluded from external Telegram notifications.

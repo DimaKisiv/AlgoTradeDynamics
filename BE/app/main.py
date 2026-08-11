@@ -12,6 +12,7 @@ from app.api.health import router as health_router
 from app.bot_engine.runtime import start_bot_worker, stop_bot_worker
 from app.core.config import get_settings
 from app.core.logging import configure_logging, get_logger
+from app.core.rate_limit import RateLimitMiddleware
 from app.db.base import Base
 from app.db.session import engine
 from app.models import backtest, refresh_token, trading_bot, trading_bot_event, trading_bot_order, user  # noqa: F401  (register models)
@@ -47,6 +48,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Add rate limiting first and CORS second. Starlette wraps the most recently
+# added middleware outermost, so even 429 responses receive CORS headers.
+app.add_middleware(RateLimitMiddleware, settings=settings)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,

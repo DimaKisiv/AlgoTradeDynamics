@@ -264,3 +264,21 @@ Historical backtests are strategy-specific:
 - `pattern_scalper` uses the fast in-memory historical engine. It loads the selected dataset, calculates the same EMA/RSI/ATR/breakout/volume signal logic locally, simulates market fills with the configured fees and slippage, and persists the same chart/cycle/order/execution result contract without creating an emulator account.
 
 The emulator itself is unchanged and remains available for manual/scenario/historical replay and grid backtests.
+
+## Security: API rate limiting
+
+Backend має process-local sliding-window rate limiter для demo/MVP deployment. Redis не потрібен, поки backend працює одним process/container.
+
+Default limits:
+
+- `POST /api/auth/login` — 5 requests / 60 s / IP;
+- `POST /api/auth/register` — 5 requests / 60 s / IP;
+- `POST /api/auth/refresh` — 30 requests / 60 s / IP;
+- інші GET API requests — 300 requests / 60 s / authenticated user, або / IP без валідного JWT;
+- POST/PUT/PATCH/DELETE API requests — 120 requests / 60 s / authenticated user, або / IP без валідного JWT.
+
+При перевищенні backend повертає `429 Too Many Requests`, `Retry-After`, `X-RateLimit-Limit`, `X-RateLimit-Remaining` і `X-RateLimit-Reset`. `/health`, `/docs` та інші non-`/api` routes не обмежуються.
+
+Ліміти конфігуруються env-параметрами `RATE_LIMIT_*`. `RATE_LIMIT_TRUST_PROXY_HEADERS=false` навмисно не довіряє `X-Forwarded-For`; вмикати його варто лише за reverse proxy, який перезаписує/очищає proxy headers.
+
+Для horizontal scaling limiter треба перенести в shared storage (наприклад Redis), оскільки поточні counters живуть у пам'яті одного backend process.

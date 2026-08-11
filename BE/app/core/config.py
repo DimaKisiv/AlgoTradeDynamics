@@ -28,6 +28,22 @@ class Settings(BaseSettings):
     refresh_cookie_secure: bool = False
     refresh_cookie_samesite: str = "lax"
 
+    # --- API rate limiting (single-process MVP) ---
+    rate_limit_enabled: bool = True
+    rate_limit_trust_proxy_headers: bool = False
+
+    rate_limit_login_requests: int = 5
+    rate_limit_login_window_seconds: int = 60
+    rate_limit_register_requests: int = 5
+    rate_limit_register_window_seconds: int = 60
+    rate_limit_refresh_requests: int = 30
+    rate_limit_refresh_window_seconds: int = 60
+
+    rate_limit_api_requests: int = 300
+    rate_limit_api_window_seconds: int = 60
+    rate_limit_api_write_requests: int = 120
+    rate_limit_api_write_window_seconds: int = 60
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     @property

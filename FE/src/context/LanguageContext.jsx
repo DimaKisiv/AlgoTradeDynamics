@@ -34,10 +34,27 @@ export function LanguageProvider({ children }) {
       return fallback !== null && fallback !== undefined ? fallback : key;
     };
 
+    const locale = language === 'uk' ? 'uk-UA' : 'en-US';
+    const tr = (ukrainian, english) => (language === 'uk' ? ukrainian : english);
+    const formatDate = (value, options) => {
+      if (!value) return '—';
+      return new Date(value).toLocaleDateString(locale, options);
+    };
+    const formatDateTime = (value, options) => {
+      if (!value) return '—';
+      return new Date(value).toLocaleString(locale, options);
+    };
+    const formatNumber = (value, options) => Number(value).toLocaleString(locale, options);
+
     return {
       language,
+      locale,
       setLanguage,
       t,
+      tr,
+      formatDate,
+      formatDateTime,
+      formatNumber,
       isUkrainian: language === 'uk',
     };
   }, [language]);

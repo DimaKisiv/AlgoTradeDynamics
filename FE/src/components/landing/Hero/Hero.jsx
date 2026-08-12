@@ -14,7 +14,7 @@ const fadeUp = {
 };
 
 export default function Hero() {
-  const { t } = useLanguage();
+  const { t, tr } = useLanguage();
 
   return (
     <section className={styles.hero}>
@@ -60,7 +60,7 @@ export default function Hero() {
           <div className={`${styles.heroWindow} glass-strong`}>
             <div className={styles.heroWindowBar}>
               <span /><span /><span />
-              <p>BTCUSDT · Grid Bot · Historical</p>
+              <p>BTCUSDT · Grid Bot · {tr('Історичний', 'Historical')}</p>
             </div>
             <div className={styles.heroWindowBody}>
               <div className={styles.heroWindowStat}>
@@ -69,7 +69,7 @@ export default function Hero() {
                 <p className="text-tertiary">{t('hero.periodLabel')}</p>
               </div>
               <div className={`${styles.heroWindowStat} ${styles.heroWindowStatRight}`}>
-                <p className="eyebrow">Win Rate</p>
+                <p className="eyebrow">{tr('Відсоток перемог', 'Win Rate')}</p>
                 <h3 className="display-3">58.6%</h3>
                 <p className="text-tertiary">{t('hero.winRateLabel')}</p>
               </div>

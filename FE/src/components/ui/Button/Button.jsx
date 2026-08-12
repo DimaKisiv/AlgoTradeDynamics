@@ -1,3 +1,4 @@
+import { useLanguage } from '../../../context/LanguageContext';
 import styles from './Button.module.css';
 
 export default function Button({
@@ -12,6 +13,7 @@ export default function Button({
   className = '',
   ...props
 }) {
+  const { tr } = useLanguage();
   const VARIANTS = {
     primary: styles.btnPrimary,
     danger: styles.btnDanger,
@@ -33,7 +35,7 @@ export default function Button({
   return (
     <button type={type} className={classes} disabled={disabled || loading} {...props}>
       {icon && <span className={styles.btnIcon}>{icon}</span>}
-      <span className={styles.btnLabel}>{loading ? 'Виконується…' : children}</span>
+      <span className={styles.btnLabel}>{loading ? tr('Виконується…', 'Working…') : children}</span>
       {iconRight && <span className={styles.btnIcon}>{iconRight}</span>}
     </button>
   );

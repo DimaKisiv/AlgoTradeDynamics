@@ -11,7 +11,7 @@ export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuth();
-  const { language, setLanguage, t } = useLanguage();
+  const { language, setLanguage, t, tr } = useLanguage();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -68,7 +68,7 @@ export default function Navbar() {
             </div>
 
             <div className={styles.navCta}>
-              <div className={styles.langSwitch} role="group" aria-label="Language switch">
+              <div className={styles.langSwitch} role="group" aria-label={tr("Перемикач мови", "Language switch")}>
                 <button
                     type="button"
                     className={`${styles.langButton} ${language === "uk" ? styles.langButtonActive : ""}`}

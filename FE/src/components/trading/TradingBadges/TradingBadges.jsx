@@ -1,19 +1,28 @@
+import { useLanguage } from "../../../context/LanguageContext";
 import styles from "./TradingBadges.module.css";
 
 const normalize = (value) => String(value || "").trim().toLowerCase();
 
 export function SideBadge({ side }) {
+  const { tr } = useLanguage();
   const value = normalize(side);
   const className = value === "buy" || value === "long"
     ? styles.buy
     : value === "sell" || value === "short"
       ? styles.sell
       : styles.neutral;
+  const labels = {
+    buy: tr('Купівля', 'Buy'),
+    sell: tr('Продаж', 'Sell'),
+    long: 'LONG',
+    short: 'SHORT',
+  };
 
-  return <span className={`${styles.badge} ${styles.sideBadge} ${className}`}>{side || "—"}</span>;
+  return <span className={`${styles.badge} ${styles.sideBadge} ${className}`}>{labels[value] || side || "—"}</span>;
 }
 
 export function StatusBadge({ status }) {
+  const { tr } = useLanguage();
   const value = normalize(status);
   let className = styles.neutral;
 
@@ -33,43 +42,54 @@ export function StatusBadge({ status }) {
     className = styles.triggered;
   }
 
-  return <span className={`${styles.badge} ${className}`}>{status || "—"}</span>;
+  const labels = {
+    new: tr('Новий', 'New'), created: tr('Створено', 'Created'), pendingnew: tr('Очікується', 'Pending'),
+    untriggered: tr('Не спрацював', 'Untriggered'), open: tr('Відкритий', 'Open'), queued: tr('У черзі', 'Queued'),
+    running: tr('Запущено', 'Running'), paused: tr('Пауза', 'Paused'), partiallyfilled: tr('Частково виконано', 'Partially filled'),
+    filled: tr('Виконано', 'Filled'), completed: tr('Завершено', 'Completed'), closed: tr('Закрито', 'Closed'),
+    cancelled: tr('Скасовано', 'Cancelled'), canceled: tr('Скасовано', 'Canceled'), deactivated: tr('Деактивовано', 'Deactivated'),
+    rejected: tr('Відхилено', 'Rejected'), failed: tr('Помилка', 'Failed'), error: tr('Помилка', 'Error'), triggered: tr('Спрацював', 'Triggered'),
+  };
+  return <span className={`${styles.badge} ${className}`}>{labels[value] || status || "—"}</span>;
 }
 
 export function OrderTypeBadge({ type, reduceOnly = false }) {
+  const { tr } = useLanguage();
   const value = normalize(type);
   const className = value === "market" ? styles.market : styles.limit;
 
   return (
     <span className={`${styles.badge} ${className}`}>
-      {type || "—"}{reduceOnly ? " · Reduce" : ""}
+      {value === 'market' ? tr('Ринковий', 'Market') : value === 'limit' ? tr('Лімітний', 'Limit') : type || '—'}{reduceOnly ? ` · ${tr('Reduce', 'Reduce')}` : ''}
     </span>
   );
 }
 
 export function RoleBadge({ role, linkId = "" }) {
+  const { tr } = useLanguage();
   const value = normalize(role || inferRoleFromLinkId(linkId));
   let className = styles.neutral;
-  let label = role || inferRoleFromLinkId(linkId) || "Order";
+  let label = role || inferRoleFromLinkId(linkId) || tr('Ордер', 'Order');
 
   if (value.includes("take_profit") || value.includes("take profit") || value === "tp") {
     className = styles.takeProfit;
-    label = "Position TP";
+    label = tr('TP позиції', 'Position TP');
   } else if (value.includes("grid_entry")) {
     className = styles.grid;
-    label = humanizeGridRole(role || inferRoleFromLinkId(linkId));
+    label = humanizeGridRole(role || inferRoleFromLinkId(linkId), tr);
   } else if (value.includes("entry")) {
     className = styles.entry;
-    label = "Entry";
+    label = tr('Вхід', 'Entry');
   } else if (value.includes("stop") || value.includes("sl")) {
     className = styles.stopLoss;
-    label = "Stop Loss";
+    label = tr('Stop Loss', 'Stop Loss');
   }
 
   return <span className={`${styles.badge} ${className}`}>{label}</span>;
 }
 
 export function EventBadge({ type }) {
+  const { tr } = useLanguage();
   const value = normalize(type);
   let className = styles.eventInfo;
 
@@ -85,7 +105,7 @@ export function EventBadge({ type }) {
     className = styles.eventMarket;
   }
 
-  return <span className={`${styles.badge} ${styles.eventBadge} ${className}`}>{humanize(type)}</span>;
+  return <span className={`${styles.badge} ${styles.eventBadge} ${className}`}>{humanize(type, tr)}</span>;
 }
 
 export function PnlValue({ value, children, className = "" }) {
@@ -114,13 +134,21 @@ export function inferRoleFromLinkId(linkId) {
   return "";
 }
 
-function humanizeGridRole(role) {
+function humanizeGridRole(role, tr) {
   const match = String(role || "").match(/(\d+)$/);
-  return match ? `Grid #${match[1]}` : "Grid entry";
+  return match ? `Grid #${match[1]}` : tr('Grid вхід', 'Grid entry');
 }
 
-function humanize(value) {
-  return String(value || "Event")
+function humanize(value, tr) {
+  const normalized = normalize(value);
+  const known = {
+    bot_started: tr('Бот запущено', 'Bot started'), bot_stopped: tr('Бот зупинено', 'Bot stopped'),
+    order_filled: tr('Ордер виконано', 'Order filled'), order_rejected: tr('Ордер відхилено', 'Order rejected'),
+    position_closed: tr('Позицію закрито', 'Position closed'), risk_blocked: tr('Заблоковано risk guard', 'Blocked by risk guard'),
+    runtime_error: tr('Runtime помилка', 'Runtime error'),
+  };
+  if (known[normalized]) return known[normalized];
+  return String(value || tr('Подія', 'Event'))
     .replace(/_/g, " ")
     .replace(/\b\w/g, (character) => character.toUpperCase());
 }

@@ -42,9 +42,11 @@ import {
   fmtPct,
   fmtPctSigned,
 } from "../../lib/format";
+import { useLanguage } from "../../context/LanguageContext";
 import styles from "./BotDetailPage.module.css";
 
 export default function BotDetailPage() {
+  const { tr, locale } = useLanguage();
   const { botId } = useParams();
   const [bot, setBot] = useState(null);
   const [orders, setOrders] = useState([]);
@@ -85,7 +87,7 @@ export default function BotDetailPage() {
       setRisk(riskData);
       setPerformance(performanceData);
     } catch (e) {
-      setError(e.detail || e.message || "Не вдалося завантажити дані бота.");
+      setError(e.detail || e.message || tr('Не вдалося завантажити дані бота.', 'Failed to load bot data.'));
     } finally {
       setLoading(false);
     }
@@ -93,7 +95,7 @@ export default function BotDetailPage() {
 
   const handleClosePosition = async () => {
     const confirmed = window.confirm(
-      "This will close the current exchange position with a reduce-only market order. It will not delete bot history. Continue?",
+      tr('Поточну біржову позицію буде закрито reduce-only market ордером. Історія бота не буде видалена. Продовжити?', 'This will close the current exchange position with a reduce-only market order. It will not delete bot history. Continue?'),
     );
 
     if (!confirmed) return;
@@ -103,9 +105,9 @@ export default function BotDetailPage() {
       setError("");
       const result = await closeBotPosition(botId, { confirm: true });
       await load();
-      setMessage(result.message || "Position close order submitted.");
+      setMessage(result.message || tr('Ордер на закриття позиції відправлено.', 'Position close order submitted.'));
     } catch (e) {
-      setError(e.detail || e.message || "Не вдалося закрити позицію.");
+      setError(e.detail || e.message || tr('Не вдалося закрити позицію.', 'Failed to close position.'));
     } finally {
       setAction("");
     }
@@ -129,9 +131,9 @@ export default function BotDetailPage() {
       setError("");
       const result = await startBot(botId);
       await load();
-      setMessage(result.message || "Бот запущено.");
+      setMessage(result.message || tr('Бот запущено.', 'Bot started.'));
     } catch (e) {
-      setError(e.detail || e.message || "Не вдалося запустити бота.");
+      setError(e.detail || e.message || tr('Не вдалося запустити бота.', 'Failed to start bot.'));
     } finally {
       setAction("");
     }
@@ -143,9 +145,9 @@ export default function BotDetailPage() {
       setError("");
       await stopBot(botId);
       await load();
-      setMessage("Бот зупинено.");
+      setMessage(tr('Бот зупинено.', 'Bot stopped.'));
     } catch (e) {
-      setError(e.detail || e.message || "Не вдалося зупинити бота.");
+      setError(e.detail || e.message || tr('Не вдалося зупинити бота.', 'Failed to stop bot.'));
     } finally {
       setAction("");
     }
@@ -158,10 +160,10 @@ export default function BotDetailPage() {
       const syncedOrders = await syncBot(botId);
       await load();
       setMessage(
-        `Синхронізацію завершено. Оновлено ордерів: ${syncedOrders.length}.`,
+        `${tr('Синхронізацію завершено. Оновлено ордерів:', 'Sync completed. Orders updated:')} ${syncedOrders.length}.`,
       );
     } catch (e) {
-      setError(e.detail || e.message || "Не вдалося синхронізувати ордери.");
+      setError(e.detail || e.message || tr('Не вдалося синхронізувати ордери.', 'Failed to sync orders.'));
     } finally {
       setAction("");
     }
@@ -173,9 +175,9 @@ export default function BotDetailPage() {
       setError("");
       const cancelled = await cancelBotOrders(botId);
       await load();
-      setMessage(`Скасовано ордерів: ${cancelled.length}.`);
+      setMessage(`${tr('Скасовано ордерів:', 'Orders cancelled:')} ${cancelled.length}.`);
     } catch (e) {
-      setError(e.detail || e.message || "Не вдалося скасувати ордери.");
+      setError(e.detail || e.message || tr('Не вдалося скасувати ордери.', 'Failed to cancel orders.'));
     } finally {
       setAction("");
     }
@@ -183,7 +185,7 @@ export default function BotDetailPage() {
 
   const handleClearHistory = async () => {
     const confirmed = window.confirm(
-      "This will stop the bot, cancel open bot orders, and delete local order/event history. It will NOT close existing Bybit positions. Continue?",
+      tr('Це зупинить бота, скасує відкриті ордери бота та видалить локальну історію ордерів/подій. Існуючі позиції Bybit НЕ будуть закриті. Продовжити?', 'This will stop the bot, cancel open bot orders, and delete local order/event history. It will NOT close existing Bybit positions. Continue?'),
     );
 
     if (!confirmed) {return;}
@@ -197,10 +199,10 @@ export default function BotDetailPage() {
       await load();
 
       setMessage(
-        `History cleared. Deleted orders: ${result.orders_deleted}. Deleted events: ${result.events_deleted}. Cancelled exchange orders: ${result.exchange_orders_cancelled}.`,
+        `${tr('Історію очищено. Видалено ордерів:', 'History cleared. Deleted orders:')} ${result.orders_deleted}. ${tr('Видалено подій:', 'Deleted events:')} ${result.events_deleted}. ${tr('Скасовано біржових ордерів:', 'Cancelled exchange orders:')} ${result.exchange_orders_cancelled}.`,
       );
     } catch (e) {
-      setError(e.detail || e.message || "Не вдалося очистити історію бота.");
+      setError(e.detail || e.message || tr('Не вдалося очистити історію бота.', 'Failed to clear bot history.'));
     } finally {
       setAction("");
     }
@@ -245,7 +247,7 @@ export default function BotDetailPage() {
     ? (positionSize > 0 && tpPrice != null ? 1 : 0)
     : activePositionTakeProfitOrders.length;
   const runtimeState = bot?.runtime_state || bot?.runtime_status || "stopped";
-  const runtimeLabel = getRuntimeLabel(runtimeState);
+  const runtimeLabel = getRuntimeLabel(runtimeState, tr);
   const riskBlocked = Boolean(risk?.blocked);
   const riskAtLimit =
     !riskBlocked &&
@@ -275,10 +277,10 @@ export default function BotDetailPage() {
     ["Rejected", "Failed", "Error"].includes(order.status),
   );
   const orderFilters = [
-    { value: "open", label: "Open", count: openOrders.length },
-    { value: "filled", label: "Filled", count: filledOrders.length },
-    { value: "cancelled", label: "Cancelled", count: cancelledOrders.length },
-    { value: "all", label: "All", count: orders.length },
+    { value: "open", label: tr('Відкриті', 'Open'), count: openOrders.length },
+    { value: "filled", label: tr('Виконані', 'Filled'), count: filledOrders.length },
+    { value: "cancelled", label: tr('Скасовані', 'Cancelled'), count: cancelledOrders.length },
+    { value: "all", label: tr('Усі', 'All'), count: orders.length },
   ];
   const visibleOrders = orderFilter === "open"
     ? openOrders
@@ -293,10 +295,10 @@ export default function BotDetailPage() {
     <main className={styles.botDetail}>
       <div className="container">
         <Link to="/bots" className={styles.backLink}>
-          <ArrowLeft size={16} /> Усі боти
+          <ArrowLeft size={16} /> {tr('Усі боти', 'All bots')}
         </Link>
 
-        {loading && <div className={styles.state}>Завантаження…</div>}
+        {loading && <div className={styles.state}>{tr('Завантаження…', 'Loading…')}</div>}
         {error && (
           <div className={`${styles.state} ${styles.stateError}`}>{error}</div>
         )}
@@ -306,43 +308,43 @@ export default function BotDetailPage() {
           <div className={styles.layout}>
             <section className={styles.summary}>
               <header className={styles.head}>
-                <span className="eyebrow">Bot #{bot.id}</span>
+                <span className="eyebrow">{tr('Бот', 'Bot')} #{bot.id}</span>
                 <h1 className="display-2">{bot.name}</h1>
                 <p className="lead">
                   {isScalper
-                    ? "Pattern Scalper аналізує лише закриті свічки, чекає breakout, а потім retest і утримання пробитого рівня перед входом. Після входу керує однією LONG або SHORT позицією через SL, TP, timeout і cooldown."
-                    : "Поки бот має статус running, бекендовий worker синхронізує ордери, підтримує Position TP для long-позиції та відновлює рівні сітки після закриття циклів."}
+                    ? tr('Pattern Scalper аналізує лише закриті свічки, чекає breakout, а потім retest і утримання пробитого рівня перед входом. Після входу керує однією LONG або SHORT позицією через SL, TP, timeout і cooldown.', 'Pattern Scalper analyzes only closed candles, waits for a breakout, then a retest and hold of the broken level before entry. After entry it manages a single LONG or SHORT position through SL, TP, timeout, and cooldown.')
+                    : tr('Поки бот має статус running, бекендовий worker синхронізує ордери, підтримує Position TP для long-позиції та відновлює рівні сітки після закриття циклів.', 'While the bot is running, the backend worker syncs orders, maintains Position TP for a long position, and restores grid levels after cycles close.')}
                 </p>
               </header>
 
               <div className={styles.summaryGrid}>
                 <SummaryCard
-                  label="Last sync"
-                  value={fmtDateTime(bot.last_run_at)}
+                  label={tr('Остання синхронізація', 'Last sync')}
+                  value={fmtDateTime(bot.last_run_at, locale)}
                 />
                 <SummaryCard
-                  label="Open orders"
+                  label={tr('Відкриті ордери', 'Open orders')}
                   value={String(openOrders.length)}
                   tone={openOrders.length > 0 ? "open" : "neutral"}
                 />
                 <SummaryCard
-                  label="Filled orders"
+                  label={tr('Виконані ордери', 'Filled orders')}
                   value={String(filledOrders.length)}
                   tone={filledOrders.length > 0 ? "positive" : "neutral"}
                 />
                 <SummaryCard
-                  label={isScalper ? "Signal score" : "Active Position TP"}
+                  label={isScalper ? tr('Score сигналу', 'Signal score') : tr('Активний Position TP', 'Active Position TP')}
                   value={isScalper
                     ? (signalScore == null ? "—" : `${Math.round(signalScore * 100)}%`)
                     : String(activeManagedTakeProfits)}
                   tone={(isScalper ? signalScore != null : activeManagedTakeProfits > 0) ? "tp" : "neutral"}
                 />
                 <SummaryCard
-                  label="Closed cycles"
+                  label={tr('Закриті цикли', 'Closed cycles')}
                   value={String(closedCycles)}
                 />
                 <SummaryCard
-                  label="Total PnL"
+                  label={tr('Загальний PnL', 'Total PnL')}
                   value={<PnlValue value={totalPnl}>{totalPnl == null ? "—" : fmtMoneySigned(totalPnl)}</PnlValue>}
                   tone={totalPnl == null ? "neutral" : totalPnl >= 0 ? "positive" : "negative"}
                 />
@@ -350,8 +352,8 @@ export default function BotDetailPage() {
 
               <Card className={styles.configCard}>
                 <CardHeader
-                  eyebrow="Trading result"
-                  title="Performance Summary"
+                  eyebrow={tr('Результат торгівлі', 'Trading result')}
+                  title={tr('Підсумок результативності', 'Performance Summary')}
                   action={
                     <span
                       className={`${styles.statusBadge} ${
@@ -360,71 +362,71 @@ export default function BotDetailPage() {
                           : styles.statusLiveDisabled
                       }`}
                     >
-                      {totalPnl == null ? "No data" : totalPnl >= 0 ? "Profit" : "Loss"}
+                      {totalPnl == null ? tr('Немає даних', 'No data') : totalPnl >= 0 ? tr('Прибуток', 'Profit') : tr('Збиток', 'Loss')}
                     </span>
                   }
                 />
 
                 <dl className={styles.configGrid}>
-                  <ConfigItem label="Closed Cycles" value={String(closedCycles)} mono />
-                  <ConfigItem label="Winning Cycles" value={String(winningCycles)} mono />
+                  <ConfigItem label={tr('Закриті цикли', 'Closed Cycles')} value={String(closedCycles)} mono />
+                  <ConfigItem label={tr('Прибуткові цикли', 'Winning Cycles')} value={String(winningCycles)} mono />
                   <ConfigItem
-                    label="Win Rate"
+                    label={tr('Win Rate', 'Win Rate')}
                     value={winRatePercent == null ? "—" : fmtPct(winRatePercent)}
                     mono
                   />
                   <ConfigItem
-                    label="Gross Realized PnL"
+                    label={tr('Валовий Realized PnL', 'Gross Realized PnL')}
                     value={<PnlValue value={grossRealizedPnl}>{grossRealizedPnl == null ? "—" : fmtMoneySigned(grossRealizedPnl)}</PnlValue>}
                     mono
                   />
                   <ConfigItem
-                    label="Closed Fees"
+                    label={tr('Комісії закритих циклів', 'Closed Fees')}
                     value={closedFees == null ? "—" : fmtMoney(closedFees)}
                     mono
                   />
                   <ConfigItem
-                    label="Total Fees"
+                    label={tr('Загальні комісії', 'Total Fees')}
                     value={totalFees == null ? "—" : fmtMoney(totalFees)}
                     mono
                   />
                   <ConfigItem
-                    label="Net Realized PnL"
+                    label={tr('Чистий Realized PnL', 'Net Realized PnL')}
                     value={<PnlValue value={netRealizedPnl}>{netRealizedPnl == null ? "—" : fmtMoneySigned(netRealizedPnl)}</PnlValue>}
                     mono
                   />
                   <ConfigItem
-                    label="Realized PnL %"
+                    label={tr('Realized PnL %', 'Realized PnL %')}
                     value={<PnlValue value={realizedPnlPercent}>{realizedPnlPercent == null ? "—" : fmtPctSigned(realizedPnlPercent)}</PnlValue>}
                     mono
                   />
                   <ConfigItem
-                    label="Average Cycle PnL"
+                    label={tr('Середній PnL циклу', 'Average Cycle PnL')}
                     value={<PnlValue value={averageCyclePnl}>{averageCyclePnl == null ? "—" : fmtMoneySigned(averageCyclePnl)}</PnlValue>}
                     mono
                   />
                   <ConfigItem
-                    label="Open Unrealized PnL"
+                    label={tr('Відкритий Unrealized PnL', 'Open Unrealized PnL')}
                     value={<PnlValue value={performanceUnrealizedPnl}>{performanceUnrealizedPnl == null ? "—" : fmtMoneySigned(performanceUnrealizedPnl)}</PnlValue>}
                     mono
                   />
                   <ConfigItem
-                    label="Total PnL"
+                    label={tr('Загальний PnL', 'Total PnL')}
                     value={<PnlValue value={totalPnl}>{totalPnl == null ? "—" : fmtMoneySigned(totalPnl)}</PnlValue>}
                     mono
                   />
                   <ConfigItem
-                    label="Total PnL %"
+                    label={tr('Загальний PnL %', 'Total PnL %')}
                     value={<PnlValue value={totalPnlPercent}>{totalPnlPercent == null ? "—" : fmtPctSigned(totalPnlPercent)}</PnlValue>}
                     mono
                   />
                   <ConfigItem
-                    label="Open Position Qty"
+                    label={tr('Кількість відкритої позиції', 'Open Position Qty')}
                     value={openPositionQty == null ? "—" : fmtNumber(openPositionQty, 6)}
                     mono
                   />
                   <ConfigItem
-                    label="Open Position Value"
+                    label={tr('Вартість відкритої позиції', 'Open Position Value')}
                     value={openPositionValue == null ? "—" : fmtMoney(openPositionValue)}
                     mono
                   />
@@ -433,20 +435,20 @@ export default function BotDetailPage() {
 
               <Card className={styles.configCard}>
                 <CardHeader
-                  eyebrow="Exchange snapshot"
-                  title="Current Position"
+                  eyebrow={tr('Знімок біржі', 'Exchange snapshot')}
+                  title={tr('Поточна позиція', 'Current Position')}
                 />
 
                 {positionSize > 0 ? (
                   <dl className={styles.configGrid}>
-                    <ConfigItem label="Side" value={<SideBadge side={position?.side || "Buy"} />} />
+                    <ConfigItem label={tr('Сторона', 'Side')} value={<SideBadge side={position?.side || "Buy"} />} />
                     <ConfigItem
-                      label="Size"
+                      label={tr('Розмір', 'Size')}
                       value={fmtNumber(positionSize, 6)}
                       mono
                     />
                     <ConfigItem
-                      label="Avg Entry Price"
+                      label={tr('Середня ціна входу', 'Avg Entry Price')}
                       value={
                         avgEntryPrice == null
                           ? "—"
@@ -455,22 +457,22 @@ export default function BotDetailPage() {
                       mono
                     />
                     <ConfigItem
-                      label="Mark Price"
+                      label={tr('Mark Price', 'Mark Price')}
                       value={markPrice == null ? "—" : fmtNumber(markPrice, 4)}
                       mono
                     />
                     <ConfigItem
-                      label="Unrealized PnL"
+                      label={tr('Unrealized PnL', 'Unrealized PnL')}
                       value={<PnlValue value={unrealizedPnl}>{unrealizedPnl == null ? "—" : fmtMoneySigned(unrealizedPnl)}</PnlValue>}
                       mono
                     />
                     <ConfigItem
-                      label="Unrealized PnL %"
+                      label={tr('Unrealized PnL %', 'Unrealized PnL %')}
                       value={<PnlValue value={unrealizedPnlPercent}>{unrealizedPnlPercent == null ? "—" : fmtPctSigned(unrealizedPnlPercent)}</PnlValue>}
                       mono
                     />
                     <ConfigItem
-                      label="Liquidation Price"
+                      label={tr('Ціна ліквідації', 'Liquidation Price')}
                       value={
                         position?.liq_price == null
                           ? "—"
@@ -479,33 +481,33 @@ export default function BotDetailPage() {
                       mono
                     />
                     <ConfigItem
-                      label="Leverage"
+                      label={tr('Плече', 'Leverage')}
                       value={position?.leverage || "—"}
                       mono
                     />
                     <ConfigItem
-                      label="Margin Mode"
+                      label={tr('Режим маржі', 'Margin Mode')}
                       value={position?.margin_mode || "—"}
                     />
                     <ConfigItem
-                      label="Position Value"
+                      label={tr('Вартість позиції', 'Position Value')}
                       value={
                         positionValue == null ? "—" : fmtMoney(positionValue)
                       }
                       mono
                     />
                     <ConfigItem
-                      label={isScalper ? "Managed TP Price" : "Active TP Price"}
+                      label={isScalper ? tr('Керована ціна TP', 'Managed TP Price') : tr('Активна ціна TP', 'Active TP Price')}
                       value={tpPrice == null ? "—" : fmtNumber(tpPrice, 4)}
                       mono
                     />
                     <ConfigItem
-                      label={isScalper ? "Managed TP Qty" : "Active TP Qty"}
+                      label={isScalper ? tr('Керована кількість TP', 'Managed TP Qty') : tr('Активна кількість TP', 'Active TP Qty')}
                       value={tpQty == null ? "—" : fmtNumber(tpQty, 6)}
                       mono
                     />
                     <ConfigItem
-                      label="TP Distance %"
+                      label={tr('Відстань до TP %', 'TP Distance %')}
                       value={
                         tpDistancePercent == null
                           ? "—"
@@ -515,14 +517,14 @@ export default function BotDetailPage() {
                     />
                   </dl>
                 ) : (
-                  <div className={styles.emptyOrders}>No open position</div>
+                  <div className={styles.emptyOrders}>{tr('Немає відкритої позиції', 'No open position')}</div>
                 )}
               </Card>
 
               <Card className={styles.configCard}>
                 <CardHeader
-                  eyebrow="Safety"
-                  title="Risk Management"
+                  eyebrow={tr('Безпека', 'Safety')}
+                  title={tr('Керування ризиком', 'Risk Management')}
                   action={
                     <div className={styles.badgeRow}>
                       <span
@@ -535,16 +537,16 @@ export default function BotDetailPage() {
                         }`}
                       >
                         {riskBlocked
-                          ? "Blocked"
+                          ? tr('Заблоковано', 'Blocked')
                           : riskAtLimit
-                            ? "At limit"
-                            : "OK"}
+                            ? tr('На ліміті', 'At limit')
+                            : 'OK'}
                       </span>
                       {liveDisabled ? (
                         <span
                           className={`${styles.statusBadge} ${styles.statusLiveDisabled}`}
                         >
-                          Live disabled
+                          {tr('Live вимкнено', 'Live disabled')}
                         </span>
                       ) : null}
                     </div>
@@ -553,27 +555,27 @@ export default function BotDetailPage() {
 
                 <dl className={styles.configGrid}>
                   <ConfigItem
-                    label="Max Position Qty"
+                    label={tr('Макс. кількість позиції', 'Max Position Qty')}
                     value={formatMaybeNumber(risk?.max_position_qty, 6)}
                     mono
                   />
                   <ConfigItem
-                    label="Current Position Qty"
+                    label={tr('Поточна кількість позиції', 'Current Position Qty')}
                     value={formatMaybeNumber(risk?.current_position_qty, 6)}
                     mono
                   />
                   <ConfigItem
-                    label={isScalper ? "Pending Entry Qty" : "Pending Buy Qty"}
+                    label={isScalper ? tr('Кількість очікуючого входу', 'Pending Entry Qty') : tr('Кількість очікуючої купівлі', 'Pending Buy Qty')}
                     value={formatMaybeNumber(risk?.pending_buy_qty, 6)}
                     mono
                   />
                   <ConfigItem
-                    label="Potential Total Qty"
+                    label={tr('Потенційна загальна кількість', 'Potential Total Qty')}
                     value={formatMaybeNumber(risk?.potential_total_qty, 6)}
                     mono
                   />
                   <ConfigItem
-                    label="Max Open Orders"
+                    label={tr('Макс. відкритих ордерів', 'Max Open Orders')}
                     value={
                       risk?.max_open_orders == null
                         ? "—"
@@ -582,7 +584,7 @@ export default function BotDetailPage() {
                     mono
                   />
                   <ConfigItem
-                    label="Current Open Orders"
+                    label={tr('Поточні відкриті ордери', 'Current Open Orders')}
                     value={
                       risk?.current_open_orders == null
                         ? "—"
@@ -591,23 +593,23 @@ export default function BotDetailPage() {
                     mono
                   />
                   <ConfigItem
-                    label="Max Notional"
+                    label={tr('Макс. notional', 'Max Notional')}
                     value={formatMaybeMoney(risk?.max_notional_usdt)}
                     mono
                   />
                   <ConfigItem
-                    label="Estimated Notional"
+                    label={tr('Орієнтовний notional', 'Estimated Notional')}
                     value={formatMaybeMoney(risk?.estimated_notional_usdt)}
                     mono
                   />
                   <ConfigItem
-                    label="Live Trading Allowed"
-                    value={risk?.allow_live_trading ? "Yes" : "No"}
+                    label={tr('Live trading дозволено', 'Live Trading Allowed')}
+                    value={risk?.allow_live_trading ? tr('Так', 'Yes') : tr('Ні', 'No')}
                   />
                   <ConfigItem
-                    label="Risk Status"
+                    label={tr('Статус ризику', 'Risk Status')}
                     value={
-                      riskBlocked ? "Blocked" : riskAtLimit ? "At limit" : "OK"
+                      riskBlocked ? tr('Заблоковано', 'Blocked') : riskAtLimit ? tr('На ліміті', 'At limit') : 'OK'
                     }
                   />
                 </dl>
@@ -619,8 +621,8 @@ export default function BotDetailPage() {
 
               <Card className={styles.configCard}>
                 <CardHeader
-                  eyebrow="Configuration"
-                  title="Поточні параметри"
+                  eyebrow={tr('Конфігурація', 'Configuration')}
+                  title={tr('Поточні параметри', 'Current settings')}
                   action={
                     <span
                       className={`${styles.runtimeBadge} ${styles[`runtime${capitalizeRuntimeState(runtimeState)}`] || ""}`}
@@ -631,66 +633,66 @@ export default function BotDetailPage() {
                 />
 
                 <dl className={styles.configGrid}>
-                  <ConfigItem label="Exchange" value={bot.exchange} />
-                  <ConfigItem label="Environment" value={bot.environment} />
-                  <ConfigItem label="Category" value={bot.category} />
-                  <ConfigItem label="Symbol" value={bot.symbol} mono />
-                  <ConfigItem label="Strategy" value={bot.strategy_type} />
+                  <ConfigItem label={tr('Біржа', 'Exchange')} value={bot.exchange} />
+                  <ConfigItem label={tr('Середовище', 'Environment')} value={bot.environment} />
+                  <ConfigItem label={tr('Категорія', 'Category')} value={bot.category} />
+                  <ConfigItem label={tr('Символ', 'Symbol')} value={bot.symbol} mono />
+                  <ConfigItem label={tr('Стратегія', 'Strategy')} value={bot.strategy_type} />
                   <ConfigItem
-                    label="Order Qty"
+                    label={tr('Кількість ордера', 'Order Qty')}
                     value={fmtNumber(bot.order_qty, 6)}
                     mono
                   />
                   {isScalper ? (
                     <>
-                      <ConfigItem label="Timeframe" value={`${bot.settings?.timeframe || "5"}m`} mono />
-                      <ConfigItem label="Entry Model" value={Number(bot.settings?.strategy_revision || 4) >= 4 ? "Market context + patterns" : Number(bot.settings?.strategy_revision || 3) >= 3 ? "Breakout → Retest" : "Breakout"} />
-                      <ConfigItem label="Context TF" value={`${bot.settings?.context_timeframe || "5"}m`} mono />
-                      <ConfigItem label="Patterns" value={Number(bot.settings?.strategy_revision || 4) >= 4 ? "Retest · Flag · Triangle · Double · Sweep" : "Breakout"} />
-                      <ConfigItem label="Minimum Signal" value={fmtPct(Number(bot.settings?.minimum_signal_score || 0.85) * 100)} mono />
-                      <ConfigItem label="Stop-loss ATR" value={fmtNumber(bot.settings?.stop_loss_atr || 1.2)} mono />
-                      <ConfigItem label="Take-profit ATR" value={fmtNumber(bot.settings?.take_profit_atr || 1.8)} mono />
-                      <ConfigItem label="Max Holding" value={`${bot.settings?.max_holding_minutes || 30} min`} mono />
-                      <ConfigItem label="Cooldown" value={`${bot.settings?.cooldown_minutes || 15} min`} mono />
-                      <ConfigItem label="Risk / Trade" value={fmtPct(Number(bot.settings?.risk_per_trade_percent || 0.5))} mono />
-                      <ConfigItem label="Daily Loss Limit" value={fmtPct(Number(bot.settings?.max_daily_loss_percent || 2))} mono />
-                      <ConfigItem label="SHORT Enabled" value={bot.settings?.allow_short ? "Yes" : "No"} />
+                      <ConfigItem label={tr('Таймфрейм', 'Timeframe')} value={`${bot.settings?.timeframe || "5"}m`} mono />
+                      <ConfigItem label={tr('Модель входу', 'Entry Model')} value={Number(bot.settings?.strategy_revision || 4) >= 4 ? tr('Контекст ринку + патерни', 'Market context + patterns') : Number(bot.settings?.strategy_revision || 3) >= 3 ? tr('Пробій → ретест', 'Breakout → Retest') : tr('Пробій', 'Breakout')} />
+                      <ConfigItem label={tr('Context TF', 'Context TF')} value={`${bot.settings?.context_timeframe || "5"}m`} mono />
+                      <ConfigItem label={tr('Патерни', 'Patterns')} value={Number(bot.settings?.strategy_revision || 4) >= 4 ? tr('Ретест · Прапор · Трикутник · Подвійна вершина/дно · Зняття ліквідності', 'Retest · Flag · Triangle · Double · Sweep') : tr('Пробій', 'Breakout')} />
+                      <ConfigItem label={tr('Мін. сигнал', 'Minimum Signal')} value={fmtPct(Number(bot.settings?.minimum_signal_score || 0.85) * 100)} mono />
+                      <ConfigItem label={tr('Stop-loss ATR', 'Stop-loss ATR')} value={fmtNumber(bot.settings?.stop_loss_atr || 1.2)} mono />
+                      <ConfigItem label={tr('Take-profit ATR', 'Take-profit ATR')} value={fmtNumber(bot.settings?.take_profit_atr || 1.8)} mono />
+                      <ConfigItem label={tr('Макс. утримання', 'Max Holding')} value={`${bot.settings?.max_holding_minutes || 30} ${tr('хв', 'min')}`} mono />
+                      <ConfigItem label={tr('Cooldown', 'Cooldown')} value={`${bot.settings?.cooldown_minutes || 15} ${tr('хв', 'min')}`} mono />
+                      <ConfigItem label={tr('Ризик / угода', 'Risk / Trade')} value={fmtPct(Number(bot.settings?.risk_per_trade_percent || 0.5))} mono />
+                      <ConfigItem label={tr('Денний ліміт збитку', 'Daily Loss Limit')} value={fmtPct(Number(bot.settings?.max_daily_loss_percent || 2))} mono />
+                      <ConfigItem label={tr('SHORT дозволено', 'SHORT Enabled')} value={bot.settings?.allow_short ? tr('Так', 'Yes') : tr('Ні', 'No')} />
                     </>
                   ) : (
                     <>
-                      <ConfigItem label="Grid Orders" value={String(bot.grid_orders_count)} mono />
-                      <ConfigItem label="Grid Step %" value={fmtNumber(bot.grid_step_percent)} mono />
+                      <ConfigItem label={tr('Grid ордери', 'Grid Orders')} value={String(bot.grid_orders_count)} mono />
+                      <ConfigItem label={tr('Крок Grid %', 'Grid Step %')} value={fmtNumber(bot.grid_step_percent)} mono />
                     </>
                   )}
                   <ConfigItem
-                    label="Enabled"
-                    value={bot.is_active ? "Yes" : "No"}
+                    label={tr('Увімкнено', 'Enabled')}
+                    value={bot.is_active ? tr('Так', 'Yes') : tr('Ні', 'No')}
                   />
                   <ConfigItem
-                    label="Started At"
-                    value={fmtDateTime(bot.started_at)}
+                    label={tr('Дата запуску', 'Started At')}
+                    value={fmtDateTime(bot.started_at, locale)}
                     mono
                   />
                   <ConfigItem
-                    label="Stopped At"
-                    value={fmtDateTime(bot.stopped_at)}
+                    label={tr('Дата зупинки', 'Stopped At')}
+                    value={fmtDateTime(bot.stopped_at, locale)}
                     mono
                   />
                   <ConfigItem
-                    label="Last Run"
-                    value={fmtDateTime(bot.last_run_at)}
+                    label={tr('Останній запуск', 'Last Run')}
+                    value={fmtDateTime(bot.last_run_at, locale)}
                     mono
                   />
                 </dl>
 
                 {bot.last_error ? (
                   <p className={styles.lastError}>
-                    Last error: {bot.last_error}
+                    {tr('Остання помилка:', 'Last error:')} {bot.last_error}
                   </p>
                 ) : null}
                 {bot.last_risk_message ? (
                   <p className={styles.riskMessage}>
-                    Risk: {bot.last_risk_message}
+                    {tr('Ризик:', 'Risk:')} {bot.last_risk_message}
                   </p>
                 ) : null}
 
@@ -700,7 +702,7 @@ export default function BotDetailPage() {
                     onClick={handleStart}
                     loading={action === "start"}
                   >
-                    Start bot
+                    {tr('Запустити бота', 'Start bot')}
                   </Button>
                   <Button
                     variant="ghost"
@@ -708,7 +710,7 @@ export default function BotDetailPage() {
                     onClick={handleStop}
                     disabled={action !== ""}
                   >
-                    Stop bot
+                    {tr('Зупинити бота', 'Stop bot')}
                   </Button>
                   <Button
                     variant="ghost"
@@ -716,7 +718,7 @@ export default function BotDetailPage() {
                     onClick={handleSync}
                     loading={action === "sync"}
                   >
-                    Sync orders
+                    {tr('Синхронізувати ордери', 'Sync orders')}
                   </Button>
                   <Button
                     variant="danger"
@@ -725,7 +727,7 @@ export default function BotDetailPage() {
                     loading={action === "close-position"}
                     disabled={action !== "" || positionSize <= 0}
                   >
-                    Close position
+                    {tr('Закрити позицію', 'Close position')}
                   </Button>
                   <Button
                     variant="danger"
@@ -733,7 +735,7 @@ export default function BotDetailPage() {
                     onClick={handleCancelOrders}
                     loading={action === "cancel"}
                   >
-                    Cancel all orders
+                    {tr('Скасувати всі ордери', 'Cancel all orders')}
                   </Button>
                   <Button
                     variant="danger"
@@ -742,7 +744,7 @@ export default function BotDetailPage() {
                     loading={action === "clear"}
                     disabled={action !== "" && action !== "clear"}
                   >
-                    Clear history
+                    {tr('Очистити історію', 'Clear history')}
                   </Button>
                 </div>
               </Card>
@@ -751,18 +753,18 @@ export default function BotDetailPage() {
             <section>
               <Card className={styles.ordersCard}>
                 <CardHeader
-                  eyebrow="Orders / Trades"
-                  title="Order history"
+                  eyebrow={tr('Ордери / Угоди', 'Orders / Trades')}
+                  title={tr('Історія ордерів', 'Order history')}
                   action={
                     <div className={styles.orderTotals}>
-                      <span><b>{openOrders.length}</b> open</span>
-                      <span><b>{filledOrders.length}</b> filled</span>
-                      {rejectedOrders.length > 0 ? <span><b>{rejectedOrders.length}</b> rejected</span> : null}
+                      <span><b>{openOrders.length}</b> {tr('відкритих', 'open')}</span>
+                      <span><b>{filledOrders.length}</b> {tr('виконаних', 'filled')}</span>
+                      {rejectedOrders.length > 0 ? <span><b>{rejectedOrders.length}</b> {tr('відхилених', 'rejected')}</span> : null}
                     </div>
                   }
                 />
 
-                <div className={styles.orderTabs} role="tablist" aria-label="Order status filter">
+                <div className={styles.orderTabs} role="tablist" aria-label={tr('Фільтр статусу ордерів', 'Order status filter')}>
                   {orderFilters.map((filter) => (
                     <button
                       key={filter.value}
@@ -777,27 +779,27 @@ export default function BotDetailPage() {
                 </div>
 
                 {visibleOrders.length === 0 ? (
-                  <div className={styles.emptyOrders}>No {orderFilter} orders.</div>
+                  <div className={styles.emptyOrders}>{tr('Немає ордерів для фільтра', 'No orders for filter')} “{orderFilters.find((item) => item.value === orderFilter)?.label || orderFilter}”.</div>
                 ) : (
                   <div className={styles.tableWrap}>
                     <table className={styles.table}>
                       <thead>
                         <tr>
-                          <th>Created</th>
-                          <th>Symbol</th>
-                          <th>Side</th>
-                          <th>Role</th>
-                          <th>Type</th>
-                          <th className={styles.numericHeader}>Qty</th>
-                          <th className={styles.numericHeader}>Price</th>
-                          <th>Status</th>
-                          <th>Exchange ID</th>
+                          <th>{tr('Створено', 'Created')}</th>
+                          <th>{tr('Символ', 'Symbol')}</th>
+                          <th>{tr('Сторона', 'Side')}</th>
+                          <th>{tr('Роль', 'Role')}</th>
+                          <th>{tr('Тип', 'Type')}</th>
+                          <th className={styles.numericHeader}>{tr('Кількість', 'Qty')}</th>
+                          <th className={styles.numericHeader}>{tr('Ціна', 'Price')}</th>
+                          <th>{tr('Статус', 'Status')}</th>
+                          <th>{tr('ID біржі', 'Exchange ID')}</th>
                         </tr>
                       </thead>
                       <tbody>
                         {visibleOrders.map((order) => (
                           <tr key={order.id} className={getOrderRowClass(order)}>
-                            <td className={styles.dateCell}>{fmtDateTime(order.created_at)}</td>
+                            <td className={styles.dateCell}>{fmtDateTime(order.created_at, locale)}</td>
                             <td className={`${styles.symbolCell} mono`}>{order.symbol}</td>
                             <td><SideBadge side={order.side} /></td>
                             <td><RoleBadge role={order.order_role} /></td>
@@ -820,13 +822,13 @@ export default function BotDetailPage() {
 
               <Card className={styles.eventsCard}>
                 <CardHeader
-                  eyebrow="Worker events"
-                  title="Bot activity"
-                  action={<span className={styles.eventCount}>{events.length} events</span>}
+                  eyebrow={tr('Події worker', 'Worker events')}
+                  title={tr('Активність бота', 'Bot activity')}
+                  action={<span className={styles.eventCount}>{events.length} {tr('подій', 'events')}</span>}
                 />
 
                 {events.length === 0 ? (
-                  <div className={styles.emptyOrders}>No events yet.</div>
+                  <div className={styles.emptyOrders}>{tr('Подій ще немає.', 'No events yet.')}</div>
                 ) : (
                   <>
                     <div className={styles.eventsList}>
@@ -836,7 +838,7 @@ export default function BotDetailPage() {
                           <div className={styles.eventBody}>
                             <div className={styles.eventMeta}>
                               <EventBadge type={event.event_type} />
-                              <time className="mono">{fmtDateTime(event.created_at)}</time>
+                              <time className="mono">{fmtDateTime(event.created_at, locale)}</time>
                             </div>
                             <p className={styles.eventMessage}>{event.message}</p>
                           </div>
@@ -849,7 +851,7 @@ export default function BotDetailPage() {
                         className={styles.showMoreButton}
                         onClick={() => setShowAllEvents((value) => !value)}
                       >
-                        {showAllEvents ? "Show latest 12" : `Show all ${events.length} events`}
+                        {showAllEvents ? tr('Показати останні 12', 'Show latest 12') : `${tr('Показати всі', 'Show all')} ${events.length} ${tr('подій', 'events')}`}
                       </button>
                     ) : null}
                   </>
@@ -912,17 +914,17 @@ function capitalizeRuntimeState(value) {
     .join("");
 }
 
-function getRuntimeLabel(value) {
+function getRuntimeLabel(value, tr) {
   const labels = {
-    stopped: "Stopped",
-    running: "Running",
-    waiting_for_entry: "Waiting for entry",
-    waiting_for_signal: "Waiting for signal",
-    cooldown: "Cooldown",
-    position_open: "Position open",
-    tp_active: "TP active",
-    risk_blocked: "Risk blocked",
-    error: "Error",
+    stopped: tr('Зупинено', 'Stopped'),
+    running: tr('Запущено', 'Running'),
+    waiting_for_entry: tr('Очікування входу', 'Waiting for entry'),
+    waiting_for_signal: tr('Очікування сигналу', 'Waiting for signal'),
+    cooldown: tr('Cooldown', 'Cooldown'),
+    position_open: tr('Позиція відкрита', 'Position open'),
+    tp_active: tr('TP активний', 'TP active'),
+    risk_blocked: tr('Заблоковано ризиком', 'Risk blocked'),
+    error: tr('Помилка', 'Error'),
   };
   return labels[value] || value;
 }

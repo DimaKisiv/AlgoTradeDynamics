@@ -109,6 +109,48 @@ Runtime-помилки робочих ботів класифікуються о
 
 За замовчуванням transient error повторюється до 5 разів із backoff від 5 секунд до максимум 300 секунд. Значення можна перевизначити в `bot.settings`: `error_max_retries`, `error_retry_base_seconds`, `error_retry_max_seconds`. Кожне рішення записується як `bot_error` event і може бути доставлене через Telegram. Historical backtests не використовують automatic recovery: помилка робить конкретний backtest failed, щоб результат залишався детермінованим.
 
+## Compliance / Regulatory Audit Trail
+
+Платформа має окремий append-only `audit_events` ledger у тій самій PostgreSQL базі. Він не є звичайним Bot Events history: очищення історії бота або видалення operational records не видаляє audit trail.
+
+Audit trail фіксує:
+
+- account/security actions (registration, login, refresh session);
+- authenticated API mutations (`POST/PUT/PATCH/DELETE`) як safety-net;
+- створення, зміну конфігурації та видалення bot;
+- start/stop/sync/manual close та інші user actions;
+- runtime strategy/risk/order/position/error events для demo/testnet/live bot;
+- normalized order identifiers, quantity, price, fee/PnL коли вони доступні;
+- strategy type/revision і `config_hash`; повний immutable config snapshot зберігається на `BOT_CREATED` / `BOT_CONFIG_CHANGED`;
+- IP/user-agent для user/API actions;
+- `correlation_id` для зв'язування ланцюга однієї операції;
+- retention metadata (`jurisdiction`, `retention_until`).
+
+Backtest-внутрішні runtime events навмисно не дублюються в regulatory ledger, щоб simulation replay не створював тисячі псевдо-фінансових audit records.
+
+Кожен запис містить `previous_hash` і `event_hash` (SHA-256), тому ledger є tamper-evident. Migration `0013_regulatory_audit_trail` додатково створює DB trigger, який забороняє `UPDATE` і `DELETE` з `audit_events`.
+
+UI: **Compliance → Regulatory Audit Trail**. Є filters, detail payload/config information, integrity verification та CSV/JSON export.
+
+Configuration:
+
+```env
+AUDIT_JURISDICTION=EU
+AUDIT_RETENTION_YEARS=5
+```
+
+API:
+
+```text
+GET /api/audit/events
+GET /api/audit/events/{id}
+GET /api/audit/integrity
+GET /api/audit/export?format=csv
+GET /api/audit/export?format=json
+```
+
+Це compliance-oriented / regulator-ready MVP architecture, а не юридична декларація про відповідність конкретній ліцензії або юрисдикції.
+
 ## Bot Backtesting
 
 ### Створення

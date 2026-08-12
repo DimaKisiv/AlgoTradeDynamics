@@ -10,6 +10,7 @@ from app.db.session import get_db
 from app.models.backtest import BacktestRun
 from app.models.user import User
 from app.schemas.user import Token, UserCreate, UserLogin, UserResponse
+from app.services.audit_service import record_audit_event
 from app.services.auth_service import (
     authenticate,
     create_refresh_session,
@@ -21,6 +22,10 @@ from app.services.auth_service import (
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 logger = get_logger(__name__)
+
+
+def _request_meta(request: Request) -> tuple[str | None, str | None]:
+    return (request.client.host if request.client else None, request.headers.get("user-agent"))
 
 
 def _to_response(user: User, runs_count: int) -> UserResponse:
@@ -65,19 +70,26 @@ def _clear_refresh_cookie(response: Response) -> None:
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-def register(payload: UserCreate, db: Session = Depends(get_db)):
+def register(payload: UserCreate, request: Request, db: Session = Depends(get_db)):
     if get_user_by_email(db, payload.email):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Користувач з таким email вже існує",
         )
     user = create_user(db, payload.email, payload.password)
+    ip, user_agent = _request_meta(request)
+    record_audit_event(
+        db, actor_type="USER", actor_label=user.email, category="SECURITY", event_type="USER_REGISTERED",
+        message="User account registered", user_id=user.id, ip_address=ip, user_agent=user_agent,
+        correlation_id=f"user:{user.id}", payload={"email": user.email},
+    )
+    db.commit()
     logger.info("New user registered: id=%s", user.id)
     return _to_response(user, 0)
 
 
 @router.post("/login", response_model=Token)
-def login(payload: UserLogin, response: Response, db: Session = Depends(get_db)):
+def login(payload: UserLogin, request: Request, response: Response, db: Session = Depends(get_db)):
     user = authenticate(db, payload.email, payload.password)
     if user is None:
         raise HTTPException(
@@ -87,6 +99,13 @@ def login(payload: UserLogin, response: Response, db: Session = Depends(get_db))
 
     refresh_token = create_refresh_session(db, user.id)
     _set_refresh_cookie(response, refresh_token)
+    ip, user_agent = _request_meta(request)
+    record_audit_event(
+        db, actor_type="USER", actor_label=user.email, category="SECURITY", event_type="USER_LOGIN",
+        message="User authenticated", user_id=user.id, ip_address=ip, user_agent=user_agent,
+        correlation_id=f"user:{user.id}",
+    )
+    db.commit()
     logger.info("User logged in: id=%s", user.id)
     return _token_response(user.id)
 
@@ -111,6 +130,13 @@ def refresh(request: Request, response: Response, db: Session = Depends(get_db))
 
     user, replacement = rotated
     _set_refresh_cookie(response, replacement)
+    ip, user_agent = _request_meta(request)
+    record_audit_event(
+        db, actor_type="SYSTEM", actor_label=user.email, category="SECURITY", event_type="SESSION_REFRESHED",
+        message="Access session refreshed", user_id=user.id, ip_address=ip, user_agent=user_agent,
+        correlation_id=f"user:{user.id}",
+    )
+    db.commit()
     logger.info("Refresh token rotated: user_id=%s", user.id)
     return _token_response(user.id)
 

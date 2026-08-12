@@ -1,4 +1,5 @@
 """ORM model exports."""
+from app.models.audit_event import AuditEvent
 from app.models.backtest import BacktestCycle, BacktestPoint, BacktestRun
 from app.models.refresh_token import RefreshToken
 from app.models.trading_bot import TradingBot
@@ -11,6 +12,7 @@ from app.models.user import User
 
 __all__ = [
     "User",
+    "AuditEvent",
     "RefreshToken",
     "BacktestRun",
     "BacktestPoint",

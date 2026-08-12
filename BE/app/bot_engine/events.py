@@ -17,6 +17,11 @@ def log_bot_event(db, bot: TradingBot, event_type: str, message: str, payload: d
     )
     db.add(event)
     db.flush()
+    # Mirror non-backtest financial/runtime facts into the immutable audit ledger
+    # in the same database transaction. Clearing ordinary bot history cannot remove
+    # the regulatory record.
+    from app.services.audit_service import record_bot_event_audit
+    record_bot_event_audit(db, bot, event)
     # Queue external delivery in the same DB transaction. Telegram I/O is handled
     # asynchronously by the notification outbox worker, never inside bot runtime.
     from app.services.telegram_notifications import enqueue_event_notification

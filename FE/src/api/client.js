@@ -124,4 +124,25 @@ export async function request(path, options = {}) {
   return response.json();
 }
 
+export async function requestFile(path, options = {}) {
+  const url = `${API_BASE_URL}${path}`;
+  const headers = { ...(options.headers || {}) };
+  let token = getToken();
+  if (token) {headers.Authorization = `Bearer ${token}`;}
+
+  const fetchOptions = { ...options, headers, credentials: options.credentials || 'include' };
+  let response = await fetch(url, fetchOptions);
+
+  if (response.status === 401 && mayRefresh(path)) {
+    token = await refreshAccessToken();
+    response = await fetch(url, {
+      ...fetchOptions,
+      headers: { ...headers, Authorization: `Bearer ${token}` },
+    });
+  }
+
+  if (!response.ok) {throw await parseError(response);}
+  return response;
+}
+
 export { ApiError, API_BASE_URL };

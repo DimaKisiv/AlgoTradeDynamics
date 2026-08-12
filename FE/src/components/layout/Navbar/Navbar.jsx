@@ -63,6 +63,9 @@ export default function Navbar() {
                     <NavLink to="/emulator" className={({ isActive }) => `${styles.navLink} ${isActive ? styles.isActive : ""}`}>
                       {t("navbar.emulator")}
                     </NavLink>
+                    <NavLink to="/compliance/audit" className={({ isActive }) => `${styles.navLink} ${isActive ? styles.isActive : ""}`}>
+                      {tr("Комплаєнс", "Compliance")}
+                    </NavLink>
                   </>
               )}
             </div>

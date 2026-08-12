@@ -52,6 +52,10 @@ class Settings(BaseSettings):
     telegram_poll_timeout_seconds: int = 20
     telegram_delivery_interval_seconds: int = 2
 
+    # --- Compliance / immutable audit trail ---
+    audit_jurisdiction: str = "EU"
+    audit_retention_years: int = 5
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     @property

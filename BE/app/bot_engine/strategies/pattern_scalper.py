@@ -1300,7 +1300,10 @@ def _close(db, bot: TradingBot, session, position: dict, role: str, reason: str,
         "reason": reason,
     }
     _save_state(db, bot, state)
-    log_bot_event(db, bot, "scalper_exit_submitted", reason, {"side": side, "qty": request.qty, "role": role})
+    log_bot_event(db, bot, "scalper_exit_submitted", reason, {
+        "side": side, "qty": request.qty, "role": role,
+        "order_link_id": request.order_link_id, "exchange_order_id": record.exchange_order_id,
+    })
     return record
 
 
@@ -1475,6 +1478,7 @@ class PatternScalperStrategy:
                         "side": trade.get("side"),
                         "entry_price": trade.get("entry_price"),
                         "exit_reason": pending_exit.get("reason") if pending_exit else None,
+                        "exit_order_link_id": pending_exit.get("order_link_id") if pending_exit else None,
                     })
                     trade = {}
                     pending_exit = {}

@@ -74,6 +74,33 @@ alembic upgrade head
 
 Вбудовано денні datasets `BTCUSDT` і `ETHUSDT` за 2024 рік. Для Pattern Scalper зазвичай варто починати з повних `1m`, `5m` або `15m` OHLCV-наборів.
 
+### Exchange WebSocket streams
+
+Trading runtime використовує однакову event-driven модель для локального Emulator і Bybit. REST лишається для команд (`place/cancel order`, leverage, snapshots/reconciliation), а WebSocket будить worker на live updates.
+
+Підтримані topics:
+
+- `tickers.{SYMBOL}` — live last/mark price;
+- `order` — зміни ордерів;
+- `execution` — fills/executions;
+- `position` — зміни позиції;
+- `wallet` — зміни балансу/equity.
+
+Emulator піднімає Bybit-like endpoints:
+
+```text
+ws://localhost:8001/v5/public/linear?api_key=<emulator_api_key>
+ws://localhost:8001/v5/private?api_key=<emulator_api_key>
+```
+
+Клієнт підписується стандартним повідомленням:
+
+```json
+{"op":"subscribe","args":["tickers.BTCUSDT"]}
+```
+
+Backend автоматично створює WS streams для running/retrying bot-ів. Ticker events запускають strategy tick згідно з `run_interval_seconds`, private order/execution/position/wallet events будять worker негайно. Раз на 15 секунд лишається fail-safe REST reconciliation на випадок тимчасового WS disconnect.
+
 ## Типи ботів
 
 ### Grid Bot

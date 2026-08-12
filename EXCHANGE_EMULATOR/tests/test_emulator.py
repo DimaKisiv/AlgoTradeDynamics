@@ -362,3 +362,57 @@ def test_dataset_range_quality_detects_missing_boundary_candle():
         assert stats["expected_candles"] == 3
         assert stats["missing_candles"] == 1
         assert stats["valid"] is False
+
+
+def test_bybit_like_websocket_public_and_private_streams():
+    with TestClient(app) as client:
+        account = client.post(
+            "/api/admin/accounts",
+            json={"name": "WebSocket test", "initial_balance": 10000},
+        ).json()
+        api_key = account["api_key"]
+        headers = {"X-API-Key": api_key}
+
+        with client.websocket_connect(f"/v5/public/linear?api_key={api_key}") as public_ws:
+            public_ws.send_json({"op": "subscribe", "args": ["tickers.BTCUSDT"]})
+            ack = public_ws.receive_json()
+            assert ack["success"] is True
+            snapshot = public_ws.receive_json()
+            assert snapshot["topic"] == "tickers.BTCUSDT"
+            assert snapshot["data"]["symbol"] == "BTCUSDT"
+
+            client.post(
+                "/api/admin/markets/BTCUSDT/price",
+                json={"price": 60000, "mark_price": 60000},
+            ).raise_for_status()
+            update = public_ws.receive_json()
+            assert update["topic"] == "tickers.BTCUSDT"
+            assert update["data"]["lastPrice"] == "60000"
+
+        with client.websocket_connect(f"/v5/private?api_key={api_key}") as private_ws:
+            private_ws.send_json({"op": "subscribe", "args": ["order", "execution", "position", "wallet"]})
+            ack = private_ws.receive_json()
+            assert ack["success"] is True
+
+            created = client.post(
+                "/v5/order/create",
+                headers=headers,
+                json={
+                    "category": "linear",
+                    "symbol": "BTCUSDT",
+                    "side": "Buy",
+                    "orderType": "Market",
+                    "qty": "0.001",
+                    "orderLinkId": "websocket-market-entry",
+                },
+            ).json()
+            assert created["retCode"] == 0
+
+            topics = set()
+            for _ in range(8):
+                message = private_ws.receive_json()
+                if message.get("topic"):
+                    topics.add(message["topic"])
+                if {"order", "execution", "position", "wallet"}.issubset(topics):
+                    break
+            assert {"order", "execution", "position", "wallet"}.issubset(topics)

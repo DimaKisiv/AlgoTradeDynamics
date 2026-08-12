@@ -14,7 +14,7 @@ from app.core.config import get_settings
 from app.bot_engine.bybit.emulator_client import EmulatorHTTP
 
 
-def _load_credentials(environment: str) -> tuple[str | None, str | None]:
+def get_bybit_credentials(environment: str) -> tuple[str | None, str | None]:
     env_key = environment.upper()
     api_key = os.getenv(f"BYBIT_{env_key}_API_KEY")
     api_secret = os.getenv(f"BYBIT_{env_key}_API_SECRET")
@@ -44,7 +44,7 @@ def get_bybit_session(bot: TradingBot):
     if HTTP is None:
         raise RuntimeError("pybit is required for Bybit demo, testnet, or live environments")
 
-    api_key, api_secret = _load_credentials(bot.environment)
+    api_key, api_secret = get_bybit_credentials(bot.environment)
     if not api_key or not api_secret:
         raise ValueError(
             f"Bybit {bot.environment} API credentials are not configured")

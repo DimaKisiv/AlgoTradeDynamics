@@ -5,30 +5,53 @@ import asyncio
 
 from app.bot_engine.bot import tick_bot_once
 from app.bot_engine.error_handling import clear_bot_runtime_error, handle_bot_runtime_error
+from app.bot_engine.exchange_streams import ExchangeStreamSupervisor
 from app.core.clock import utcnow
 from app.db.session import SessionLocal
 from app.models.trading_bot import TradingBot
 
-WORKER_SLEEP_SECONDS = 5
+WORKER_STREAM_CHECK_SECONDS = 2
+WORKER_FALLBACK_SECONDS = 15
 
 
 async def worker_loop(app) -> None:
-    while getattr(app.state, "bot_worker_running", False):
-        await tick_running_bots(app)
-        await asyncio.sleep(WORKER_SLEEP_SECONDS)
+    supervisor = ExchangeStreamSupervisor()
+    app.state.exchange_stream_supervisor = supervisor
+    try:
+        await supervisor.reconcile_if_due(force=True)
+        last_fallback = asyncio.get_running_loop().time()
+        while getattr(app.state, "bot_worker_running", False):
+            await supervisor.reconcile_if_due()
+            bot_ids = await supervisor.wait_for_bot_ids(WORKER_STREAM_CHECK_SECONDS)
+            if bot_ids is not None:
+                await tick_running_bots(app, bot_ids=bot_ids)
+                continue
+            now = asyncio.get_running_loop().time()
+            if now - last_fallback >= WORKER_FALLBACK_SECONDS:
+                # Slow fail-safe reconciliation if a WS feed is unavailable.
+                await tick_running_bots(app)
+                last_fallback = now
+    finally:
+        await supervisor.stop()
+        app.state.exchange_stream_supervisor = None
 
 
 def _retry_is_due(bot: TradingBot) -> bool:
     return bot.next_retry_at is None or bot.next_retry_at <= utcnow()
 
 
-async def tick_running_bots(app) -> None:
+async def tick_running_bots(app, *, bot_ids: set[int] | None = None) -> None:
     db = SessionLocal()
     try:
-        bots = db.query(TradingBot).filter(
+        query = db.query(TradingBot).filter(
             TradingBot.runtime_status.in_(("running", "retrying")),
             TradingBot.is_backtest.is_(False),
-        ).all()
+        )
+        if bot_ids is not None:
+            if not bot_ids:
+                return
+            query = query.filter(TradingBot.id.in_(bot_ids))
+        bots = query.all()
         for bot in bots:
             if bot.runtime_status == "retrying" and not _retry_is_due(bot):
                 continue

@@ -8,13 +8,13 @@ from datetime import datetime, timezone
 from typing import Any
 
 import httpx
-from fastapi import Depends, FastAPI, File, Header, HTTPException, Query, Response, UploadFile
+from fastapi import Depends, FastAPI, File, Header, HTTPException, Query, Response, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from sqlalchemy import delete, func, inspect, or_, select, text
 from sqlalchemy.orm import Session
 
-from app.database import Base, engine, get_db
+from app.database import Base, SessionLocal, engine, get_db
 from app.engine import (
     ACTIVE_STATUSES,
     account_snapshot,
@@ -42,6 +42,7 @@ from app.engine import (
     start_scenario,
 )
 from app.models import Account, AccountMarket, Candle, Event, Execution, HistoricalDataset, Market, Order, Position, Scenario
+from app.websocket_bus import websocket_bus
 
 
 class AccountCreate(BaseModel):
@@ -423,6 +424,9 @@ def ensure_schema_compatibility() -> None:
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    import asyncio
+
+    websocket_bus.bind_loop(asyncio.get_running_loop())
     Base.metadata.create_all(bind=engine)
     ensure_schema_compatibility()
     with Session(bind=engine) as db:
@@ -431,6 +435,7 @@ async def lifespan(_: FastAPI):
     runtime_worker.start()
     yield
     runtime_worker.stop()
+    websocket_bus.unbind_loop()
 
 
 app = FastAPI(
@@ -456,6 +461,117 @@ app.add_middleware(
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok", "service": "exchange-emulator"}
+
+
+
+# ---------------- Bybit-like WebSocket API ----------------
+
+
+def _ws_account(api_key: str | None) -> Account | None:
+    if not api_key:
+        return None
+    with SessionLocal() as db:
+        return get_account_by_api_key(db, api_key)
+
+
+async def _send_public_snapshot(websocket: WebSocket, topic: str, api_key: str | None) -> None:
+    if not topic.startswith("tickers."):
+        return
+    symbol = topic.split(".", 1)[1].upper()
+    with SessionLocal() as db:
+        account = get_account_by_api_key(db, api_key) if api_key else None
+        market = effective_market(db, account.id, symbol) if account else get_or_create_market(db, symbol)
+        await websocket.send_json({
+            "topic": topic,
+            "type": "snapshot",
+            "ts": int(datetime.now(timezone.utc).timestamp() * 1000),
+            "data": {
+                "symbol": symbol,
+                "lastPrice": format_number(market.last_price),
+                "markPrice": format_number(market.mark_price),
+                "indexPrice": format_number(market.mark_price),
+            },
+        })
+
+
+async def _websocket_stream_loop(
+    websocket: WebSocket,
+    *,
+    account_id: int | None,
+    api_key: str | None = None,
+    public: bool,
+) -> None:
+    await websocket.accept()
+    subscription_id, subscription = websocket_bus.subscribe(account_id=account_id)
+
+    async def sender() -> None:
+        while True:
+            event = await subscription.queue.get()
+            await websocket.send_json(event.payload())
+
+    import asyncio
+    sender_task = asyncio.create_task(sender())
+    try:
+        while True:
+            message = await websocket.receive_json()
+            operation = str(message.get("op") or "")
+            if operation == "ping":
+                await websocket.send_json({"op": "pong"})
+                continue
+            if operation not in {"subscribe", "unsubscribe"}:
+                await websocket.send_json({
+                    "success": False,
+                    "ret_msg": "Unsupported operation",
+                    "op": operation,
+                })
+                continue
+            raw_topics = message.get("args") or []
+            topics = [str(topic) for topic in raw_topics]
+            if public:
+                accepted = [topic for topic in topics if topic.startswith("tickers.")]
+            else:
+                accepted = [topic for topic in topics if topic in {"order", "execution", "position", "wallet"}]
+            if operation == "subscribe":
+                websocket_bus.add_topics(subscription_id, accepted)
+                await websocket.send_json({"success": True, "ret_msg": "", "op": "subscribe", "args": accepted})
+                if public:
+                    for topic in accepted:
+                        await _send_public_snapshot(websocket, topic, api_key)
+            else:
+                websocket_bus.remove_topics(subscription_id, accepted)
+                await websocket.send_json({"success": True, "ret_msg": "", "op": "unsubscribe", "args": accepted})
+    except WebSocketDisconnect:
+        pass
+    finally:
+        sender_task.cancel()
+        websocket_bus.unsubscribe(subscription_id)
+        try:
+            await sender_task
+        except asyncio.CancelledError:
+            pass
+
+
+@app.websocket("/v5/public/{channel_type}")
+async def bybit_public_websocket(websocket: WebSocket, channel_type: str, api_key: str | None = Query(default=None)) -> None:
+    if channel_type not in {"linear", "spot", "inverse"}:
+        await websocket.close(code=1008, reason="Unsupported channel type")
+        return
+    account = _ws_account(api_key)
+    await _websocket_stream_loop(
+        websocket,
+        account_id=account.id if account else None,
+        api_key=api_key,
+        public=True,
+    )
+
+
+@app.websocket("/v5/private")
+async def bybit_private_websocket(websocket: WebSocket, api_key: str | None = Query(default=None)) -> None:
+    account = _ws_account(api_key)
+    if account is None:
+        await websocket.close(code=1008, reason="Invalid or missing api_key")
+        return
+    await _websocket_stream_loop(websocket, account_id=account.id, api_key=api_key, public=False)
 
 
 # ---------------- Admin API ----------------

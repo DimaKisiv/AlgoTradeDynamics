@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
 from app.models import Account, AccountMarket, Candle, Event, Execution, HistoricalDataset, Market, Order, Position, Scenario
+from app.websocket_bus import StreamEvent, websocket_bus
 
 ACTIVE_STATUSES = {"New", "Created", "PartiallyFilled", "PendingNew", "Untriggered"}
 MAKER_FEE_RATE = 0.0002
@@ -352,6 +353,90 @@ def position_payload(db: Session, position: Position) -> dict:
     }
 
 
+
+def _event_timestamp_ms(value: datetime | None = None) -> int:
+    timestamp = value or now_utc()
+    return int(timestamp.timestamp() * 1000)
+
+
+def publish_ticker_update(market: Market | AccountMarket, *, account_id: int | None = None) -> None:
+    websocket_bus.publish(StreamEvent(
+        topic=f"tickers.{market.symbol}",
+        data={
+            "symbol": market.symbol,
+            "lastPrice": format_number(market.last_price),
+            "markPrice": format_number(market.mark_price),
+            "indexPrice": format_number(market.mark_price),
+        },
+        account_id=account_id,
+        message_type="snapshot",
+        timestamp_ms=_event_timestamp_ms(getattr(market, "updated_at", None)),
+    ))
+
+
+def publish_order_update(order: Order) -> None:
+    websocket_bus.publish(StreamEvent(
+        topic="order",
+        data=[serialize_order(order)],
+        account_id=order.account_id,
+        timestamp_ms=_event_timestamp_ms(order.updated_at),
+    ))
+
+
+def publish_execution_update(db: Session, execution: Execution, order: Order) -> None:
+    websocket_bus.publish(StreamEvent(
+        topic="execution",
+        data=[{
+            "category": order.category,
+            "symbol": execution.symbol,
+            "orderId": execution.order_id,
+            "orderLinkId": order.order_link_id or "",
+            "side": execution.side,
+            "execId": execution.id,
+            "execPrice": format_number(execution.price),
+            "execQty": format_number(execution.qty),
+            "execFee": format_number(execution.fee),
+            "closedPnl": format_number(execution.closed_pnl),
+            "execTime": str(_event_timestamp_ms(execution.created_at)),
+            "execSeq": execution.sequence_no,
+            "execType": "Trade",
+        }],
+        account_id=execution.account_id,
+        timestamp_ms=_event_timestamp_ms(execution.created_at),
+    ))
+
+
+def publish_position_update(db: Session, position: Position) -> None:
+    websocket_bus.publish(StreamEvent(
+        topic="position",
+        data=[position_payload(db, position)],
+        account_id=position.account_id,
+        timestamp_ms=_event_timestamp_ms(position.updated_at),
+    ))
+
+
+def publish_wallet_update(db: Session, account: Account) -> None:
+    snapshot = account_snapshot(db, account)
+    websocket_bus.publish(StreamEvent(
+        topic="wallet",
+        data=[{
+            "accountType": "UNIFIED",
+            "totalEquity": format_number(snapshot["equity"]),
+            "totalWalletBalance": format_number(snapshot["balance"]),
+            "totalAvailableBalance": format_number(snapshot["available_balance"]),
+            "totalPerpUPL": format_number(snapshot["unrealized_pnl"]),
+            "coin": [{
+                "coin": "USDT",
+                "equity": format_number(snapshot["equity"]),
+                "walletBalance": format_number(snapshot["balance"]),
+                "unrealisedPnl": format_number(snapshot["unrealized_pnl"]),
+            }],
+        }],
+        account_id=account.id,
+        timestamp_ms=_event_timestamp_ms(),
+    ))
+
+
 def _validate_order(db: Session, account: Account, order: Order, market: Market) -> str | None:
     if order.qty <= 0:
         return "Order quantity must be greater than zero"
@@ -435,6 +520,7 @@ def create_order(
             payload={"order_id": order.id, "order_link_id": order_link_id},
             created_at=event_time,
         )
+        publish_order_update(order)
         db.commit()
         return order, 10001, reject_reason
 
@@ -447,6 +533,7 @@ def create_order(
         payload={"order_id": order.id, "order_link_id": order_link_id, "qty": qty, "price": price},
         created_at=event_time,
     )
+    publish_order_update(order)
     if order_type == "Market":
         fill_order(db, order, market.last_price, liquidity="Taker")
     else:
@@ -562,6 +649,13 @@ def fill_order(db: Session, order: Order, fill_price: float, *, liquidity: str) 
         payload={"side": position.side, "size": position.size, "avg_price": position.avg_price, "realized_pnl": position.realized_pnl},
         created_at=event_time,
     )
+    # Make the streamed wallet/position snapshots reflect this fill even though
+    # the caller owns the surrounding transaction/commit.
+    db.flush()
+    publish_order_update(order)
+    publish_execution_update(db, execution, order)
+    publish_position_update(db, position)
+    publish_wallet_update(db, account)
 
 
 def set_account_market_price(
@@ -607,6 +701,7 @@ def set_account_market_price(
             payload={"old_price": old_price, "price": price, "source": "backtest", "filled_orders": filled_count},
             created_at=event_time,
         )
+    publish_ticker_update(market, account_id=account_id)
     db.flush()
     return market, filled_count
 
@@ -654,6 +749,7 @@ def set_market_price(
             payload={"old_price": old_price, "price": price, "source": source, "filled_orders": filled_count},
             created_at=event_time,
         )
+    publish_ticker_update(market)
     db.flush()
     return market
 
@@ -682,6 +778,7 @@ def cancel_order(db: Session, account: Account, *, order_id: str | None, order_l
             payload={"order_id": order.id, "order_link_id": order.order_link_id},
             created_at=event_time,
         )
+        publish_order_update(order)
         db.commit()
     return order
 
@@ -694,6 +791,7 @@ def reset_account(db: Session, account: Account, *, balance: float | None = None
     account.initial_balance = balance if balance is not None else account.initial_balance
     account.balance = account.initial_balance
     log_event(db, "account_reset", "Account reset", account_id=account.id, payload={"balance": account.balance})
+    publish_wallet_update(db, account)
     db.commit()
 
 

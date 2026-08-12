@@ -54,7 +54,21 @@ async def tick_running_bots(app) -> None:
                         # A successful tick proves the transient problem is gone.
                         current_bot = bot_db.get(TradingBot, bot.id)
                         if current_bot is not None and current_bot.runtime_status == "running":
+                            had_error = bool(current_bot.last_error_type)
                             clear_bot_runtime_error(current_bot)
+                            if had_error:
+                                from app.services.operations_service import record_operation_log, resolve_bot_incidents
+                                resolved = resolve_bot_incidents(
+                                    bot_db, current_bot,
+                                    resolution="Bot completed a successful worker tick after recovery",
+                                )
+                                if resolved:
+                                    record_operation_log(
+                                        bot_db, level="INFO", service="BOT_WORKER",
+                                        message=f"Bot recovered; resolved {resolved} incident(s)",
+                                        correlation_id=f"bot:{current_bot.id}", user_id=current_bot.user_id,
+                                        bot_id=current_bot.id, exchange=current_bot.exchange,
+                                    )
                             bot_db.add(current_bot)
                             bot_db.commit()
                     except Exception as exc:  # noqa: BLE001

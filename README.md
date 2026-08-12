@@ -362,3 +362,35 @@ docker compose up --build
 6. Use **Test notification** to verify delivery.
 
 For the local/demo MVP the backend uses Telegram `getUpdates` long polling, so no public webhook URL is required. Link codes are random, one-time, and expire after 10 minutes. A user can independently enable/disable trade events, bot start/stop events, risk warnings, and errors. Backtest events are intentionally excluded from external Telegram notifications.
+
+## Compliance / Privacy / Operations MVP
+
+The platform now includes a compliance-oriented EU reference profile in addition to the immutable financial audit trail:
+
+- `GET /api/compliance/overview` — reference jurisdiction, GDPR/MiCA/DORA-oriented design notes, retention matrix, hosting/data-residency target, backup policy and RPO/RTO.
+- `GET /api/privacy/export` — authenticated user data export (JSON; credentials/secrets excluded).
+- `POST /api/privacy/delete-account` — password-confirmed account deletion. Operational/profile data is deleted; immutable regulatory audit records remain subject to the configured retention policy.
+- `GET /api/operations/logs` — user-scoped technical API/runtime operations logs with request IDs and latency.
+- `GET /api/operations/incidents` — user-scoped bot incident register. ERROR/CRITICAL runtime failures create/update incidents; recovery/restart resolves them.
+- Bot configuration audit records contain explicit `before -> after` diffs plus before/after configuration hashes.
+
+Default policy configuration:
+
+```env
+AUDIT_JURISDICTION=EU
+AUDIT_RETENTION_YEARS=5
+HOSTING_TARGET_REGION=EU/EEA
+OPERATIONS_LOG_RETENTION_DAYS=90
+INCIDENT_RETENTION_DAYS=365
+BACKUP_FREQUENCY=daily
+BACKUP_RETENTION_DAYS=7
+MONTHLY_BACKUP_RETENTION_MONTHS=6
+RECOVERY_POINT_OBJECTIVE_HOURS=24
+RECOVERY_TIME_OBJECTIVE_HOURS=4
+```
+
+`./scripts/backup-postgres.sh` provides a manual/scheduler-friendly PostgreSQL `pg_dump` helper. The production hosting provider or scheduler still needs to enforce the target backup cadence and monthly archival policy.
+
+The UI exposes **Compliance** (policy, retention, hosting, operations, incidents and a link to the immutable Audit Trail) and **Account -> GDPR / Privacy** (data export and account deletion).
+
+This is a compliance-oriented diploma MVP, not a legal statement that the software or operator is licensed/authorized under a particular financial-services regime.

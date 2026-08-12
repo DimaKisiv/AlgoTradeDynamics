@@ -54,3 +54,7 @@ dist/
 
 # Local IDE and OS files
 Thumbs.db
+
+# Local database backups and secrets
+backups/
+.env

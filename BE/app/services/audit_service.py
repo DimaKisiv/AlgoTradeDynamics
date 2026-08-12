@@ -91,6 +91,25 @@ def bot_config_snapshot(bot: TradingBot) -> tuple[dict[str, Any], str, str | Non
     return snapshot, canonical_hash(snapshot), revision
 
 
+
+
+def config_diff(before: Any, after: Any, *, prefix: str = "") -> list[dict[str, Any]]:
+    """Return a compact explicit before/after diff for immutable config audit."""
+    changes: list[dict[str, Any]] = []
+    if isinstance(before, dict) and isinstance(after, dict):
+        for key in sorted(set(before) | set(after)):
+            path = f"{prefix}.{key}" if prefix else str(key)
+            if key not in before:
+                changes.append({"field": path, "before": None, "after": sanitize_payload(after[key])})
+            elif key not in after:
+                changes.append({"field": path, "before": sanitize_payload(before[key]), "after": None})
+            else:
+                changes.extend(config_diff(before[key], after[key], prefix=path))
+        return changes
+    if before != after:
+        changes.append({"field": prefix or "value", "before": sanitize_payload(before), "after": sanitize_payload(after)})
+    return changes
+
 def _event_hash_payload(event: AuditEvent) -> dict[str, Any]:
     return {
         "occurred_at": event.occurred_at,
@@ -397,6 +416,14 @@ def record_user_bot_action(
         merged["strategy_config"] = snapshot
     if payload:
         merged.update(payload)
+    if event_type.upper() == "BOT_CONFIG_CHANGED":
+        before_config = merged.get("before_config")
+        before_hash = merged.get("before_config_hash")
+        if isinstance(before_config, dict):
+            merged["changes"] = config_diff(before_config, snapshot)
+            merged["before_config_hash"] = before_hash or canonical_hash(before_config)
+            merged["after_config_hash"] = config_hash
+            merged["after_config"] = snapshot
     return record_audit_event(
         db,
         actor_type="USER",

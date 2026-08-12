@@ -11,7 +11,7 @@ import styles from "./AuditTrailPage.module.css";
 
 const CATEGORIES = [
   "API_ACTION", "SECURITY", "BOT_CONFIGURATION", "BOT_LIFECYCLE", "STRATEGY",
-  "RISK", "ORDER", "POSITION", "ERROR", "SYSTEM",
+  "RISK", "ORDER", "POSITION", "ERROR", "PRIVACY", "SYSTEM",
 ];
 
 const shortHash = (value) => value ? `${value.slice(0, 10)}…${value.slice(-8)}` : "—";
@@ -27,7 +27,7 @@ function categoryLabel(category, tr) {
     API_ACTION: tr("API дії", "API actions"), SECURITY: tr("Безпека", "Security"),
     BOT_CONFIGURATION: tr("Конфігурація", "Configuration"), BOT_LIFECYCLE: tr("Життєвий цикл", "Lifecycle"),
     STRATEGY: tr("Стратегія", "Strategy"), RISK: tr("Ризик", "Risk"), ORDER: tr("Ордери", "Orders"),
-    POSITION: tr("Позиції", "Positions"), ERROR: tr("Помилки", "Errors"), SYSTEM: tr("Система", "System"),
+    POSITION: tr("Позиції", "Positions"), ERROR: tr("Помилки", "Errors"), PRIVACY: tr("Приватність", "Privacy"), SYSTEM: tr("Система", "System"),
   };
   return labels[category] || category;
 }
@@ -159,6 +159,7 @@ export default function AuditTrailPage() {
           <div><span>{tr("Зберігати до", "Retain until")}</span><strong>{formatDateTime(selected.retention_until)}</strong></div>
         </div>
         <div className={styles.hashes}><div><span>Previous hash</span><code>{selected.previous_hash || "GENESIS"}</code></div><div><span>Event hash</span><code>{selected.event_hash}</code></div></div>
+        {Array.isArray(selected.payload?.changes) && selected.payload.changes.length > 0 && <div className={styles.changes}><span>{tr("Зміни конфігурації", "Configuration changes")}</span><div className={styles.changeTable}>{selected.payload.changes.map((change) => <div key={change.field}><code>{change.field}</code><strong>{JSON.stringify(change.before)}</strong><b>→</b><strong>{JSON.stringify(change.after)}</strong></div>)}</div></div>}
         <div className={styles.payload}><span>Payload snapshot</span><pre>{JSON.stringify(selected.payload, null, 2)}</pre></div>
       </section>}
     </div>

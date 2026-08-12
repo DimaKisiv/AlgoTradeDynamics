@@ -56,6 +56,17 @@ class Settings(BaseSettings):
     audit_jurisdiction: str = "EU"
     audit_retention_years: int = 5
 
+    # --- Compliance policy / privacy / operations ---
+    hosting_target_region: str = "EU/EEA"
+    hosting_provider: str = "Configurable production provider"
+    operations_log_retention_days: int = 90
+    incident_retention_days: int = 365
+    backup_frequency: str = "daily"
+    backup_retention_days: int = 7
+    monthly_backup_retention_months: int = 6
+    recovery_point_objective_hours: int = 24
+    recovery_time_objective_hours: int = 4
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     @property

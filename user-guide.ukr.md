@@ -299,3 +299,11 @@ Grid Bot не думає про напрямок ринку — він прос�
 6. **Той самий тест із доданим прослизанням** — побачити, скільки насправді коштує виконання.
 
 Мета платформи — не пообіцяти легкий заробіток, а показати, як автоматична торгівля виглядає зсередини, які ризики в ній заховані і як перевіряти бота, доки помилки ще нічого не коштують.
+
+## Compliance / GDPR / Operations
+
+У меню **Compliance** доступні reference jurisdiction (EU), retention matrix, EU/EEA hosting target, backup/RPO/RTO policy, список third-party services, operations logs та incident register. Immutable фінансовий audit trail відкривається окремою кнопкою **Audit Trail**.
+
+У **Account → GDPR / Privacy** можна завантажити JSON-експорт своїх даних або видалити акаунт після підтвердження паролем. Operational/profile data видаляється, але regulatory audit records можуть лишатися до завершення налаштованого retention period.
+
+Для локальної перевірки backup є `scripts/backup-postgres.ps1` (Windows PowerShell) та `scripts/backup-postgres.sh` (shell). Production scheduler/hosting provider має окремо забезпечувати фактичний графік backup.

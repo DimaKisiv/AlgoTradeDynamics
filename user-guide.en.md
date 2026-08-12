@@ -299,3 +299,11 @@ The order that causes the least confusion:
 6. **The same test with slippage added** — see what execution actually costs.
 
 The point of the platform is not to promise easy money, but to show what automated trading looks like from the inside, what risks hide in it, and how to test a bot while mistakes are still free.
+
+## Compliance / GDPR / Operations
+
+The **Compliance** page exposes the EU reference jurisdiction, retention matrix, EU/EEA hosting target, backup/RPO/RTO policy, third-party services, operations logs, and the incident register. The immutable financial ledger remains available through **Audit Trail**.
+
+Under **Account → GDPR / Privacy**, the user can download a JSON export of their related data or delete the account after password confirmation. Operational/profile data is deleted, while regulatory audit records may remain until the configured retention period expires.
+
+Local backup helpers are provided as `scripts/backup-postgres.ps1` (Windows PowerShell) and `scripts/backup-postgres.sh` (shell). A production scheduler/hosting provider must still enforce the actual backup cadence.

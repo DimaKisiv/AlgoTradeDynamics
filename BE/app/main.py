@@ -9,17 +9,21 @@ from app.api.auth import router as auth_router
 from app.api.backtests import router as backtests_router
 from app.api.bots import router as bots_router
 from app.api.bybit import router as bybit_router
+from app.api.compliance import router as compliance_router
 from app.api.health import router as health_router
+from app.api.operations import router as operations_router
+from app.api.privacy import router as privacy_router
 from app.api.notifications import router as notifications_router
 from app.bot_engine.runtime import start_bot_worker, stop_bot_worker
 from app.core.audit_middleware import AuditMutationMiddleware
 from app.core.config import get_settings
 from app.core.logging import configure_logging, get_logger
+from app.core.operations_middleware import OperationsLogMiddleware
 from app.core.rate_limit import RateLimitMiddleware
 from app.db.base import Base
 from app.db.session import engine
 from app.services.telegram_notifications import start_telegram_workers, stop_telegram_workers
-from app.models import audit_event, backtest, refresh_token, telegram_notification, trading_bot, trading_bot_event, trading_bot_order, user  # noqa: F401  (register models)
+from app.models import audit_event, backtest, operations, refresh_token, telegram_notification, trading_bot, trading_bot_event, trading_bot_order, user  # noqa: F401  (register models)
 
 configure_logging()
 logger = get_logger(__name__)
@@ -58,6 +62,7 @@ app = FastAPI(
 # added middleware outermost, so even 429 responses receive CORS headers.
 app.add_middleware(RateLimitMiddleware, settings=settings)
 app.add_middleware(AuditMutationMiddleware)
+app.add_middleware(OperationsLogMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,
@@ -69,6 +74,9 @@ app.add_middleware(
 app.include_router(health_router)
 app.include_router(auth_router, prefix="/api")
 app.include_router(audit_router, prefix="/api")
+app.include_router(compliance_router, prefix="/api")
+app.include_router(operations_router, prefix="/api")
+app.include_router(privacy_router, prefix="/api")
 app.include_router(backtests_router, prefix="/api")
 app.include_router(bots_router, prefix="/api")
 app.include_router(bybit_router, prefix="/api")

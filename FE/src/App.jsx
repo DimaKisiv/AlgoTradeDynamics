@@ -16,6 +16,7 @@ import LoginPage from "./pages/LoginPage/LoginPage";
 import RegisterPage from "./pages/RegisterPage/RegisterPage";
 import AccountPage from "./pages/AccountPage/AccountPage";
 import AuditTrailPage from "./pages/AuditTrailPage/AuditTrailPage";
+import CompliancePage from "./pages/CompliancePage/CompliancePage";
 import EmulatorPage from "./pages/EmulatorPage/EmulatorPage";
 
 const protectedPage = (component) => <ProtectedRoute>{component}</ProtectedRoute>;
@@ -37,6 +38,7 @@ export default function App() {
             <Route path="/backtests/compare" element={protectedPage(<BacktestComparePage />)} />
             <Route path="/backtests/:id" element={protectedPage(<BacktestDetailPage />)} />
             <Route path="/account" element={protectedPage(<AccountPage />)} />
+            <Route path="/compliance" element={protectedPage(<CompliancePage />)} />
             <Route path="/compliance/audit" element={protectedPage(<AuditTrailPage />)} />
             <Route path="*" element={<LandingPage />} />
           </Routes>

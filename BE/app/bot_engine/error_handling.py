@@ -245,7 +245,28 @@ def handle_bot_runtime_error(db, bot: TradingBot, exc: BaseException, *, source:
         "source": source,
         "exception_class": type(exc).__name__,
     }
-    log_bot_event(db, bot, "bot_error", decision.message[:500], payload)
+    event = log_bot_event(db, bot, "bot_error", decision.message[:500], payload)
+    from app.services.operations_service import create_bot_incident, record_operation_log
+    record_operation_log(
+        db,
+        level="ERROR" if severity.value in {"error", "critical"} else "WARN",
+        service="BOT_WORKER",
+        message=decision.message,
+        correlation_id=f"bot:{bot.id}",
+        user_id=bot.user_id,
+        bot_id=bot.id,
+        exchange=bot.exchange,
+        error_type=decision.error_type.value,
+    )
+    create_bot_incident(
+        db,
+        bot=bot,
+        severity=severity.value,
+        incident_type=decision.error_type.value,
+        description=decision.message,
+        action_taken=action.value,
+        source_event_id=event.id,
+    )
     db.add(bot)
     db.commit()
     return BotErrorDecision(

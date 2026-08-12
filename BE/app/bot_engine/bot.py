@@ -25,7 +25,19 @@ def run_bot_once(db, bot: TradingBot, current_user: User) -> dict:
     bot.runtime_status = "running"
     bot.started_at = bot.started_at or _utcnow()
     bot.stopped_at = None
+    had_error = bool(bot.last_error_type)
     clear_bot_runtime_error(bot)
+    if had_error:
+        from app.services.operations_service import record_operation_log, resolve_bot_incidents
+        resolved = resolve_bot_incidents(
+            db, bot, resolution="User restarted the bot after intervention; runtime resumed",
+        )
+        if resolved:
+            record_operation_log(
+                db, level="INFO", service="BOT_WORKER",
+                message=f"User restart resolved {resolved} incident(s); runtime resumed",
+                correlation_id=f"bot:{bot.id}", user_id=bot.user_id, bot_id=bot.id, exchange=bot.exchange,
+            )
     db.add(bot)
     log_bot_event(db, bot, "bot_started", f"{bot.strategy_type} bot marked as running")
     db.commit(); db.refresh(bot)

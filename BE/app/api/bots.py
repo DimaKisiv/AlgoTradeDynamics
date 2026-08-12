@@ -19,7 +19,7 @@ from app.schemas.trading_bot import (
     TradingBotUpdate,
     TradingBotClearHistoryResponse,
 )
-from app.services.audit_service import record_user_bot_action
+from app.services.audit_service import bot_config_snapshot, record_user_bot_action
 from app.services.trading_bot_service import (
     create_trading_bot,
     delete_trading_bot,
@@ -228,8 +228,16 @@ def update_bot(
     if bot is None:
         raise HTTPException(status_code=404, detail="Trading bot not found")
     changed_fields = sorted(payload.model_dump(exclude_unset=True).keys())
+    before_config, before_config_hash, _ = bot_config_snapshot(bot)
     result = update_trading_bot(db, bot, payload)
-    _audit_bot_action(db, request, current_user, bot, "BOT_CONFIG_CHANGED", "Trading bot configuration changed", {"changed_fields": changed_fields})
+    _audit_bot_action(
+        db, request, current_user, bot, "BOT_CONFIG_CHANGED", "Trading bot configuration changed",
+        {
+            "changed_fields": changed_fields,
+            "before_config": before_config,
+            "before_config_hash": before_config_hash,
+        },
+    )
     return result
 
 

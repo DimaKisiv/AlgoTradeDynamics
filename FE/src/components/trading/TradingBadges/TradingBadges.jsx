@@ -26,7 +26,7 @@ export function StatusBadge({ status }) {
   const value = normalize(status);
   let className = styles.neutral;
 
-  if (["new", "created", "pendingnew", "untriggered", "open", "queued", "running"].includes(value)) {
+  if (["new", "created", "pendingnew", "untriggered", "open", "queued", "running", "retrying"].includes(value)) {
     className = styles.open;
   } else if (["paused"].includes(value)) {
     className = styles.partial;
@@ -45,7 +45,7 @@ export function StatusBadge({ status }) {
   const labels = {
     new: tr('Новий', 'New'), created: tr('Створено', 'Created'), pendingnew: tr('Очікується', 'Pending'),
     untriggered: tr('Не спрацював', 'Untriggered'), open: tr('Відкритий', 'Open'), queued: tr('У черзі', 'Queued'),
-    running: tr('Запущено', 'Running'), paused: tr('Пауза', 'Paused'), partiallyfilled: tr('Частково виконано', 'Partially filled'),
+    running: tr('Запущено', 'Running'), retrying: tr('Повторна спроба', 'Retrying'), paused: tr('Пауза', 'Paused'), partiallyfilled: tr('Частково виконано', 'Partially filled'),
     filled: tr('Виконано', 'Filled'), completed: tr('Завершено', 'Completed'), closed: tr('Закрито', 'Closed'),
     cancelled: tr('Скасовано', 'Cancelled'), canceled: tr('Скасовано', 'Canceled'), deactivated: tr('Деактивовано', 'Deactivated'),
     rejected: tr('Відхилено', 'Rejected'), failed: tr('Помилка', 'Failed'), error: tr('Помилка', 'Error'), triggered: tr('Спрацював', 'Triggered'),
@@ -145,7 +145,7 @@ function humanize(value, tr) {
     bot_started: tr('Бот запущено', 'Bot started'), bot_stopped: tr('Бот зупинено', 'Bot stopped'),
     order_filled: tr('Ордер виконано', 'Order filled'), order_rejected: tr('Ордер відхилено', 'Order rejected'),
     position_closed: tr('Позицію закрито', 'Position closed'), risk_blocked: tr('Заблоковано risk guard', 'Blocked by risk guard'),
-    runtime_error: tr('Runtime помилка', 'Runtime error'),
+    runtime_error: tr('Runtime помилка', 'Runtime error'), bot_error: tr('Помилка бота', 'Bot error'),
   };
   if (known[normalized]) return known[normalized];
   return String(value || tr('Подія', 'Event'))

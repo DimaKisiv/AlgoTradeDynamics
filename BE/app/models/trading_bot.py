@@ -67,6 +67,13 @@ class TradingBot(Base):
     last_run_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True)
     last_error: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    last_error_type: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    last_error_severity: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    last_error_action: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    last_error_code: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    last_error_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    error_retry_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    next_retry_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     user: Mapped["User"] = relationship("User", back_populates="trading_bots")
     orders: Mapped[list["TradingBotOrder"]] = relationship(

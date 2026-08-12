@@ -84,6 +84,9 @@ def get_effective_bot_settings(bot: TradingBot) -> dict:
         "max_grid_levels": int(get_bot_setting(bot, "max_grid_levels", bot.grid_orders_count)),
         "allow_live_trading": bool(get_bot_setting(bot, "allow_live_trading", False)),
         "stop_bot_on_error": bool(get_bot_setting(bot, "stop_bot_on_error", True)),
+        "error_max_retries": int(get_bot_setting(bot, "error_max_retries", 5)),
+        "error_retry_base_seconds": int(get_bot_setting(bot, "error_retry_base_seconds", 5)),
+        "error_retry_max_seconds": int(get_bot_setting(bot, "error_retry_max_seconds", 300)),
         "cancel_orders_on_stop": bool(get_bot_setting(bot, "cancel_orders_on_stop", True)),
         **(bot.settings or {}),
     }
@@ -615,6 +618,8 @@ def get_runtime_state(db, bot: TradingBot) -> tuple[str, str | None]:
     if latest_event is not None and latest_event.event_type == "risk_blocked":
         last_risk_message = latest_event.message
 
+    if bot.runtime_status in {"retrying", "paused", "error"}:
+        return bot.runtime_status, last_risk_message
     if bot.runtime_status != "running":
         return "stopped", last_risk_message
     if bot.last_error:
@@ -1326,6 +1331,8 @@ def tick_grid_bot(db, bot: TradingBot) -> dict:
             ),
         }
     except Exception as exc:  # noqa: BLE001
+        if not bot.is_backtest:
+            raise
         bot.last_run_at = _utcnow()
         bot.last_error = str(exc)
         if get_effective_bot_settings(bot)["stop_bot_on_error"]:

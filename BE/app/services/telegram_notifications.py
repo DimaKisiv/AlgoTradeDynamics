@@ -41,7 +41,7 @@ def _telegram_payload(response: httpx.Response) -> dict:
 
 STATUS_EVENTS = {"bot_started", "bot_stopped"}
 RISK_EVENTS = {"risk_blocked"}
-ERROR_EVENTS = {"error", "order_rejected"}
+ERROR_EVENTS = {"error", "bot_error", "order_rejected"}
 TRADE_EVENTS = {
     "grid_entry_created",
     "grid_entry_filled",
@@ -233,6 +233,7 @@ def format_event_message(event: TradingBotEvent) -> str:
         "risk_blocked": "🛡 Risk limit blocked action",
         "order_rejected": "⚠️ Order rejected",
         "error": "🚨 Bot error",
+        "bot_error": "🚨 Bot error / recovery action",
     }
     lines = [headers.get(event.event_type, "🔔 AlgoTradeDynamics"), ""]
     if bot is not None:
@@ -245,6 +246,9 @@ def format_event_message(event: TradingBotEvent) -> str:
         ("stop_loss", "SL"), ("take_profit", "TP"), ("score", "Score"),
         ("pattern", "Pattern"), ("price", "Price"), ("exit_reason", "Exit reason"),
         ("order_link_id", "Order"),
+        ("error_type", "Error type"), ("severity", "Severity"),
+        ("action", "Action"), ("error_code", "Code"),
+        ("retry_count", "Retry"), ("next_retry_at", "Next retry"),
     ]
     for key, label in field_labels:
         if payload.get(key) is not None:

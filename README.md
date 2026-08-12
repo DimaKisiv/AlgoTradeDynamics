@@ -96,6 +96,19 @@ Rule-based multi-pattern scalper. Revision 4:
 
 Це rule-based MVP, а не ML-модель. Така база потрібна, щоб спочатку перевірити execution, fees, slippage і risk management, а вже потім навчати модель на коректних результатах.
 
+## Bot Error Recovery
+
+Runtime-помилки робочих ботів класифікуються окремим recovery layer. Замість однакового `status=error` система зберігає `error type`, `severity`, `action`, код біржі, кількість retry та час наступної спроби.
+
+Базова політика:
+
+- network / Bybit rate limit / temporary exchange outage / clock-window errors → exponential backoff і автоматичний retry;
+- inconsistent або stale order state → reconciliation (`sync`) і retry;
+- insufficient balance, invalid order/symbol або liquidation/risk restriction → `paused`, поки користувач не виправить причину й не запустить бота знову;
+- invalid API key, permissions або unknown critical runtime error → `error` і stop без нескінченних повторів.
+
+За замовчуванням transient error повторюється до 5 разів із backoff від 5 секунд до максимум 300 секунд. Значення можна перевизначити в `bot.settings`: `error_max_retries`, `error_retry_base_seconds`, `error_retry_max_seconds`. Кожне рішення записується як `bot_error` event і може бути доставлене через Telegram. Historical backtests не використовують automatic recovery: помилка робить конкретний backtest failed, щоб результат залишався детермінованим.
+
 ## Bot Backtesting
 
 ### Створення

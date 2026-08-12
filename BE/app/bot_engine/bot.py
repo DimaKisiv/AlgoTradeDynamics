@@ -4,6 +4,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from app.bot_engine.events import log_bot_event
+from app.bot_engine.error_handling import clear_bot_runtime_error
 from app.bot_engine.strategies import get_strategy
 from app.models.trading_bot import TradingBot
 from app.models.trading_bot_order import TradingBotOrder
@@ -24,7 +25,7 @@ def run_bot_once(db, bot: TradingBot, current_user: User) -> dict:
     bot.runtime_status = "running"
     bot.started_at = bot.started_at or _utcnow()
     bot.stopped_at = None
-    bot.last_error = None
+    clear_bot_runtime_error(bot)
     db.add(bot)
     log_bot_event(db, bot, "bot_started", f"{bot.strategy_type} bot marked as running")
     db.commit(); db.refresh(bot)
@@ -37,7 +38,7 @@ def stop_bot_once(db, bot: TradingBot, current_user: User, *, cancel_open: bool 
     strategy = get_strategy(bot.strategy_type)
     if cancel_open and bool(strategy.get_effective_settings(bot).get("cancel_orders_on_stop", True)):
         strategy.cancel_orders(db, bot)
-    bot.runtime_status = "stopped"; bot.stopped_at = _utcnow(); bot.last_error = None
+    bot.runtime_status = "stopped"; bot.stopped_at = _utcnow(); clear_bot_runtime_error(bot)
     db.add(bot); log_bot_event(db, bot, "bot_stopped", "Bot stopped"); db.commit(); db.refresh(bot)
     return bot
 

@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.bot_engine.bot import run_bot_once, stop_bot_once, sync_bot_orders_once
 from app.bot_engine.grid_runtime import sync_bot_orders
+from app.bot_engine.error_handling import clear_bot_runtime_error
 from app.bot_engine.performance import get_performance_summary
 from app.bot_engine.strategies import get_strategy
 from app.models.trading_bot import TradingBot
@@ -52,6 +53,13 @@ def _serialize_trading_bot(db: Session, bot: TradingBot) -> dict:
         "stopped_at": bot.stopped_at,
         "last_run_at": bot.last_run_at,
         "last_error": bot.last_error,
+        "last_error_type": bot.last_error_type,
+        "last_error_severity": bot.last_error_severity,
+        "last_error_action": bot.last_error_action,
+        "last_error_code": bot.last_error_code,
+        "last_error_at": bot.last_error_at,
+        "error_retry_count": bot.error_retry_count,
+        "next_retry_at": bot.next_retry_at,
     }
 
 
@@ -124,7 +132,7 @@ def sync_trading_bot_orders(db: Session, bot: TradingBot, current_user: User) ->
 def cancel_trading_bot_orders(db: Session, bot: TradingBot, current_user: User) -> list[TradingBotOrder]:
     if bot.user_id != current_user.id:
         raise PermissionError("Trading bot access denied")
-    bot.runtime_status = "stopped"; bot.stopped_at = _utcnow(); bot.last_error = None
+    bot.runtime_status = "stopped"; bot.stopped_at = _utcnow(); clear_bot_runtime_error(bot)
     db.add(bot); db.flush()
     cancelled = get_strategy(bot.strategy_type).cancel_orders(db, bot)
     db.commit()
@@ -140,7 +148,7 @@ def clear_trading_bot_history(db: Session, bot: TradingBot, current_user: User) 
     bot.stopped_at = _utcnow()
     bot.started_at = None
     bot.last_run_at = None
-    bot.last_error = None
+    clear_bot_runtime_error(bot)
     settings = dict(bot.settings or {})
     settings.pop("pattern_scalper_state", None)
     bot.settings = settings

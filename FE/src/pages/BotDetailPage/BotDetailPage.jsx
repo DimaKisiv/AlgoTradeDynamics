@@ -118,7 +118,7 @@ export default function BotDetailPage() {
   }, [botId]);
 
   useEffect(() => {
-    if (!bot || bot.runtime_status !== "running") {return undefined;}
+    if (!bot || !["running", "retrying"].includes(bot.runtime_status)) {return undefined;}
     const intervalId = window.setInterval(() => {
       load();
     }, 7000);
@@ -686,9 +686,20 @@ export default function BotDetailPage() {
                 </dl>
 
                 {bot.last_error ? (
-                  <p className={styles.lastError}>
-                    {tr('Остання помилка:', 'Last error:')} {bot.last_error}
-                  </p>
+                  <div className={styles.errorRecovery}>
+                    <div className={styles.errorRecoveryHead}>
+                      <strong>{tr('Обробка помилки', 'Error recovery')}</strong>
+                      <span>{formatErrorSeverity(bot.last_error_severity, tr)}</span>
+                    </div>
+                    <p className={styles.lastError}>{bot.last_error}</p>
+                    <dl className={styles.errorRecoveryGrid}>
+                      <div><dt>{tr('Тип', 'Type')}</dt><dd>{formatErrorType(bot.last_error_type, tr)}</dd></div>
+                      <div><dt>{tr('Дія', 'Action')}</dt><dd>{formatErrorAction(bot.last_error_action, tr)}</dd></div>
+                      <div><dt>{tr('Код', 'Code')}</dt><dd className="mono">{bot.last_error_code || '—'}</dd></div>
+                      <div><dt>{tr('Спроба', 'Retry')}</dt><dd className="mono">{bot.error_retry_count || 0}</dd></div>
+                      {bot.next_retry_at ? <div><dt>{tr('Наступна спроба', 'Next retry')}</dt><dd className="mono">{fmtDateTime(bot.next_retry_at, locale)}</dd></div> : null}
+                    </dl>
+                  </div>
                 ) : null}
                 {bot.last_risk_message ? (
                   <p className={styles.riskMessage}>
@@ -925,8 +936,38 @@ function getRuntimeLabel(value, tr) {
     tp_active: tr('TP активний', 'TP active'),
     risk_blocked: tr('Заблоковано ризиком', 'Risk blocked'),
     error: tr('Помилка', 'Error'),
+    retrying: tr('Повторна спроба', 'Retrying'),
+    paused: tr('Пауза — потрібна дія', 'Paused — action required'),
   };
   return labels[value] || value;
+}
+
+function formatErrorType(value, tr) {
+  const labels = {
+    network: tr('Мережа', 'Network'), rate_limit: tr('Rate limit', 'Rate limit'),
+    exchange_unavailable: tr('Біржа недоступна', 'Exchange unavailable'), time_sync: tr('Синхронізація часу', 'Time sync'),
+    authentication: tr('Автентифікація', 'Authentication'), permission: tr('Права доступу', 'Permission'),
+    insufficient_funds: tr('Недостатньо коштів', 'Insufficient funds'), invalid_order: tr('Некоректний ордер', 'Invalid order'),
+    invalid_symbol: tr('Некоректний символ', 'Invalid symbol'), order_state: tr('Стан ордера', 'Order state'),
+    configuration: tr('Конфігурація', 'Configuration'), risk: tr('Ризик / ліквідація', 'Risk / liquidation'),
+    internal: tr('Внутрішня помилка', 'Internal error'),
+  };
+  return labels[value] || value || '—';
+}
+
+function formatErrorAction(value, tr) {
+  const labels = {
+    retry_backoff: tr('Повторити з паузою', 'Retry with backoff'),
+    resync_and_retry: tr('Синхронізувати і повторити', 'Resync and retry'),
+    pause: tr('Поставити бота на паузу', 'Pause bot'),
+    stop: tr('Зупинити з помилкою', 'Stop with error'),
+  };
+  return labels[value] || value || '—';
+}
+
+function formatErrorSeverity(value, tr) {
+  const labels = { warning: tr('Попередження', 'Warning'), error: tr('Помилка', 'Error'), critical: tr('Критична', 'Critical') };
+  return labels[value] || value || tr('Помилка', 'Error');
 }
 
 function toNumberOrNull(value) {

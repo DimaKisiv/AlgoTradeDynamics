@@ -56,6 +56,13 @@ class TradingBotResponse(TradingBotBase):
     stopped_at: datetime | None
     last_run_at: datetime | None
     last_error: str | None
+    last_error_type: str | None = None
+    last_error_severity: str | None = None
+    last_error_action: str | None = None
+    last_error_code: str | None = None
+    last_error_at: datetime | None = None
+    error_retry_count: int = 0
+    next_retry_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

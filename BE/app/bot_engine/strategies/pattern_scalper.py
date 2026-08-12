@@ -19,6 +19,7 @@ from sqlalchemy import desc
 
 from app.bot_engine.bybit.client import get_bybit_session
 from app.bot_engine.events import log_bot_event
+from app.bot_engine.error_handling import ExchangeOperationError
 from app.bot_engine.grid_runtime import (
     cancel_all_bot_orders,
     ensure_live_trading_allowed,
@@ -82,7 +83,7 @@ def _ensure_accepted(response: dict, action: str) -> None:
     if code is None or str(code) == "0":
         return
     message = response.get("retMsg") or response.get("retMessage") or "Unknown exchange error"
-    raise ValueError(f"{action} rejected by exchange ({code}): {message}")
+    raise ExchangeOperationError(str(message), code=code, operation=action)
 
 
 def _interval_seconds(interval: str) -> int:
@@ -168,6 +169,9 @@ def _settings(bot: TradingBot) -> dict:
         "max_notional_usdt": None,
         "allow_live_trading": False,
         "stop_bot_on_error": True,
+        "error_max_retries": 5,
+        "error_retry_base_seconds": 5,
+        "error_retry_max_seconds": 300,
         "cancel_orders_on_stop": True,
         "run_interval_seconds": 5,
     }
@@ -1362,6 +1366,8 @@ class PatternScalperStrategy:
     def get_runtime_state(self, db, bot: TradingBot) -> tuple[str, str | None]:
         latest = _latest_event(db, bot)
         risk = latest.message if latest and latest.event_type == "risk_blocked" else None
+        if bot.runtime_status in {"retrying", "paused", "error"}:
+            return bot.runtime_status, risk
         if bot.runtime_status != "running":
             return "stopped", risk
         if bot.last_error:
@@ -1551,6 +1557,8 @@ class PatternScalperStrategy:
             bot.last_run_at = utcnow(); bot.last_error = None; db.add(bot); db.commit()
             return {"orders": [change["order"] for change in synced] + created, "events": len(synced), "message": "Pattern scalper tick completed"}
         except Exception as exc:  # noqa: BLE001
+            if not bot.is_backtest:
+                raise
             bot.last_run_at = utcnow(); bot.last_error = str(exc)
             if bool(settings.get("stop_bot_on_error", True)):
                 bot.runtime_status = "stopped"

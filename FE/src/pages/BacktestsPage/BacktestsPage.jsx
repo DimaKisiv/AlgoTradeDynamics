@@ -5,9 +5,11 @@ import { BarChart3, Bot, CalendarRange, CirclePlay, Copy, Database, GitCompareAr
 import { backtestsApi } from "../../api/backtests";
 import { listBots } from "../../api/bots";
 import Button from "../../components/ui/Button/Button";
+import ConnectionStatus from "../../components/ui/ConnectionStatus/ConnectionStatus";
 import { PnlValue, StatusBadge } from "../../components/trading/TradingBadges/TradingBadges";
 import { fmtDateTime, fmtMoneySigned, fmtPctSigned } from "../../lib/format";
 import { useLanguage } from "../../context/LanguageContext";
+import { useAuthenticatedWebSocket } from "../../websocket/useAuthenticatedWebSocket";
 import styles from "./BacktestsPage.module.css";
 
 const ACTIVE = new Set(["queued", "running", "paused"]);
@@ -80,6 +82,20 @@ export default function BacktestsPage() {
     }
   }, [tr]);
 
+  const wsStatus = useAuthenticatedWebSocket("/ws/backtests", {
+    onMessage: (event) => {
+      if (event.type === "backtest.updated" && event.data) {
+        setRuns((current) => {
+          const exists = current.some((run) => run.id === event.data.id);
+          if (!exists) return [event.data, ...current];
+          return current.map((run) => run.id === event.data.id ? { ...run, ...event.data } : run);
+        });
+      } else if (event.type === "backtest.deleted") {
+        setRuns((current) => current.filter((run) => run.id !== Number(event.run_id)));
+      }
+    },
+  });
+
   useEffect(() => { load(); }, [load]);
   useEffect(() => {
     const duplicateId = Number(searchParams.get("duplicate"));
@@ -96,11 +112,6 @@ export default function BacktestsPage() {
       setSearchParams({}, { replace: true });
     }).catch((e) => setError(e.detail || e.message));
   }, [searchParams, setSearchParams, tr]);
-  useEffect(() => {
-    if (!runs.some((run) => ACTIVE.has(run.status))) return undefined;
-    const timer = window.setInterval(load, 1500);
-    return () => window.clearInterval(timer);
-  }, [runs, load]);
 
   const selectedBot = bots.find((item) => item.id === Number(form.bot_id));
   const botDatasets = useMemo(
@@ -205,9 +216,12 @@ export default function BacktestsPage() {
             <h1 className="display-2">{tr('Бектести', 'Bot')} <span className="italic-accent">{tr('ботів', 'Backtests')}</span></h1>
             <p className="lead">{tr('Запускайте Grid Bot або Pattern Scalper на конкретному ізольованому OHLCV dataset без змішування джерел і періодів.', 'Run Grid Bot or Pattern Scalper against a specific isolated OHLCV dataset without mixing sources or periods.')}</p>
           </div>
-          <Button icon={<CirclePlay size={17} />} onClick={() => setShowForm((value) => !value)}>
-            {showForm ? tr('Закрити форму', 'Close form') : tr('Новий backtest', 'New backtest')}
-          </Button>
+          <div className={styles.heroActions}>
+            <ConnectionStatus status={wsStatus} tr={tr} />
+            <Button icon={<CirclePlay size={17} />} onClick={() => setShowForm((value) => !value)}>
+              {showForm ? tr('Закрити форму', 'Close form') : tr('Новий backtest', 'New backtest')}
+            </Button>
+          </div>
         </header>
 
         {error && <div className={styles.error}>{error}</div>}

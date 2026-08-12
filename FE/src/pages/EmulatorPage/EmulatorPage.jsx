@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Banknote,
   Database,
@@ -26,6 +26,7 @@ import {
 } from "recharts";
 
 import Button from "../../components/ui/Button/Button";
+import ConnectionStatus from "../../components/ui/ConnectionStatus/ConnectionStatus";
 import Card, { CardHeader } from "../../components/ui/Card/Card";
 import {
   EventBadge,
@@ -37,6 +38,7 @@ import {
 } from "../../components/trading/TradingBadges/TradingBadges";
 import { emulatorApi } from "../../api/emulator";
 import { useLanguage } from "../../context/LanguageContext";
+import { useAuthenticatedWebSocket } from "../../websocket/useAuthenticatedWebSocket";
 import styles from "./EmulatorPage.module.css";
 
 const TABS = ["manual", "scenario", "historical", "accounts", "activity"];
@@ -115,6 +117,8 @@ export default function EmulatorPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [streamSources, setStreamSources] = useState({ public: "reconnecting", private: "reconnecting" });
+  const liveRefreshTimerRef = useRef(null);
 
   const [manualPrice, setManualPrice] = useState("65000");
   const [moveTarget, setMoveTarget] = useState("62000");
@@ -203,12 +207,64 @@ export default function EmulatorPage() {
     }
   }, [selectedAccountId, symbol, tr]);
 
+  const socketStatus = useAuthenticatedWebSocket(
+    `/ws/emulator?account_id=${selectedAccountId}&symbol=${encodeURIComponent(symbol)}`,
+    {
+      enabled: Boolean(selectedAccountId && symbol),
+      onMessage: (event) => {
+        if (event.type === "emulator.stream_status") {
+          setStreamSources((current) => ({ ...current, [event.source]: event.status }));
+          return;
+        }
+        if (event.type === "emulator.error") {
+          setError(event.message || tr('WebSocket emulator недоступний.', 'Emulator WebSocket is unavailable.'));
+          return;
+        }
+        if (event.type !== "emulator.event" || !event.data) return;
+
+        const streamEvent = event.data;
+        if (streamEvent.topic === `tickers.${symbol}` && streamEvent.data) {
+          const lastPrice = Number(streamEvent.data.lastPrice);
+          const markPrice = Number(streamEvent.data.markPrice);
+          setDashboard((current) => current ? {
+            ...current,
+            market: {
+              ...current.market,
+              last_price: Number.isFinite(lastPrice) ? lastPrice : current.market?.last_price,
+              mark_price: Number.isFinite(markPrice) ? markPrice : current.market?.mark_price,
+            },
+          } : current);
+          setMarkets((items) => items.map((item) => item.symbol === symbol ? {
+            ...item,
+            last_price: Number.isFinite(lastPrice) ? lastPrice : item.last_price,
+            mark_price: Number.isFinite(markPrice) ? markPrice : item.mark_price,
+          } : item));
+        }
+
+        if (!liveRefreshTimerRef.current) {
+          liveRefreshTimerRef.current = window.setTimeout(() => {
+            liveRefreshTimerRef.current = null;
+            loadLive();
+          }, 150);
+        }
+      },
+    },
+  );
+
+  const connectionStatus = socketStatus === "offline"
+    ? "offline"
+    : socketStatus === "live" && streamSources.public === "live" && streamSources.private === "live"
+      ? "live"
+      : "reconnecting";
+
   useEffect(() => { loadStatic(); }, [loadStatic]);
+  useEffect(() => { loadLive(); }, [loadLive]);
   useEffect(() => {
-    loadLive();
-    const timer = window.setInterval(loadLive, 1000);
-    return () => window.clearInterval(timer);
-  }, [loadLive]);
+    setStreamSources({ public: "reconnecting", private: "reconnecting" });
+  }, [selectedAccountId, symbol]);
+  useEffect(() => () => {
+    if (liveRefreshTimerRef.current) window.clearTimeout(liveRefreshTimerRef.current);
+  }, []);
 
   const chartData = useMemo(() => {
     const priceEvents = [...events]
@@ -347,6 +403,7 @@ export default function EmulatorPage() {
                 {markets.map((item) => <option key={item.symbol} value={item.symbol}>{item.symbol}</option>)}
               </select>
             </label>
+            <ConnectionStatus status={connectionStatus} tr={tr} />
             <Button variant="ghost" icon={<RefreshCw size={16} />} onClick={() => { loadStatic(); loadLive(); }} disabled={busy}>{tr('Оновити', 'Refresh')}</Button>
           </div>
         </header>

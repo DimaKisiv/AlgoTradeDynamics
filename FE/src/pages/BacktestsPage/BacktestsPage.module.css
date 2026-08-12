@@ -6,3 +6,5 @@
 .datasetCard{display:grid;grid-template-columns:1.4fr 1fr auto;gap:16px;align-items:center;margin-top:14px;padding:14px 16px;border:1px solid var(--line);border-radius:11px;background:rgba(255,255,255,.025)}
 .datasetCard>div{display:flex;flex-direction:column;gap:4px}.datasetCard span{color:var(--text-tertiary);font-size:12px}.datasetCard b{font-size:12px;white-space:nowrap}.datasetGood{border-color:rgba(95,255,181,.24)}.datasetGood b{color:#72e8ad}.datasetBad{border-color:rgba(255,171,112,.3);background:rgba(255,171,112,.055)}.datasetBad b{color:#ffab70}
 @media(max-width:800px){.datasetCard{grid-template-columns:1fr}.datasetCard b{white-space:normal}}
+
+.heroActions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}

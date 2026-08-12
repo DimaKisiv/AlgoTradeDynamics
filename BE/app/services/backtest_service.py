@@ -16,6 +16,7 @@ from app.bot_engine.strategies import get_strategy
 from app.core.clock import use_simulated_time
 from app.core.config import get_settings
 from app.db.session import SessionLocal
+from app.services.ui_stream_service import backtest_ui_stream_hub
 from app.models.backtest import BacktestCycle, BacktestPoint, BacktestRun
 from app.models.trading_bot import TradingBot
 from app.models.trading_bot_event import TradingBotEvent
@@ -714,6 +715,7 @@ def _run_emulator_backtest_job(run_id: int) -> None:
         run.started_at = _utcnow()
         run.error = None
         db.commit()
+        backtest_ui_stream_hub.publish(run.user_id, run.id, "running", force=True)
 
         account = emulator.create_account(
             f"Backtest #{run.id} · {run.bot_name}",
@@ -804,10 +806,13 @@ def _run_emulator_backtest_job(run_id: int) -> None:
                 temp_bot.stopped_at = _utcnow()
                 db.add_all([run, temp_bot])
                 db.commit()
+                backtest_ui_stream_hub.publish(run.user_id, run.id, "cancelled", force=True)
                 return
             while run.pause_requested:
-                run.status = "paused"
-                db.commit()
+                if run.status != "paused":
+                    run.status = "paused"
+                    db.commit()
+                    backtest_ui_stream_hub.publish(run.user_id, run.id, "paused", force=True)
                 time.sleep(0.4)
                 db.expire(run)
                 db.refresh(run)
@@ -818,10 +823,12 @@ def _run_emulator_backtest_job(run_id: int) -> None:
                     temp_bot.stopped_at = _utcnow()
                     db.add_all([run, temp_bot])
                     db.commit()
+                    backtest_ui_stream_hub.publish(run.user_id, run.id, "cancelled", force=True)
                     return
             if run.status == "paused":
                 run.status = "running"
                 db.commit()
+                backtest_ui_stream_hub.publish(run.user_id, run.id, "running", force=True)
 
             path = _path_for_candle(candle, run.path_mode)
             segment_ms = max(int(interval_seconds * 1000 / max(len(path), 1)), 1)
@@ -964,6 +971,7 @@ def _run_emulator_backtest_job(run_id: int) -> None:
                 }
                 db.add(run)
                 db.commit()
+                backtest_ui_stream_hub.publish(run.user_id, run.id, "progress")
 
         final_time = run.end_time
         final_dashboard = emulator.dashboard(run.emulator_account_id, run.symbol)
@@ -1051,6 +1059,7 @@ def _run_emulator_backtest_job(run_id: int) -> None:
         temp_bot.stopped_at = _utcnow()
         db.add_all([run, temp_bot])
         db.commit()
+        backtest_ui_stream_hub.publish(run.user_id, run.id, "completed", force=True)
     except Exception as exc:  # noqa: BLE001
         db.rollback()
         run = db.get(BacktestRun, run_id)
@@ -1066,6 +1075,7 @@ def _run_emulator_backtest_job(run_id: int) -> None:
                     db.add(failed_bot)
             db.add(run)
             db.commit()
+            backtest_ui_stream_hub.publish(run.user_id, run.id, "failed", force=True)
     finally:
         emulator.close()
         db.close()

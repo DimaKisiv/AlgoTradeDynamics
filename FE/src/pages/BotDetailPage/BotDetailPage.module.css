@@ -554,3 +554,5 @@
 .errorRecovery .lastError{margin:0;color:#ffb1b5;font-size:12px;line-height:1.5}
 .errorRecoveryGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 18px;margin-top:12px}.errorRecoveryGrid>div{display:flex;justify-content:space-between;gap:10px;border-top:1px solid rgba(255,255,255,.06);padding-top:8px}.errorRecoveryGrid dt{color:var(--text-tertiary);font-size:10px;text-transform:uppercase;letter-spacing:.07em}.errorRecoveryGrid dd{font-size:11px;text-align:right;color:var(--text-secondary)}
 @media(max-width:680px){.errorRecoveryGrid{grid-template-columns:1fr}}
+
+.headMeta { display:flex; align-items:center; justify-content:space-between; gap:var(--space-3); flex-wrap:wrap; }

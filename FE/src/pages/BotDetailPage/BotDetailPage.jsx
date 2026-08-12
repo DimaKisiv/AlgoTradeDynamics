@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import Button from "../../components/ui/Button/Button";
+import ConnectionStatus from "../../components/ui/ConnectionStatus/ConnectionStatus";
 import Card, { CardHeader } from "../../components/ui/Card/Card";
 import {
   EventBadge,
@@ -43,6 +44,7 @@ import {
   fmtPctSigned,
 } from "../../lib/format";
 import { useLanguage } from "../../context/LanguageContext";
+import { useAuthenticatedWebSocket } from "../../websocket/useAuthenticatedWebSocket";
 import styles from "./BotDetailPage.module.css";
 
 export default function BotDetailPage() {
@@ -60,6 +62,28 @@ export default function BotDetailPage() {
   const [action, setAction] = useState("");
   const [orderFilter, setOrderFilter] = useState("open");
   const [showAllEvents, setShowAllEvents] = useState(false);
+
+  const wsStatus = useAuthenticatedWebSocket(`/ws/bots/${botId}`, {
+    enabled: Boolean(botId),
+    onMessage: (event) => {
+      if (event.type === "bot.snapshot" && event.data) {
+        setBot(event.data.bot);
+        setOrders(event.data.orders || []);
+        setEvents(event.data.events || []);
+        if (!event.data.stream_errors?.position) setPosition(event.data.position || null);
+        if (!event.data.stream_errors?.risk) setRisk(event.data.risk || null);
+        if (!event.data.stream_errors?.performance) setPerformance(event.data.performance || null);
+        setLoading(false);
+        return;
+      }
+      if (event.type === "access.denied") {
+        setError(event.message || tr('Немає доступу до цього бота.', 'You do not have access to this bot.'));
+      }
+      if (event.type === "bot.deleted") {
+        setError(tr('Бота було видалено.', 'The bot was deleted.'));
+      }
+    },
+  });
 
   const load = async () => {
     try {
@@ -117,13 +141,6 @@ export default function BotDetailPage() {
     load();
   }, [botId]);
 
-  useEffect(() => {
-    if (!bot || !["running", "retrying"].includes(bot.runtime_status)) {return undefined;}
-    const intervalId = window.setInterval(() => {
-      load();
-    }, 7000);
-    return () => window.clearInterval(intervalId);
-  }, [botId, bot?.runtime_status]);
 
   const handleStart = async () => {
     try {
@@ -308,7 +325,10 @@ export default function BotDetailPage() {
           <div className={styles.layout}>
             <section className={styles.summary}>
               <header className={styles.head}>
-                <span className="eyebrow">{tr('Бот', 'Bot')} #{bot.id}</span>
+                <div className={styles.headMeta}>
+                  <span className="eyebrow">{tr('Бот', 'Bot')} #{bot.id}</span>
+                  <ConnectionStatus status={wsStatus} tr={tr} />
+                </div>
                 <h1 className="display-2">{bot.name}</h1>
                 <p className="lead">
                   {isScalper

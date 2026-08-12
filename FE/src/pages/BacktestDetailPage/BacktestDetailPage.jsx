@@ -11,7 +11,9 @@ import {
 
 import { backtestsApi } from "../../api/backtests";
 import { useLanguage } from "../../context/LanguageContext";
+import { useAuthenticatedWebSocket } from "../../websocket/useAuthenticatedWebSocket";
 import Button from "../../components/ui/Button/Button";
+import ConnectionStatus from "../../components/ui/ConnectionStatus/ConnectionStatus";
 import {
   EventBadge, OrderTypeBadge, PnlValue, RoleBadge, SideBadge, StatusBadge,
 } from "../../components/trading/TradingBadges/TradingBadges";
@@ -306,6 +308,7 @@ export default function BacktestDetailPage() {
   const dragRef = useRef(null);
   const pendingRangeRef = useRef(null);
   const previousCycleFilterRef = useRef(cycleFilter);
+  const wsDetailRefreshRef = useRef(null);
 
   const loadRun = useCallback(async () => {
     try { setRun(await backtestsApi.get(id)); setError(""); }
@@ -323,12 +326,30 @@ export default function BacktestDetailPage() {
     } catch (e) { setError(e.detail || e.message); }
   }, [id]);
 
+  const wsStatus = useAuthenticatedWebSocket("/ws/backtests", {
+    onMessage: (event) => {
+      if (event.type !== "backtest.updated" || Number(event.run_id) !== Number(id) || !event.data) return;
+      setRun(event.data);
+
+      const terminal = !ACTIVE.has(event.data.status);
+      if (terminal) {
+        if (wsDetailRefreshRef.current) window.clearTimeout(wsDetailRefreshRef.current);
+        wsDetailRefreshRef.current = null;
+        loadDetails();
+      } else if (!wsDetailRefreshRef.current) {
+        wsDetailRefreshRef.current = window.setTimeout(() => {
+          wsDetailRefreshRef.current = null;
+          loadDetails();
+        }, 800);
+      }
+    },
+  });
+
   useEffect(() => { loadRun(); loadDetails(); }, [loadRun, loadDetails]);
-  useEffect(() => {
-    if (!run || !ACTIVE.has(run.status)) return undefined;
-    const timer = window.setInterval(() => { loadRun(); loadDetails(); }, 1200);
-    return () => window.clearInterval(timer);
-  }, [run, loadRun, loadDetails]);
+
+  useEffect(() => () => {
+    if (wsDetailRefreshRef.current) window.clearTimeout(wsDetailRefreshRef.current);
+  }, []);
 
   const control = async (action) => {
     try { setBusy(true); setRun(await action()); await loadDetails(); }
@@ -764,6 +785,7 @@ export default function BacktestDetailPage() {
         <header className={styles.hero}>
           <div><div className={styles.titleLine}><StatusBadge status={run.status}/><span>{Number(run.progress || 0).toFixed(1)}%</span></div><h1>{run.name}</h1><p>{run.bot_name} · {run.symbol} · {run.interval} · {new Date(run.start_time).toLocaleDateString(locale)} — {new Date(run.end_time).toLocaleDateString(locale)}</p></div>
           <div className={styles.controls}>
+            <ConnectionStatus status={wsStatus} tr={tr} />
             {!ACTIVE.has(run.status) && <Link className={styles.copyButton} to={`/backtests?duplicate=${run.id}`}><Copy size={16}/> {tr("Запустити знову", "Run again")}</Link>}
             {run.status === "running" && <Button variant="ghost" icon={<CirclePause size={16}/>} disabled={busy} onClick={() => control(() => backtestsApi.pause(id))}>{tr("Пауза", "Pause")}</Button>}
             {run.status === "paused" && <Button icon={<CirclePlay size={16}/>} disabled={busy} onClick={() => control(() => backtestsApi.resume(id))}>{tr("Продовжити", "Resume")}</Button>}

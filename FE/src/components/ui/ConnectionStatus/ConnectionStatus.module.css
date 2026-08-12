@@ -1,0 +1,7 @@
+.badge { display:inline-flex; align-items:center; gap:7px; width:fit-content; padding:6px 10px; border:1px solid var(--line); border-radius:var(--r-full); background:rgba(255,255,255,.04); color:var(--text-secondary); font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; white-space:nowrap; }
+.dot { width:7px; height:7px; border-radius:999px; background:currentColor; box-shadow:0 0 0 3px color-mix(in srgb,currentColor 16%,transparent); }
+.live { color:#67e8a5; border-color:rgba(103,232,165,.24); background:rgba(74,222,128,.08); }
+.reconnecting { color:#ffd65e; border-color:rgba(255,214,94,.24); background:rgba(255,211,94,.08); }
+.reconnecting .dot { animation:pulse 1.1s ease-in-out infinite; }
+.offline { color:#ff7d88; border-color:rgba(255,125,136,.24); background:rgba(255,93,108,.08); }
+@keyframes pulse { 0%,100%{opacity:.45} 50%{opacity:1} }

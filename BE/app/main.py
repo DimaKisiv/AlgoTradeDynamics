@@ -14,6 +14,7 @@ from app.api.health import router as health_router
 from app.api.operations import router as operations_router
 from app.api.privacy import router as privacy_router
 from app.api.notifications import router as notifications_router
+from app.api.websockets import router as websockets_router
 from app.bot_engine.runtime import start_bot_worker, stop_bot_worker
 from app.core.audit_middleware import AuditMutationMiddleware
 from app.core.config import get_settings
@@ -81,6 +82,7 @@ app.include_router(backtests_router, prefix="/api")
 app.include_router(bots_router, prefix="/api")
 app.include_router(bybit_router, prefix="/api")
 app.include_router(notifications_router, prefix="/api")
+app.include_router(websockets_router, prefix="/api")
 
 
 @app.get("/", tags=["Root"])

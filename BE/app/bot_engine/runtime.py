@@ -9,6 +9,7 @@ from app.bot_engine.exchange_streams import ExchangeStreamSupervisor
 from app.core.clock import utcnow
 from app.db.session import SessionLocal
 from app.models.trading_bot import TradingBot
+from app.services.ui_stream_service import bot_ui_stream_hub
 
 WORKER_STREAM_CHECK_SECONDS = 2
 WORKER_FALLBACK_SECONDS = 15
@@ -103,6 +104,7 @@ async def tick_running_bots(app, *, bot_ids: set[int] | None = None) -> None:
                         if failed_bot is not None:
                             handle_bot_runtime_error(bot_db, failed_bot, exc, source="worker")
                 finally:
+                    bot_ui_stream_hub.publish(bot.id, "worker.tick")
                     bot_db.close()
     finally:
         db.close()

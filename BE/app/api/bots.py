@@ -20,6 +20,7 @@ from app.schemas.trading_bot import (
     TradingBotClearHistoryResponse,
 )
 from app.services.audit_service import bot_config_snapshot, record_user_bot_action
+from app.services.ui_stream_service import bot_ui_stream_hub
 from app.services.trading_bot_service import (
     create_trading_bot,
     delete_trading_bot,
@@ -76,6 +77,7 @@ def create_bot(
     bot = get_trading_bot(db, result["id"], current_user.id)
     if bot is not None:
         _audit_bot_action(db, request, current_user, bot, "BOT_CREATED", "Trading bot created")
+        bot_ui_stream_hub.publish(bot.id, "bot.created")
     return result
 
 
@@ -164,6 +166,7 @@ def start_bot(
     try:
         result = start_trading_bot_cycle(db, bot, current_user)
         _audit_bot_action(db, request, current_user, bot, "BOT_START_REQUESTED", "User started trading bot")
+        bot_ui_stream_hub.publish(bot.id, "bot.started")
         return result
     except ValueError as exc:
         status_code = 400 if str(
@@ -183,6 +186,7 @@ def stop_bot(
         raise HTTPException(status_code=404, detail="Trading bot not found")
     result = stop_trading_bot_cycle(db, bot, current_user)
     _audit_bot_action(db, request, current_user, bot, "BOT_STOP_REQUESTED", "User stopped trading bot")
+    bot_ui_stream_hub.publish(bot.id, "bot.stopped")
     return result
 
 
@@ -198,6 +202,7 @@ def cancel_bot_orders(
         raise HTTPException(status_code=404, detail="Trading bot not found")
     result = cancel_trading_bot_orders(db, bot, current_user)
     _audit_bot_action(db, request, current_user, bot, "ORDER_CANCEL_ALL_REQUESTED", "User requested cancellation of bot orders", {"cancelled_count": len(result)})
+    bot_ui_stream_hub.publish(bot.id, "orders.cancelled")
     return result
 
 
@@ -213,6 +218,7 @@ def sync_bot(
         raise HTTPException(status_code=404, detail="Trading bot not found")
     result = sync_trading_bot_orders(db, bot, current_user)
     _audit_bot_action(db, request, current_user, bot, "EXCHANGE_SYNC_REQUESTED", "User requested exchange order synchronization", {"orders_seen": len(result)})
+    bot_ui_stream_hub.publish(bot.id, "exchange.synced")
     return result
 
 
@@ -238,6 +244,7 @@ def update_bot(
             "before_config_hash": before_config_hash,
         },
     )
+    bot_ui_stream_hub.publish(bot.id, "bot.updated")
     return result
 
 
@@ -253,6 +260,7 @@ def clear_bot_history(
         raise HTTPException(status_code=404, detail="Trading bot not found")
     result = clear_trading_bot_history(db, bot, current_user)
     _audit_bot_action(db, request, current_user, bot, "BOT_OPERATIONAL_HISTORY_CLEARED", "User cleared ordinary bot orders/events history", result)
+    bot_ui_stream_hub.publish(bot.id, "history.cleared")
     return result
 
 
@@ -270,6 +278,7 @@ def close_position(
     try:
         result = close_trading_bot_position(db, bot, current_user, confirm=payload.confirm)
         _audit_bot_action(db, request, current_user, bot, "POSITION_CLOSE_REQUESTED", "User requested manual position close")
+        bot_ui_stream_hub.publish(bot.id, "position.close_requested")
         return result
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -286,5 +295,7 @@ def delete_bot(
     if bot is None:
         raise HTTPException(status_code=404, detail="Trading bot not found")
     _audit_bot_action(db, request, current_user, bot, "BOT_DELETED", "Trading bot deleted", {"deleted_bot_id": bot.id, "deleted_bot_name": bot.name})
+    deleted_bot_id = bot.id
     delete_trading_bot(db, bot)
+    bot_ui_stream_hub.publish(deleted_bot_id, "bot.deleted")
     return Response(status_code=status.HTTP_204_NO_CONTENT)

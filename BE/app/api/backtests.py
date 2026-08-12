@@ -18,6 +18,7 @@ from app.schemas.backtest import (
     HistoricalDatasetResponse,
 )
 from app.schemas.trading_bot import TradingBotEventResponse, TradingBotOrderResponse
+from app.services.ui_stream_service import backtest_ui_stream_hub
 from app.services.backtest_service import (
     create_backtest,
     delete_backtest,
@@ -71,6 +72,7 @@ async def start_backtest(
         request.app.state.backtest_tasks = tasks
     tasks.add(task)
     task.add_done_callback(tasks.discard)
+    backtest_ui_stream_hub.publish(current_user.id, run.id, "queued", force=True)
     return run
 
 
@@ -148,7 +150,9 @@ def pause_backtest(
     current_user: User = Depends(get_current_user),
 ):
     try:
-        return request_pause(db, _owned_run(db, run_id, current_user.id))
+        result = request_pause(db, _owned_run(db, run_id, current_user.id))
+        backtest_ui_stream_hub.publish(current_user.id, run_id, "pause_requested", force=True)
+        return result
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
@@ -160,7 +164,9 @@ def resume_backtest(
     current_user: User = Depends(get_current_user),
 ):
     try:
-        return request_resume(db, _owned_run(db, run_id, current_user.id))
+        result = request_resume(db, _owned_run(db, run_id, current_user.id))
+        backtest_ui_stream_hub.publish(current_user.id, run_id, "resume_requested", force=True)
+        return result
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
@@ -171,7 +177,9 @@ def cancel_backtest(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return request_cancel(db, _owned_run(db, run_id, current_user.id))
+    result = request_cancel(db, _owned_run(db, run_id, current_user.id))
+    backtest_ui_stream_hub.publish(current_user.id, run_id, "cancel_requested", force=True)
+    return result
 
 
 @router.delete("/{run_id}", status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
@@ -182,6 +190,7 @@ def remove_backtest(
 ):
     try:
         delete_backtest(db, _owned_run(db, run_id, current_user.id))
+        backtest_ui_stream_hub.publish(current_user.id, run_id, "deleted", force=True)
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     return Response(status_code=204)

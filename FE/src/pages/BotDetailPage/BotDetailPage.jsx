@@ -209,6 +209,7 @@ export default function BotDetailPage() {
   };
 
   const isScalper = bot?.strategy_type === "pattern_scalper";
+  const isDca = bot?.strategy_type === "dca";
   const scalperTrade = bot?.settings?.pattern_scalper_state?.current_trade || null;
   const signalScore = toNumberOrNull(scalperTrade?.signal_score);
   const openOrders = orders.filter((order) => isOpenOrderStatus(order.status));
@@ -657,6 +658,14 @@ export default function BotDetailPage() {
                       <ConfigItem label={tr('Ризик / угода', 'Risk / Trade')} value={fmtPct(Number(bot.settings?.risk_per_trade_percent || 0.5))} mono />
                       <ConfigItem label={tr('Денний ліміт збитку', 'Daily Loss Limit')} value={fmtPct(Number(bot.settings?.max_daily_loss_percent || 2))} mono />
                       <ConfigItem label={tr('SHORT дозволено', 'SHORT Enabled')} value={bot.settings?.allow_short ? tr('Так', 'Yes') : tr('Ні', 'No')} />
+                    </>
+                  ) : isDca ? (
+                    <>
+                      <ConfigItem label={tr('Страхувальні ордери', 'Safety Orders')} value={String(bot.grid_orders_count)} mono />
+                      <ConfigItem label={tr('Перший крок %', 'First Step %')} value={fmtNumber(bot.grid_step_percent)} mono />
+                      <ConfigItem label={tr('Множник обсягу', 'Volume Multiplier')} value={fmtNumber(bot.settings?.dca_volume_multiplier ?? 1.5)} mono />
+                      <ConfigItem label={tr('Множник кроку', 'Step Multiplier')} value={fmtNumber(bot.settings?.dca_step_multiplier ?? 1.3)} mono />
+                      <ConfigItem label={tr('Take-profit %', 'Take-profit %')} value={fmtNumber(bot.settings?.take_profit_percent ?? 1.5)} mono />
                     </>
                   ) : (
                     <>

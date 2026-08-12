@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 ExchangeLiteral = Literal["bybit"]
 EnvironmentLiteral = Literal["emulator", "demo", "testnet", "live"]
-StrategyTypeLiteral = Literal["grid", "pattern_scalper"]
+StrategyTypeLiteral = Literal["grid", "dca", "pattern_scalper"]
 CategoryLiteral = Literal["linear", "spot", "inverse"]
 
 

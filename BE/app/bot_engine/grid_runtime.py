@@ -53,6 +53,8 @@ def get_legacy_order_link_prefix(bot: TradingBot) -> str:
 
 ENTRY_LINK_RE = re.compile(
     r"^bot-(?P<bot_id>\d+)(?:-g(?P<generation>\d+))?-entry-(?P<level>\d+)-(?P<cycle>\d+)$")
+DCA_ENTRY_LINK_RE = re.compile(
+    r"^bot-(?P<bot_id>\d+)(?:-g(?P<generation>\d+))?-dca-entry-(?P<level>\d+)-(?P<cycle>\d+)$")
 TP_LINK_RE = re.compile(
     r"^bot-(?P<bot_id>\d+)(?:-g(?P<generation>\d+))?-tp-for-(?P<entry_id>\d+)$")
 POSITION_TP_LINK_RE = re.compile(
@@ -169,6 +171,11 @@ def _active_order_exists(db, bot: TradingBot, order_link_id: str) -> bool:
 
 
 def _infer_order_fields_from_link_id(order_link_id: str) -> tuple[str, int | None]:
+    dca_match = DCA_ENTRY_LINK_RE.match(order_link_id)
+    if dca_match:
+        level = int(dca_match.group("level"))
+        return f"dca_entry_{level}", None
+
     entry_match = ENTRY_LINK_RE.match(order_link_id)
     if entry_match:
         level = int(entry_match.group("level"))
@@ -409,11 +416,11 @@ def _active_local_orders(db, bot: TradingBot) -> list[TradingBotOrder]:
     )
 
 
-def _active_grid_entry_orders(db, bot: TradingBot) -> list[TradingBotOrder]:
+def _active_grid_entry_orders(db, bot: TradingBot, role_prefix: str = "grid_entry_") -> list[TradingBotOrder]:
     return [
         order
         for order in _active_local_orders(db, bot)
-        if order.order_role.startswith("grid_entry_")
+        if order.order_role.startswith(role_prefix)
         and _is_current_generation_link_id(bot, order.order_link_id)
     ]
 
@@ -631,7 +638,7 @@ def get_runtime_state(db, bot: TradingBot) -> tuple[str, str | None]:
     has_active_tp = any(order.order_role ==
                         POSITION_TP_ROLE for order in active_orders)
     has_active_entries = any(order.order_role.startswith(
-        "grid_entry_") for order in active_orders)
+        ("grid_entry_", "dca_entry_")) for order in active_orders)
     if has_active_tp:
         return "tp_active", last_risk_message
     if has_active_entries:
@@ -689,6 +696,9 @@ def _cancel_local_order(db, bot: TradingBot, session, order: TradingBotOrder, *,
 def _rollover_completed_take_profit_cycle(
     db,
     bot: TradingBot,
+    *,
+    entry_role_prefix: str = "grid_entry_",
+    event_prefix: str = "grid",
 ) -> tuple[list[TradingBotOrder], bool, bool]:
     """Cancel the previous grid after a filled position TP before starting a new cycle.
 
@@ -696,13 +706,14 @@ def _rollover_completed_take_profit_cycle(
     A filled TP remains pending until every active grid entry from the old cycle is
     absent from the exchange open-order list. This prevents a new grid from being
     created while an old averaging order can still fill.
+    The DCA runtime reuses this with its own role prefix and event names.
     """
     completed_tps = _pending_completed_position_take_profit_orders(db, bot)
     if not completed_tps:
         return [], False, True
 
     session = get_bybit_session(bot)
-    stale_entries = _active_grid_entry_orders(db, bot)
+    stale_entries = _active_grid_entry_orders(db, bot, entry_role_prefix)
     changed_orders: list[TradingBotOrder] = []
 
     for entry in stale_entries:
@@ -712,8 +723,8 @@ def _rollover_completed_take_profit_cycle(
                 bot,
                 session,
                 entry,
-                event_type="grid_entry_cancelled_after_take_profit",
-                message="Cancelled stale grid entry after position take-profit",
+                event_type=f"{event_prefix}_entry_cancelled_after_take_profit",
+                message="Cancelled stale entry order after position take-profit",
             )
         )
 
@@ -740,13 +751,13 @@ def _rollover_completed_take_profit_cycle(
             ],
             "remaining_grid_order_link_ids": sorted(remaining_open_orders),
         }
-        latest = _latest_bot_event(db, bot, "grid_cycle_rollover_waiting")
+        latest = _latest_bot_event(db, bot, f"{event_prefix}_cycle_rollover_waiting")
         if latest is None or latest.payload != payload:
             log_bot_event(
                 db,
                 bot,
-                "grid_cycle_rollover_waiting",
-                "Waiting for stale grid order cancellation confirmation",
+                f"{event_prefix}_cycle_rollover_waiting",
+                "Waiting for stale entry order cancellation confirmation",
                 payload,
             )
         return changed_orders, True, False
@@ -759,8 +770,8 @@ def _rollover_completed_take_profit_cycle(
     log_bot_event(
         db,
         bot,
-        "grid_cycle_completed",
-        "Completed take-profit cycle and cleared the previous grid",
+        f"{event_prefix}_cycle_completed",
+        "Completed take-profit cycle and cleared the previous entry ladder",
         {
             "take_profit_order_link_ids": [
                 order.order_link_id for order in completed_tps

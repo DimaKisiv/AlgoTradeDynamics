@@ -2,11 +2,13 @@
 from __future__ import annotations
 
 from app.bot_engine.strategies.base import BotStrategy
+from app.bot_engine.strategies.dca import DcaStrategy
 from app.bot_engine.strategies.grid import GridStrategy
 from app.bot_engine.strategies.pattern_scalper import PatternScalperStrategy
 
 _STRATEGIES: dict[str, BotStrategy] = {
     "grid": GridStrategy(),
+    "dca": DcaStrategy(),
     "pattern_scalper": PatternScalperStrategy(),
 }
 

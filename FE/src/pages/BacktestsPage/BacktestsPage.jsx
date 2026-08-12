@@ -203,7 +203,7 @@ export default function BacktestsPage() {
           <div>
             <span className="eyebrow">{tr('Історична лабораторія ботів', 'Historical Bot Lab')}</span>
             <h1 className="display-2">{tr('Бектести', 'Bot')} <span className="italic-accent">{tr('ботів', 'Backtests')}</span></h1>
-            <p className="lead">{tr('Запускайте Grid Bot або Pattern Scalper на конкретному ізольованому OHLCV dataset без змішування джерел і періодів.', 'Run Grid Bot or Pattern Scalper against a specific isolated OHLCV dataset without mixing sources or periods.')}</p>
+            <p className="lead">{tr('Запускайте Grid Bot, DCA Bot або Pattern Scalper на конкретному ізольованому OHLCV dataset без змішування джерел і періодів.', 'Run Grid Bot, DCA Bot, or Pattern Scalper against a specific isolated OHLCV dataset without mixing sources or periods.')}</p>
           </div>
           <Button icon={<CirclePlay size={17} />} onClick={() => setShowForm((value) => !value)}>
             {showForm ? tr('Закрити форму', 'Close form') : tr('Новий backtest', 'New backtest')}
@@ -247,11 +247,13 @@ export default function BacktestsPage() {
               <label className={styles.wide}><span>{tr('Назва запуску (необов’язково)', 'Run name (optional)')}</span><input value={form.name} placeholder={selectedBot ? `${selectedBot.name} · ${tr('історичний тест', 'historical test')}` : tr('Назва backtest', 'Backtest name')} onChange={(e) => setForm({ ...form, name: e.target.value })} /></label>
             </div>
             {selectedBot && <div className={styles.snapshot}>
-              <span>{selectedBot.strategy_type === "pattern_scalper" ? "Pattern Scalper" : "Grid Bot"}</span>
+              <span>{selectedBot.strategy_type === "pattern_scalper" ? "Pattern Scalper" : selectedBot.strategy_type === "dca" ? "DCA Bot" : "Grid Bot"}</span>
               <span>{selectedBot.symbol}</span>
               <span>{selectedBot.order_qty} {tr('кількість', 'qty')}</span>
               {selectedBot.strategy_type === "grid" ? <>
                 <span>{selectedBot.grid_orders_count} {tr('рівнів сітки', 'grid levels')}</span><span>{selectedBot.grid_step_percent}% {tr('крок', 'step')}</span>
+              </> : selectedBot.strategy_type === "dca" ? <>
+                <span>{selectedBot.grid_orders_count} {tr('страхувальних', 'safety orders')}</span><span>{selectedBot.grid_step_percent}% {tr('перший крок', 'first step')}</span>
               </> : <>
                 <span>{selectedBot.settings?.timeframe || selectedDataset?.interval || "—"} {tr('таймфрейм', 'timeframe')}</span>
                 <span>{selectedBot.settings?.risk_per_trade_percent ?? 0.5}% {tr('ризик', 'risk')}</span>

@@ -35,6 +35,9 @@ const INITIAL_FORM = {
   order_qty: "0.001",
   grid_orders_count: "2",
   grid_step_percent: "5",
+  dca_volume_multiplier: "1.5",
+  dca_step_multiplier: "1.3",
+  take_profit_percent: "1.5",
   timeframe: "1",
   lookback_candles: "200",
   minimum_signal_score: "0.85",
@@ -114,6 +117,11 @@ const SCALPER_SETTING_KEYS = [
   "liquidity_sweep_reclaim_atr",
 ];
 
+const DCA_SETTING_KEYS = [
+  "dca_volume_multiplier",
+  "dca_step_multiplier",
+];
+
 const SELECT_OPTIONS = {
   exchange: [{ value: "bybit", label: "Bybit-compatible" }],
   environment: [
@@ -124,6 +132,7 @@ const SELECT_OPTIONS = {
   ],
   strategy_type: [
     { value: "grid", label: "Grid Bot" },
+    { value: "dca", label: "DCA Bot" },
     { value: "pattern_scalper", label: "Pattern Scalper" },
   ],
   category: [
@@ -145,6 +154,9 @@ function toFormState(bot) {
     order_qty: String(bot.order_qty),
     grid_orders_count: String(bot.grid_orders_count),
     grid_step_percent: String(bot.grid_step_percent),
+    dca_volume_multiplier: String(bot.settings?.dca_volume_multiplier ?? "1.5"),
+    dca_step_multiplier: String(bot.settings?.dca_step_multiplier ?? "1.3"),
+    take_profit_percent: String(bot.settings?.take_profit_percent ?? "1.5"),
     timeframe: String(bot.settings?.timeframe ?? "1"),
     lookback_candles: String(bot.settings?.lookback_candles ?? "200"),
     minimum_signal_score: String(bot.settings?.minimum_signal_score ?? "0.85"),
@@ -175,6 +187,14 @@ function toPayload(form) {
     delete settings.emulator_api_key;
   }
   SCALPER_SETTING_KEYS.forEach((key) => delete settings[key]);
+  DCA_SETTING_KEYS.forEach((key) => delete settings[key]);
+  if (form.strategy_type === "dca") {
+    Object.assign(settings, {
+      dca_volume_multiplier: Number(form.dca_volume_multiplier),
+      dca_step_multiplier: Number(form.dca_step_multiplier),
+      take_profit_percent: Number(form.take_profit_percent),
+    });
+  }
   if (form.strategy_type === "pattern_scalper") {
     Object.assign(settings, {
       timeframe: form.timeframe,
@@ -442,7 +462,7 @@ export default function BotsPage() {
               <Card className={styles.emptyState}>
                 <Bot size={28} />
                 <h3>{tr('Поки що ботів немає', 'No bots yet')}</h3>
-                <p className="text-secondary">{tr('Створіть Grid Bot або Pattern Scalper для локального emulator-акаунта.', 'Create a Grid Bot or Pattern Scalper for a local emulator account.')}</p>
+                <p className="text-secondary">{tr('Створіть Grid Bot, DCA Bot або Pattern Scalper для локального emulator-акаунта.', 'Create a Grid Bot, DCA Bot, or Pattern Scalper for a local emulator account.')}</p>
                 <Button icon={<Plus size={16} />} onClick={openCreate}>{tr('Створити першого бота', 'Create first bot')}</Button>
               </Card>
             )}
@@ -473,6 +493,12 @@ export default function BotsPage() {
                         <>
                           <div><dt>{tr('Grid ордери', 'Grid Orders')}</dt><dd className="mono">{bot.grid_orders_count}</dd></div>
                           <div><dt>{tr('Крок Grid %', 'Grid Step %')}</dt><dd className="mono">{bot.grid_step_percent}</dd></div>
+                        </>
+                      ) : bot.strategy_type === "dca" ? (
+                        <>
+                          <div><dt>{tr('Страхувальні ордери', 'Safety Orders')}</dt><dd className="mono">{bot.grid_orders_count}</dd></div>
+                          <div><dt>{tr('Перший крок %', 'First Step %')}</dt><dd className="mono">{bot.grid_step_percent}</dd></div>
+                          <div><dt>{tr('Take-profit %', 'Take-profit %')}</dt><dd className="mono">{bot.settings?.take_profit_percent ?? 1.5}</dd></div>
                         </>
                       ) : (
                         <>
@@ -567,6 +593,23 @@ export default function BotsPage() {
                     <div className={styles.fieldGrid}>
                       <label className={styles.field}><span>{tr('Кількість Grid ордерів', 'Grid Orders Count')}</span><input name="grid_orders_count" type="number" min="1" step="1" value={form.grid_orders_count} onChange={handleChange} required /></label>
                       <label className={styles.field}><span>{tr('Крок Grid %', 'Grid Step %')}</span><input name="grid_step_percent" type="number" min="0.01" step="0.01" value={form.grid_step_percent} onChange={handleChange} required /></label>
+                    </div>
+                  ) : form.strategy_type === "dca" ? (
+                    <div className={styles.strategyFields}>
+                      <p className={styles.strategyHint}>
+                        {tr('DCA Bot купує базовий обсяг ринковим ордером одразу і виставляє страхувальні ордери нижче. Кожен наступний ордер стоїть далі (крок × множник кроку) і купує більше (обсяг × множник обсягу). Після кожного докупу take-profit пересувається відносно нової середньої ціни.', 'DCA Bot buys the base quantity with a market order right away and places safety orders below. Each next order sits further away (step × step multiplier) and buys more (quantity × volume multiplier). After every averaging fill the take-profit is re-placed against the new average price.')}
+                      </p>
+                      <div className={styles.fieldGrid}>
+                        <label className={styles.field}><span>{tr('Страхувальні ордери', 'Safety orders')}</span><input name="grid_orders_count" type="number" min="1" step="1" value={form.grid_orders_count} onChange={handleChange} required /></label>
+                        <label className={styles.field}><span>{tr('Перший крок %', 'First step %')}</span><input name="grid_step_percent" type="number" min="0.01" step="0.01" value={form.grid_step_percent} onChange={handleChange} required /></label>
+                      </div>
+                      <div className={styles.fieldGrid}>
+                        <label className={styles.field}><span>{tr('Множник обсягу', 'Volume multiplier')}</span><input name="dca_volume_multiplier" type="number" min="1" step="0.1" value={form.dca_volume_multiplier} onChange={handleChange} required /></label>
+                        <label className={styles.field}><span>{tr('Множник кроку', 'Step multiplier')}</span><input name="dca_step_multiplier" type="number" min="1" step="0.1" value={form.dca_step_multiplier} onChange={handleChange} required /></label>
+                      </div>
+                      <div className={styles.fieldGrid}>
+                        <label className={styles.field}><span>{tr('Take-profit %', 'Take-profit %')}</span><input name="take_profit_percent" type="number" min="0.01" step="0.01" value={form.take_profit_percent} onChange={handleChange} required /></label>
+                      </div>
                     </div>
                   ) : (
                     <div className={styles.strategyFields}>

@@ -395,6 +395,7 @@ export default function BacktestDetailPage() {
       const role = order?.order_role || (String(execution.side).toLowerCase() === "sell" ? "position_take_profit" : "grid_entry");
       const isScalperEntry = role.startsWith("scalper_entry");
       const isScalperExit = role.startsWith("scalper_") && !isScalperEntry;
+      const isDcaEntry = role.startsWith("dca_entry");
       const isTp = role.includes("take_profit") || role.includes("tp");
       const isExit = isTp || isScalperExit;
       if (isExit && !filters.tp) return;
@@ -417,6 +418,7 @@ export default function BacktestDetailPage() {
           : role.includes("manual_close") ? tr("Вихід наприкінці тесту виконано", "End-of-test exit filled")
           : isTp ? tr("Take-profit виконано", "Take profit filled")
           : isScalperEntry ? (role.includes("short") ? tr("SHORT-вхід виконано", "SHORT entry filled") : tr("LONG-вхід виконано", "LONG entry filled"))
+          : isDcaEntry ? (level === "1" ? tr("DCA базовий вхід виконано", "DCA base entry filled") : tr(`DCA докуп #${level || "?"} виконано`, `DCA safety #${level || "?"} filled`))
           : tr(`Grid #${level || "?"} виконано`, `Grid #${level || "?"} filled`),
         status: tr("Виконано", "Filled"),
         kind: "filled",
@@ -438,7 +440,9 @@ export default function BacktestDetailPage() {
           qty: asNumber(order.qty),
           side: order.side,
           role,
-          label: isTp ? tr("Take-profit скасовано", "Take profit cancelled") : tr(`Grid #${level || "?"} скасовано`, `Grid #${level || "?"} cancelled`),
+          label: isTp ? tr("Take-profit скасовано", "Take profit cancelled")
+            : role.startsWith("dca_entry") ? tr(`DCA докуп #${level || "?"} скасовано`, `DCA safety #${level || "?"} cancelled`)
+            : tr(`Grid #${level || "?"} скасовано`, `Grid #${level || "?"} cancelled`),
           status: tr("Скасовано", "Cancelled"),
           kind: "cancelled",
         });

@@ -82,7 +82,7 @@ def _executed_fee(order: TradingBotOrder) -> Decimal:
 
 
 def _is_buy_entry(order: TradingBotOrder) -> bool:
-    return order.side == "Buy" and order.order_role.startswith("grid_entry_")
+    return order.side == "Buy" and order.order_role.startswith(("grid_entry_", "dca_entry_"))
 
 
 def _is_position_closing_sell(order: TradingBotOrder) -> bool:

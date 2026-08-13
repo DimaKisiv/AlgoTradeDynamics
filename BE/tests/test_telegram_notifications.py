@@ -6,7 +6,7 @@ from app.core.config import get_settings
 from app.db.session import SessionLocal
 from app.models.telegram_notification import TelegramNotificationDelivery
 from app.models.trading_bot import TradingBot
-from app.services.telegram_notifications import link_from_start_message
+from app.services.telegram_notifications import TRADE_EVENTS, link_from_start_message
 
 
 def _configure_telegram(monkeypatch):
@@ -126,3 +126,11 @@ def test_notifiable_bot_event_creates_delivery_outbox(client, auth_headers, monk
         assert delivery.status == "queued"
     finally:
         db.close()
+
+
+def test_dca_trade_events_are_notifiable():
+    assert {
+        "dca_entry_created",
+        "dca_entry_filled",
+        "dca_cycle_completed",
+    }.issubset(TRADE_EVENTS)

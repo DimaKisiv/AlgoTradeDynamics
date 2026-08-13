@@ -1,11 +1,18 @@
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import hmac
+import time
 from types import SimpleNamespace
 from urllib.parse import parse_qs, urlparse
 
-from app.bot_engine.exchange_streams import _auth_payload, stream_endpoints
+from app.bot_engine.exchange_streams import (
+    ExchangeStreamEvent,
+    ExchangeStreamSupervisor,
+    _auth_payload,
+    stream_endpoints,
+)
 from app.core.config import get_settings
 
 
@@ -50,3 +57,31 @@ def test_private_auth_payload_is_bybit_hmac(monkeypatch):
     expires = 1_010_000
     expected = hmac.new(b"secret", f"GET/realtime{expires}".encode(), hashlib.sha256).hexdigest()
     assert payload == {"op": "auth", "args": ["key", expires, expected]}
+
+
+def test_private_exchange_events_force_immediate_reconciliation():
+    async def scenario():
+        supervisor = ExchangeStreamSupervisor()
+        await supervisor.on_event(ExchangeStreamEvent(
+            bot_id=7, topic="execution", data={"symbol": "BTCUSDT"}, received_at=time.time()
+        ))
+        bot_ids = await supervisor.wait_for_bot_ids(0.1)
+        assert bot_ids == {7}
+        assert supervisor.consume_force_tick_ids(bot_ids) == {7}
+        assert supervisor.consume_force_tick_ids(bot_ids) == set()
+
+    asyncio.run(scenario())
+
+
+def test_ticker_event_does_not_force_strategy_interval_bypass():
+    async def scenario():
+        supervisor = ExchangeStreamSupervisor()
+        supervisor._ticker_intervals[8] = 0.5
+        await supervisor.on_event(ExchangeStreamEvent(
+            bot_id=8, topic="tickers.BTCUSDT", data={"symbol": "BTCUSDT"}, received_at=time.time()
+        ))
+        bot_ids = await supervisor.wait_for_bot_ids(0.1)
+        assert bot_ids == {8}
+        assert supervisor.consume_force_tick_ids(bot_ids) == set()
+
+    asyncio.run(scenario())

@@ -1441,7 +1441,7 @@ class PatternScalperStrategy:
         db.flush()
         return {"message": "Position close order submitted", "order": order}
 
-    def tick(self, db, bot: TradingBot) -> dict:
+    def tick(self, db, bot: TradingBot, *, force: bool = False) -> dict:
         settings = _settings(bot)
         if bot.runtime_status != "running":
             return {"orders": [], "events": 0, "message": "Bot is not running"}

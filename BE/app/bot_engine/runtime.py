@@ -25,7 +25,8 @@ async def worker_loop(app) -> None:
             await supervisor.reconcile_if_due()
             bot_ids = await supervisor.wait_for_bot_ids(WORKER_STREAM_CHECK_SECONDS)
             if bot_ids is not None:
-                await tick_running_bots(app, bot_ids=bot_ids)
+                force_bot_ids = supervisor.consume_force_tick_ids(bot_ids)
+                await tick_running_bots(app, bot_ids=bot_ids, force_bot_ids=force_bot_ids)
                 continue
             now = asyncio.get_running_loop().time()
             if now - last_fallback >= WORKER_FALLBACK_SECONDS:
@@ -41,7 +42,12 @@ def _retry_is_due(bot: TradingBot) -> bool:
     return bot.next_retry_at is None or bot.next_retry_at <= utcnow()
 
 
-async def tick_running_bots(app, *, bot_ids: set[int] | None = None) -> None:
+async def tick_running_bots(
+    app,
+    *,
+    bot_ids: set[int] | None = None,
+    force_bot_ids: set[int] | None = None,
+) -> None:
     db = SessionLocal()
     try:
         query = db.query(TradingBot).filter(
@@ -74,7 +80,11 @@ async def tick_running_bots(app, *, bot_ids: set[int] | None = None) -> None:
                         bot_db.add(current_bot)
                         bot_db.flush()
                     try:
-                        tick_bot_once(bot_db, current_bot)
+                        tick_bot_once(
+                            bot_db,
+                            current_bot,
+                            force=bool(force_bot_ids and bot.id in force_bot_ids),
+                        )
                         # A successful tick proves the transient problem is gone.
                         current_bot = bot_db.get(TradingBot, bot.id)
                         if current_bot is not None and current_bot.runtime_status == "running":

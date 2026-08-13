@@ -308,7 +308,7 @@ def get_dca_risk_summary(db, bot: TradingBot) -> dict:
     }
 
 
-def tick_dca_bot(db, bot: TradingBot) -> dict:
+def tick_dca_bot(db, bot: TradingBot, *, force: bool = False) -> dict:
     if bot.runtime_status != "running":
         return {"orders": [], "events": 0, "message": "Bot is not running"}
     if not bot.is_active:
@@ -318,7 +318,7 @@ def tick_dca_bot(db, bot: TradingBot) -> dict:
         db.add(bot)
         db.commit()
         return {"orders": [], "events": 1, "message": "Bot inactive"}
-    if not _should_tick(bot):
+    if not force and not _should_tick(bot):
         return {"orders": [], "events": 0, "message": "Tick skipped by interval"}
 
     live_message = ensure_live_trading_allowed(db, bot)

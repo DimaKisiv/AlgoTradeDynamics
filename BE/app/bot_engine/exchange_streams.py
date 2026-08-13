@@ -33,6 +33,7 @@ from app.models.trading_bot import TradingBot
 logger = logging.getLogger(__name__)
 
 PRIVATE_TOPICS = ("order", "execution", "position", "wallet")
+FORCE_RECONCILE_TOPICS = {"order", "execution", "position"}
 
 
 @dataclass(slots=True)
@@ -268,12 +269,14 @@ class ExchangeStreamSupervisor:
         self._queued: set[int] = set()
         self._last_ticker_wake: dict[int, float] = {}
         self._ticker_intervals: dict[int, float] = {}
+        self._force_tick: set[int] = set()
         self._last_reconcile = 0.0
 
     async def stop(self) -> None:
         streams = list(self._streams.values())
         self._streams.clear()
         self._signatures.clear()
+        self._force_tick.clear()
         if streams:
             await asyncio.gather(*(stream.stop() for stream in streams), return_exceptions=True)
 
@@ -287,6 +290,8 @@ class ExchangeStreamSupervisor:
             self._queued.discard(bot_id)
 
     async def on_event(self, event: ExchangeStreamEvent) -> None:
+        if event.topic in FORCE_RECONCILE_TOPICS:
+            self._force_tick.add(event.bot_id)
         if event.topic.startswith("tickers."):
             now = time.monotonic()
             interval = self._ticker_intervals.get(event.bot_id, 5.0)
@@ -295,6 +300,11 @@ class ExchangeStreamSupervisor:
                 return
             self._last_ticker_wake[event.bot_id] = now
         self._enqueue(event.bot_id)
+
+    def consume_force_tick_ids(self, bot_ids: set[int]) -> set[int]:
+        forced = bot_ids & self._force_tick
+        self._force_tick.difference_update(forced)
+        return forced
 
     async def reconcile_if_due(self, *, force: bool = False) -> None:
         now = time.monotonic()
@@ -336,6 +346,7 @@ class ExchangeStreamSupervisor:
                 self._signatures.pop(bot_id, None)
                 self._ticker_intervals.pop(bot_id, None)
                 self._last_ticker_wake.pop(bot_id, None)
+                self._force_tick.discard(bot_id)
                 await stream.stop()
         finally:
             db.close()

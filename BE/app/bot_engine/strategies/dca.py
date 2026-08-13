@@ -33,8 +33,8 @@ class DcaStrategy:
             raise ValueError(message)
         validate_dca_configuration(bot)
 
-    def tick(self, db, bot: TradingBot) -> dict:
-        return tick_dca_bot(db, bot)
+    def tick(self, db, bot: TradingBot, *, force: bool = False) -> dict:
+        return tick_dca_bot(db, bot, force=force)
 
     def sync_orders(self, db, bot: TradingBot) -> list:
         return [change["order"] for change in sync_bot_orders(db, bot)]

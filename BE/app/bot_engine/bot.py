@@ -63,8 +63,8 @@ def sync_bot_orders_once(db, bot: TradingBot, current_user: User) -> list[Tradin
     return orders
 
 
-def tick_bot_once(db, bot: TradingBot) -> dict:
-    return get_strategy(bot.strategy_type).tick(db, bot)
+def tick_bot_once(db, bot: TradingBot, *, force: bool = False) -> dict:
+    return get_strategy(bot.strategy_type).tick(db, bot, force=force)
 
 
 run_grid_bot_once = run_bot_once

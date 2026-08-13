@@ -29,7 +29,7 @@ class GridStrategy:
         if message:
             raise ValueError(message)
 
-    def tick(self, db, bot: TradingBot) -> dict:
+    def tick(self, db, bot: TradingBot, *, force: bool = False) -> dict:
         return tick_grid_bot(db, bot)
 
     def sync_orders(self, db, bot: TradingBot) -> list:

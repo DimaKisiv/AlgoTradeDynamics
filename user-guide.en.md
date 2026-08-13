@@ -118,6 +118,17 @@ In **Manual**, set `64500`. The price crossed the take-profit level, the positio
 
 > You have just gone through a full trading cycle: orders → fills → position → profit taken → new cycle. Every other feature of the platform is just a different way of running that same cycle: by scenario, on history, with another strategy.
 
+### Variation: DCA Bot
+
+Next to Grid Bot in the strategy list there is a **DCA Bot**. The mechanics are the same — averaging plus one take-profit for the whole position — with two differences that are easy to see in the same manual experiment:
+
+1. **It enters immediately.** A Grid Bot waits for the price to fall to its first order. A DCA Bot buys the base quantity with a market order the moment it starts, and places its safety orders below.
+2. **The orders are uneven.** Every next safety order sits further from the entry price (the step is multiplied by the "step multiplier") and buys more (the quantity is multiplied by the "volume multiplier"). A deep drawdown therefore pulls the average price down harder — but also demands a much larger deposit.
+
+Try it: create a DCA Bot with base quantity `0.001`, two safety orders, first step `3`, multipliers `1.5` and `1.3`. Right after the start you will hold 0.001 BTC with a take-profit above the entry and two orders below — at 3 % (quantity 0.0015) and at 6.9 % (quantity ~0.002 after rounding). Crash the price and watch the take-profit slide down after the average price on every averaging fill.
+
+> A note on risk: the double advantage of DCA (instant entry + growing buys) is also its double risk. Add up the whole ladder — that is exactly how much the bot will hold in the worst case, when the price falls and does not come back.
+
 ---
 
 ## 5. What you just saw: the terms explained

@@ -260,7 +260,7 @@ def _event_category(event_type: str) -> str:
         return "STRATEGY"
     if any(part in name for part in ("position", "take_profit", "stop_loss", "scalper_exit")):
         return "POSITION"
-    if any(part in name for part in ("order", "grid_entry", "cycle")):
+    if any(part in name for part in ("order", "grid_entry", "dca_entry", "cycle")):
         return "ORDER"
     if name.startswith("bot_"):
         return "BOT_LIFECYCLE"

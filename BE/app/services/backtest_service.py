@@ -27,6 +27,8 @@ from app.services.backtest_emulator import BacktestEmulatorClient
 ACTIVE_STATUSES = {"queued", "running", "paused"}
 FINAL_STATUSES = {"completed", "failed", "cancelled"}
 MAX_CHART_POINTS = 1800
+# Strategies that only need a tick on the first point and after an order fill.
+FILL_DRIVEN_STRATEGY_TYPES = {"grid", "dca"}
 
 
 def _utcnow() -> datetime:
@@ -862,17 +864,18 @@ def _run_emulator_backtest_job(run_id: int) -> None:
                     dataset_id=int(run.dataset_id or 0),
                 )
                 simulated_dt = datetime.fromtimestamp(point_time / 1000, tz=timezone.utc)
-                # Grid only needs to react to fills after initialization. Pattern scalper
-                # evaluates each simulated point, while signals still use closed candles only.
+                # Grid and DCA only need to react to fills after initialization.
+                # Pattern scalper evaluates each simulated point, while signals
+                # still use closed candles only.
                 ticked = (
-                    temp_bot.strategy_type != "grid"
+                    temp_bot.strategy_type not in FILL_DRIVEN_STRATEGY_TYPES
                     or (index == 1 and point_index == 0)
                     or int(price_result.get("filled_orders") or 0) > 0
                 )
                 if ticked:
                     with use_simulated_time(simulated_dt):
                         _tick_until_stable(db, temp_bot, max_ticks=5)
-                    if temp_bot.strategy_type == "grid" and index == 1 and point_index == 0:
+                    if temp_bot.strategy_type in FILL_DRIVEN_STRATEGY_TYPES and index == 1 and point_index == 0:
                         _assert_initial_grid_created(db, temp_bot)
 
                     new_executions = _sort_executions(

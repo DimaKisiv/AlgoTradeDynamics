@@ -1,6 +1,6 @@
 # AlgoTradeDynamics
 
-Платформа для запуску Grid Bot і Pattern Scalper на Bybit або локальному exchange emulator та для детермінованого тестування **тих самих стратегій** на історичних даних.
+Платформа для запуску Grid Bot, DCA Bot і Pattern Scalper на Bybit або локальному exchange emulator та для детермінованого тестування **тих самих стратегій** на історичних даних.
 
 Старий окремий MA Crossover / RSI backtester видалено. Нова вкладка **Backtests** бере конфігурацію одного з існуючих ботів, створює її snapshot, запускає приховану тестову копію через той самий trading engine і програє свічки в ізольованому emulator account.
 
@@ -106,6 +106,19 @@ Backend автоматично створює WS streams для running/retrying
 ### Grid Bot
 
 Існуюча сіткова стратегія: limit-входи нижче поточної ціни, усереднення позиції, один Position TP і перебудова grid після завершення циклу.
+
+### DCA Bot
+
+Класичний DCA-бот з усередненням (аналог DCA-ботів комерційних платформ на кшталт Veles чи 3Commas):
+
+- на старті циклу купує базовий обсяг (`Order Qty`) ринковим ордером;
+- одразу розставляє страхувальні limit-ордери нижче ціни входу: кожен наступний стоїть далі (`перший крок % × множник кроку`) і купує більше (`обсяг × множник обсягу`);
+- після кожного докупу середня ціна знижується, і бот перевиставляє Position TP на `take_profit_percent` вище нової середньої;
+- коли TP виконується, зайві страхувальні ордери скасовуються і бот починає новий цикл від поточної ціни.
+
+Поля моделі перевикористані: `order_qty` — базовий обсяг, `grid_orders_count` — кількість страхувальних ордерів, `grid_step_percent` — крок до першого страхувального ордера. Специфічні налаштування живуть у `settings`: `dca_volume_multiplier` (1.5), `dca_step_multiplier` (1.3), `take_profit_percent` (1.5). За замовчуванням `max_position_qty` дорівнює сумі всієї драбини, тож мартингейл не блокується ризик-лімітами.
+
+Синхронізація ордерів, Position TP, rollover циклу та risk limits — той самий спільний runtime, що і в Grid Bot (`dca_runtime.py` містить лише DCA-специфічну драбину і життєвий цикл).
 
 ### Pattern Scalper
 
@@ -343,6 +356,7 @@ Fast backtest і demo/testnet/runtime використовують спільн�
 Historical backtests are strategy-specific:
 
 - `grid` uses the full exchange-emulator replay engine because limit-order fills, grid rebuilds and order lifecycle behavior are part of the strategy.
+- `dca` uses the same exchange-emulator replay engine as `grid`: the market base order, resting safety limit orders and the moving position take-profit are all executed by the emulator, and the replay only ticks the bot on order fills.
 - `pattern_scalper` uses the fast in-memory historical engine. It loads the selected dataset, calculates the same EMA/RSI/ATR/breakout/volume signal logic locally, simulates market fills with the configured fees and slippage, and persists the same chart/cycle/order/execution result contract without creating an emulator account.
 
 The emulator itself is unchanged and remains available for manual/scenario/historical replay and grid backtests.

@@ -75,7 +75,7 @@ def test_fast_trade_math_matches_emulator_market_fill_rules():
     assert abs(_closed_pnl("Sell", 100, 90, 2) - 20) < 1e-12
 
 
-def test_fast_engine_persists_compatible_results(tmp_path):
+def test_fast_engine_persists_compatible_results(tmp_path, monkeypatch):
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
 
@@ -85,7 +85,7 @@ def test_fast_engine_persists_compatible_results(tmp_path):
     from app.models.trading_bot_order import TradingBotOrder
     from app.models.user import User
     from app.services.backtest_service import list_executions
-    from app.services.fast_scalper_backtest import FastScalperBacktestEngine
+    from app.services.fast_scalper_backtest import FastScalperBacktestEngine, backtest_ui_stream_hub
 
     db_engine = create_engine(f"sqlite:///{tmp_path / 'fast.db'}", connect_args={"check_same_thread": False})
     Base.metadata.create_all(db_engine)
@@ -232,6 +232,13 @@ def test_fast_engine_persists_compatible_results(tmp_path):
         def close(self):
             pass
 
+    published = []
+    monkeypatch.setattr(
+        backtest_ui_stream_hub,
+        "publish",
+        lambda user_id, run_id, reason="progress", force=False: published.append((user_id, run_id, reason, force)),
+    )
+
     engine = FastScalperBacktestEngine(db, run)
     engine.emulator.close()
     engine.emulator = FakeEmulator()
@@ -258,6 +265,10 @@ def test_fast_engine_persists_compatible_results(tmp_path):
     assert exit_count == run.metrics["closed_cycles"]
     assert run.metrics["average_fee_per_cycle"] >= 0
     assert run.configuration["engine_version"] == 4
+    reasons = [item[2] for item in published]
+    assert reasons[0] == "running"
+    assert "progress" in reasons
+    assert reasons[-1] == "completed"
     assert run.metrics["pattern_performance"]
     assert any(item["pattern"] == "bull_flag" for item in run.metrics["pattern_performance"])
     first_cycle = db.query(BacktestCycle).filter_by(run_id=run.id).order_by(BacktestCycle.cycle_number).first()

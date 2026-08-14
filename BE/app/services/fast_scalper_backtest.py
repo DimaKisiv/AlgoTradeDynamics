@@ -26,6 +26,7 @@ from app.models.trading_bot import TradingBot
 from app.models.trading_bot_event import TradingBotEvent
 from app.models.trading_bot_order import TradingBotOrder
 from app.services.backtest_emulator import BacktestEmulatorClient
+from app.services.ui_stream_service import backtest_ui_stream_hub
 
 MAX_CHART_POINTS = 1800
 DEFAULT_LEVERAGE = 10.0
@@ -833,11 +834,16 @@ class FastScalperBacktestEngine:
                 self.db.add(self.temp_bot)
             self.db.add(self.run)
             self.db.commit()
+            backtest_ui_stream_hub.publish(self.run.user_id, self.run.id, "cancelled", force=True)
             return False
-        while self.run.pause_requested:
+
+        if self.run.pause_requested and self.run.status != "paused":
             self.run.status = "paused"
             self.db.add(self.run)
             self.db.commit()
+            backtest_ui_stream_hub.publish(self.run.user_id, self.run.id, "paused", force=True)
+
+        while self.run.pause_requested:
             time.sleep(0.25)
             self.db.expire(self.run)
             self.db.refresh(self.run)
@@ -846,9 +852,14 @@ class FastScalperBacktestEngine:
                 self.run.completed_at = _utcnow()
                 self.db.add(self.run)
                 self.db.commit()
+                backtest_ui_stream_hub.publish(self.run.user_id, self.run.id, "cancelled", force=True)
                 return False
+
         if self.run.status == "paused":
             self.run.status = "running"
+            self.db.add(self.run)
+            self.db.commit()
+            backtest_ui_stream_hub.publish(self.run.user_id, self.run.id, "running", force=True)
         return True
 
     def _progress_commit(self, index: int, candle: Candle, values: dict[str, float]) -> None:
@@ -869,6 +880,7 @@ class FastScalperBacktestEngine:
         self.pending_points.clear()
         self.db.add(self.run)
         self.db.commit()
+        backtest_ui_stream_hub.publish(self.run.user_id, self.run.id, "progress")
 
     def _finalize_metrics(self, final_values: dict[str, float]) -> dict[str, Any]:
         cycles = self.db.query(BacktestCycle).filter(BacktestCycle.run_id == self.run.id).order_by(BacktestCycle.cycle_number).all()
@@ -992,6 +1004,7 @@ class FastScalperBacktestEngine:
         self.run.configuration = configuration
         self.db.add(self.run)
         self.db.commit()
+        backtest_ui_stream_hub.publish(self.run.user_id, self.run.id, "running", force=True)
 
         self._make_temp_bot()
         self.rules = _instrument_rules(self.emulator.instrument_info(category="linear", symbol=self.run.symbol))
@@ -1111,6 +1124,7 @@ class FastScalperBacktestEngine:
             self.db.add(self.temp_bot)
         self.db.add(self.run)
         self.db.commit()
+        backtest_ui_stream_hub.publish(self.run.user_id, self.run.id, "completed", force=True)
 
 
 def run_fast_scalper_backtest_job(run_id: int) -> None:
@@ -1137,6 +1151,7 @@ def run_fast_scalper_backtest_job(run_id: int) -> None:
                     db.add(failed_bot)
             db.add(run)
             db.commit()
+            backtest_ui_stream_hub.publish(run.user_id, run.id, "failed", force=True)
     finally:
         if engine is not None:
             engine.close()

@@ -326,7 +326,7 @@ export default function BacktestDetailPage() {
     } catch (e) { setError(e.detail || e.message); }
   }, [id]);
 
-  const wsStatus = useAuthenticatedWebSocket("/ws/backtests", {
+  const wsStatus = useAuthenticatedWebSocket(`/ws/backtests?run_id=${id}`, {
     onMessage: (event) => {
       if (event.type !== "backtest.updated" || Number(event.run_id) !== Number(id) || !event.data) return;
       setRun(event.data);

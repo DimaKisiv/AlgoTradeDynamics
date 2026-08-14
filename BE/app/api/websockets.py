@@ -17,8 +17,8 @@ from app.core.config import get_settings
 from app.core.security import decode_access_token
 from app.db.session import SessionLocal
 from app.models.user import User
-from app.schemas.backtest import BacktestRunDetail
-from app.services.backtest_service import get_backtest_by_id
+from app.schemas.backtest import BacktestRunDetail, BacktestRunSummary
+from app.services.backtest_service import get_backtest_by_id, list_backtests
 from app.services.trading_bot_service import (
     get_trading_bot,
     get_trading_bot_performance,
@@ -286,26 +286,72 @@ def _build_backtest_snapshot(run_id: int, user_id: int) -> dict[str, Any] | None
         db.close()
 
 
+def _build_backtests_snapshot(user_id: int) -> list[dict[str, Any]]:
+    db = SessionLocal()
+    try:
+        return [
+            BacktestRunSummary.model_validate(run).model_dump(mode="json")
+            for run in list_backtests(db, user_id)
+        ]
+    finally:
+        db.close()
+
+
 @router.websocket("/ws/backtests")
-async def backtests_browser_stream(websocket: WebSocket) -> None:
+async def backtests_browser_stream(
+    websocket: WebSocket,
+    run_id: int | None = Query(default=None, gt=0),
+) -> None:
     user_id = await _authenticate_websocket(websocket)
     if user_id is None:
         return
 
+    # Subscribe before reading the initial database state. This closes the race
+    # where a very fast backtest can finish between page navigation and the WS
+    # subscription: any change after this point is already queued.
     subscription_id, queue = backtest_ui_stream_hub.subscribe(user_id)
     try:
+        if run_id is not None:
+            snapshot = await asyncio.to_thread(_build_backtest_snapshot, run_id, user_id)
+            if snapshot is None:
+                await websocket.send_json({"type": "access.denied", "message": "Backtest run not found"})
+                await websocket.close(code=4404, reason="Backtest run not found")
+                return
+            await websocket.send_json({
+                "type": "backtest.updated",
+                "run_id": run_id,
+                "reason": "initial",
+                "ts": _utc_ms(),
+                "data": snapshot,
+            })
+        else:
+            snapshots = await asyncio.to_thread(_build_backtests_snapshot, user_id)
+            await websocket.send_json({
+                "type": "backtests.snapshot",
+                "reason": "initial",
+                "ts": _utc_ms(),
+                "data": snapshots,
+            })
+
         while True:
             try:
                 raw = await asyncio.wait_for(queue.get(), timeout=HEARTBEAT_SECONDS)
-                run_id_text, _, reason = raw.partition(":")
-                run_id = int(run_id_text)
-                snapshot = await asyncio.to_thread(_build_backtest_snapshot, run_id, user_id)
+                event_run_id_text, _, reason = raw.partition(":")
+                event_run_id = int(event_run_id_text)
+                if run_id is not None and event_run_id != run_id:
+                    continue
+                snapshot = await asyncio.to_thread(_build_backtest_snapshot, event_run_id, user_id)
                 if snapshot is None:
-                    await websocket.send_json({"type": "backtest.deleted", "run_id": run_id, "reason": reason, "ts": _utc_ms()})
+                    await websocket.send_json({
+                        "type": "backtest.deleted",
+                        "run_id": event_run_id,
+                        "reason": reason,
+                        "ts": _utc_ms(),
+                    })
                 else:
                     await websocket.send_json({
                         "type": "backtest.updated",
-                        "run_id": run_id,
+                        "run_id": event_run_id,
                         "reason": reason or "updated",
                         "ts": _utc_ms(),
                         "data": snapshot,

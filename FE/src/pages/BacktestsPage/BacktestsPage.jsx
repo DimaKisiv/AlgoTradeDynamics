@@ -84,7 +84,9 @@ export default function BacktestsPage() {
 
   const wsStatus = useAuthenticatedWebSocket("/ws/backtests", {
     onMessage: (event) => {
-      if (event.type === "backtest.updated" && event.data) {
+      if (event.type === "backtests.snapshot" && Array.isArray(event.data)) {
+        setRuns(event.data);
+      } else if (event.type === "backtest.updated" && event.data) {
         setRuns((current) => {
           const exists = current.some((run) => run.id === event.data.id);
           if (!exists) return [event.data, ...current];

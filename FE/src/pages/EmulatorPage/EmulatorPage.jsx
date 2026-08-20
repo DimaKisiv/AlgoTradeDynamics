@@ -38,6 +38,7 @@ import {
 } from "../../components/trading/TradingBadges/TradingBadges";
 import { emulatorApi } from "../../api/emulator";
 import { useLanguage } from "../../context/LanguageContext";
+import { useConfirmModal } from "../../context/ConfirmModalContext";
 import { useAuthenticatedWebSocket } from "../../websocket/useAuthenticatedWebSocket";
 import styles from "./EmulatorPage.module.css";
 
@@ -93,6 +94,7 @@ function DataTable({ columns, rows, empty, rowClassName }) {
 
 export default function EmulatorPage() {
   const { tr, language, locale } = useLanguage();
+  const { confirm } = useConfirmModal();
   const fmt = (value, digits = 2) => {
     const number = Number(value || 0);
     return Number.isFinite(number) ? number.toLocaleString(locale, { maximumFractionDigits: digits }) : '—';
@@ -552,8 +554,15 @@ export default function EmulatorPage() {
                       </div>
                       <div className={styles.datasetActions}>
                         <button type="button" onClick={() => useDataset(item)}>{tr('Використати', 'Use')}</button>
-                        <button type="button" className={styles.iconDanger} onClick={() => {
-                          if (window.confirm(`${tr('Видалити dataset', 'Delete dataset')} “${item.name}”?`)) {
+                        <button type="button" className={styles.iconDanger} onClick={async () => {
+                          const confirmed = await confirm({
+                            title: tr('Видалити dataset?', 'Delete dataset?'),
+                            message: `${tr('Видалити dataset', 'Delete dataset')} "${item.name}"?`,
+                            confirmLabel: tr('Видалити', 'Delete'),
+                            cancelLabel: tr('Скасувати', 'Cancel'),
+                            isDanger: true,
+                          });
+                          if (confirmed) {
                             runAction(() => emulatorApi.deleteHistorical(item.id), tr('Dataset видалено.', 'Dataset deleted.'));
                           }
                         }}><Trash2 size={15} /></button>

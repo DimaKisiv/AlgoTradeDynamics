@@ -9,6 +9,7 @@ import ConnectionStatus from "../../components/ui/ConnectionStatus/ConnectionSta
 import { PnlValue, StatusBadge } from "../../components/trading/TradingBadges/TradingBadges";
 import { fmtDateTime, fmtMoneySigned, fmtPctSigned } from "../../lib/format";
 import { useLanguage } from "../../context/LanguageContext";
+import { useConfirmModal } from "../../context/ConfirmModalContext";
 import { useAuthenticatedWebSocket } from "../../websocket/useAuthenticatedWebSocket";
 import styles from "./BacktestsPage.module.css";
 
@@ -30,6 +31,7 @@ function Stat({ label, value, icon }) {
 
 export default function BacktestsPage() {
   const { tr, language, locale } = useLanguage();
+  const { confirm } = useConfirmModal();
   const intervalLabel = (interval) => INTERVAL_LABELS[language]?.[String(interval)] || String(interval);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -170,7 +172,14 @@ export default function BacktestsPage() {
   };
 
   const remove = async (run) => {
-    if (!window.confirm(`${tr('Видалити backtest', 'Delete backtest')} “${run.name}”?`)) return;
+    const confirmed = await confirm({
+      title: tr('Видалити backtest?', 'Delete backtest?'),
+      message: `${tr('Видалити backtest', 'Delete backtest')} "${run.name}"?`,
+      confirmLabel: tr('Видалити', 'Delete'),
+      cancelLabel: tr('Скасувати', 'Cancel'),
+      isDanger: true,
+    });
+    if (!confirmed) return;
     try { await backtestsApi.remove(run.id); await load(); }
     catch (e) { setError(e.detail || e.message); }
   };

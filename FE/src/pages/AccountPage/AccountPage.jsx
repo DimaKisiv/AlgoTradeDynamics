@@ -146,28 +146,28 @@ export default function AccountPage() {
     }
   };
 
-  const handleDeleteAccount = async () => {
-    if (!deletePassword) {
-      setPrivacyError(tr('Введіть пароль для підтвердження.', 'Enter your password to confirm.'));
-      return;
-    }
-    const confirmed = window.confirm(tr(
-      'Видалити акаунт та operational дані? Regulatory audit записи можуть зберігатися до завершення retention period.',
-      'Delete the account and operational data? Regulatory audit records may be retained until their retention period ends.',
-    ));
-    if (!confirmed) return;
-    setPrivacyBusy(true);
-    setPrivacyError('');
-    try {
-      await deleteMyAccount(deletePassword);
-      logout();
-      navigate('/', { replace: true });
-    } catch (error) {
-      setPrivacyError(error.detail || error.message || tr('Не вдалося видалити акаунт', 'Failed to delete account'));
-    } finally {
-      setPrivacyBusy(false);
-    }
-  };
+   const handleDeleteAccount = async () => {
+     if (!deletePassword) {
+       setPrivacyError(tr('Введіть пароль для підтвердження.', 'Enter your password to confirm.'));
+       return;
+     }
+     const confirmed = window.confirm(tr(
+       'Видалити акаунт та operational дані? Regulatory audit записи можуть зберігатися до завершення retention period.',
+       'Delete the account and operational data? Regulatory audit records may be retained until their retention period ends.',
+     ));
+     if (!confirmed) return;
+     setPrivacyBusy(true);
+     setPrivacyError('');
+     try {
+       await deleteMyAccount(deletePassword);
+       await logout();
+       navigate('/', { replace: true });
+     } catch (error) {
+       setPrivacyError(error.detail || error.message || tr('Не вдалося видалити акаунт', 'Failed to delete account'));
+     } finally {
+       setPrivacyBusy(false);
+     }
+   };
 
   return (
     <main className={styles.account}>

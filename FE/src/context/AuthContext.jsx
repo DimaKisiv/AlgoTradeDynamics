@@ -15,11 +15,15 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
     // Clear UI state immediately, then revoke the HttpOnly refresh session server-side.
     setToken(null);
     setUser(null);
-    authApi.logout().catch(() => {});
+    try {
+      await authApi.logout();
+    } catch {
+      // Logout request failed, but UI state is already cleared
+    }
   }, []);
 
   // Restore a session on startup. If the access JWT expired, the HTTP client

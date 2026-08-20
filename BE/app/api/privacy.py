@@ -15,7 +15,10 @@ from app.db.session import get_db
 from app.models.audit_event import AuditEvent
 from app.models.backtest import BacktestRun
 from app.models.operations import Incident, OperationLog
-from app.models.telegram_notification import TelegramNotificationChannel, TelegramNotificationDelivery
+from app.models.refresh_token import RefreshToken
+from app.models.telegram_notification import (
+    TelegramLinkToken, TelegramNotificationChannel, TelegramNotificationDelivery,
+)
 from app.models.trading_bot import TradingBot
 from app.models.trading_bot_event import TradingBotEvent
 from app.models.trading_bot_order import TradingBotOrder
@@ -117,6 +120,8 @@ def delete_my_account(
 
     user_id = current_user.id
     user_email = current_user.email
+    
+    # Record audit event FIRST and commit immediately to ensure compliance record survives
     record_audit_event(
         db,
         actor_type="USER",
@@ -130,10 +135,36 @@ def delete_my_account(
         correlation_id=f"user:{user_id}",
         payload={"operational_data_deleted": True, "regulatory_audit_retained": True},
     )
-    # Operational observability records are not the immutable regulatory ledger.
+    db.commit()
+    
+    # Delete operational observability records (not the immutable regulatory ledger)
     db.query(OperationLog).filter(OperationLog.user_id == user_id).delete(synchronize_session=False)
     db.query(Incident).filter(Incident.user_id == user_id).delete(synchronize_session=False)
-    db.delete(current_user)  # ORM cascades profile-owned bots/backtests/orders/events/tokens/Telegram data.
+    db.commit()
+    
+    # Explicitly delete all user-owned relations in correct order to avoid FK cascade conflicts
+    # 1. Delete telegram notification deliveries first (has FK to both TradingBotEvent and User)
+    db.query(TelegramNotificationDelivery).filter(TelegramNotificationDelivery.user_id == user_id).delete(synchronize_session=False)
+    # 2. Delete trading bot events (has FK to both TradingBot and User)
+    db.query(TradingBotEvent).filter(TradingBotEvent.user_id == user_id).delete(synchronize_session=False)
+    # 3. Delete trading bot orders (has FK to both TradingBot and User, plus self-referential FK)
+    db.query(TradingBotOrder).filter(TradingBotOrder.user_id == user_id).delete(synchronize_session=False)
+    # 4. Delete backtest runs (has FK to User and TradingBot)
+    db.query(BacktestRun).filter(BacktestRun.user_id == user_id).delete(synchronize_session=False)
+    # 5. Delete trading bots
+    db.query(TradingBot).filter(TradingBot.user_id == user_id).delete(synchronize_session=False)
+    # 6. Delete refresh tokens
+    db.query(RefreshToken).filter(RefreshToken.user_id == user_id).delete(synchronize_session=False)
+    # 7. Delete telegram link tokens
+    db.query(TelegramLinkToken).filter(TelegramLinkToken.user_id == user_id).delete(synchronize_session=False)
+    # 8. Delete telegram notification channel
+    db.query(TelegramNotificationChannel).filter(TelegramNotificationChannel.user_id == user_id).delete(synchronize_session=False)
+    
+    db.commit()
+    
+    # Finally delete the user itself
+    user_to_delete = db.query(User).filter(User.id == user_id).one()
+    db.delete(user_to_delete)
     db.commit()
 
     settings = get_settings()

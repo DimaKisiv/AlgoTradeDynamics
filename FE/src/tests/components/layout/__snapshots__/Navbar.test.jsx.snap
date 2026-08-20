@@ -1,0 +1,252 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`layout/Navbar snapshot — authenticated 1`] = `
+<header
+  class="header"
+>
+  <nav
+    class="nav "
+  >
+    <div
+      class="navInner container"
+    >
+      <a
+        aria-label="Головна AlgoTradeDynamics"
+        class="navBrand"
+        href="/"
+      >
+        <img
+          alt=""
+          aria-hidden="true"
+          class="logo"
+          src="test-file-stub"
+        />
+        <span
+          class="navBrandText"
+        >
+          AlgoTrade
+          <span
+            class="text-accent"
+          >
+            Dynamics
+          </span>
+        </span>
+      </a>
+      <div
+        class="navLinks"
+      >
+        <a
+          aria-current="page"
+          class="navLink isActive"
+          href="/"
+        >
+          Огляд
+        </a>
+        <a
+          class="navLink "
+          href="/bots"
+        >
+          Боти
+        </a>
+        <a
+          class="navLink "
+          href="/backtests"
+        >
+          Бектести
+        </a>
+        <a
+          class="navLink "
+          href="/emulator"
+        >
+          Емулятор
+        </a>
+        <a
+          class="navLink "
+          href="/compliance"
+        >
+          Комплаєнс
+        </a>
+      </div>
+      <div
+        class="navCta"
+      >
+        <div
+          aria-label="Перемикач мови"
+          class="langSwitch"
+          role="group"
+        >
+          <button
+            class="langButton langButtonActive"
+            type="button"
+          >
+            UA
+          </button>
+          <button
+            class="langButton "
+            type="button"
+          >
+            EN
+          </button>
+        </div>
+        <a
+          aria-label="Профіль"
+          class="navAccount"
+          href="/account"
+          title="test@example.com"
+        >
+          <svg
+            class="lucide lucide-circle-user"
+            fill="none"
+            height="16"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="16"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <circle
+              cx="12"
+              cy="12"
+              r="10"
+            />
+            <circle
+              cx="12"
+              cy="10"
+              r="3"
+            />
+            <path
+              d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"
+            />
+          </svg>
+          <span
+            class="navAccountEmail"
+          >
+            test@example.com
+          </span>
+        </a>
+        <button
+          aria-label="Вийти"
+          class="navLogout"
+          type="button"
+        >
+          <svg
+            class="lucide lucide-log-out"
+            fill="none"
+            height="16"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="16"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"
+            />
+            <polyline
+              points="16 17 21 12 16 7"
+            />
+            <line
+              x1="21"
+              x2="9"
+              y1="12"
+              y2="12"
+            />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+</header>
+`;
+
+exports[`layout/Navbar snapshot — guest 1`] = `
+<header
+  class="header"
+>
+  <nav
+    class="nav "
+  >
+    <div
+      class="navInner container"
+    >
+      <a
+        aria-label="Головна AlgoTradeDynamics"
+        class="navBrand"
+        href="/"
+      >
+        <img
+          alt=""
+          aria-hidden="true"
+          class="logo"
+          src="test-file-stub"
+        />
+        <span
+          class="navBrandText"
+        >
+          AlgoTrade
+          <span
+            class="text-accent"
+          >
+            Dynamics
+          </span>
+        </span>
+      </a>
+      <div
+        class="navLinks"
+      >
+        <a
+          aria-current="page"
+          class="navLink isActive"
+          href="/"
+        >
+          Огляд
+        </a>
+      </div>
+      <div
+        class="navCta"
+      >
+        <div
+          aria-label="Перемикач мови"
+          class="langSwitch"
+          role="group"
+        >
+          <button
+            class="langButton langButtonActive"
+            type="button"
+          >
+            UA
+          </button>
+          <button
+            class="langButton "
+            type="button"
+          >
+            EN
+          </button>
+        </div>
+        <a
+          class="navLogin"
+          href="/login"
+        >
+          Увійти
+        </a>
+        <a
+          class="navCtaBtn"
+          href="/register"
+        >
+          Реєстрація
+           
+          <span
+            aria-hidden="true"
+          >
+            →
+          </span>
+        </a>
+      </div>
+    </div>
+  </nav>
+</header>
+`;

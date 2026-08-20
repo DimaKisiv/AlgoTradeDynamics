@@ -1,0 +1,340 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`pages/RegisterPage calls register with valid data 1`] = `
+<div>
+  <main
+    class="auth"
+  >
+    <div
+      class="card glass-strong"
+    >
+      <span
+        class="eyebrow"
+      >
+        Реєстрація
+      </span>
+      <h1
+        class="display-3 title"
+      >
+        Створіть акаунт.
+      </h1>
+      <p
+        class="lead"
+      >
+        Зареєструйтеся, щоб створювати ботів, запускати emulator і зберігати історичні тести.
+      </p>
+      <form
+        class="form"
+      >
+        <label
+          class="field"
+        >
+          <span>
+            Email
+          </span>
+          <input
+            autocomplete="email"
+            placeholder="you@example.com"
+            required=""
+            type="email"
+            value="new@test.com"
+          />
+        </label>
+        <label
+          class="field"
+        >
+          <span>
+            Пароль
+          </span>
+          <input
+            autocomplete="new-password"
+            minlength="6"
+            placeholder="мінімум 6 символів"
+            required=""
+            type="password"
+            value="securepass"
+          />
+          <span
+            class="hint"
+          >
+            Щонайменше 6 символів.
+          </span>
+        </label>
+        <button
+          class="submit"
+          type="submit"
+        >
+          Зареєструватися
+        </button>
+      </form>
+      <p
+        class="switch"
+      >
+        Вже маєте акаунт?
+         
+        <a
+          href="/login"
+        >
+          Увійти
+        </a>
+      </p>
+    </div>
+  </main>
+</div>
+`;
+
+exports[`pages/RegisterPage renders email input 1`] = `
+<div>
+  <main
+    class="auth"
+  >
+    <div
+      class="card glass-strong"
+    >
+      <span
+        class="eyebrow"
+      >
+        Реєстрація
+      </span>
+      <h1
+        class="display-3 title"
+      >
+        Створіть акаунт.
+      </h1>
+      <p
+        class="lead"
+      >
+        Зареєструйтеся, щоб створювати ботів, запускати emulator і зберігати історичні тести.
+      </p>
+      <form
+        class="form"
+      >
+        <label
+          class="field"
+        >
+          <span>
+            Email
+          </span>
+          <input
+            autocomplete="email"
+            placeholder="you@example.com"
+            required=""
+            type="email"
+            value=""
+          />
+        </label>
+        <label
+          class="field"
+        >
+          <span>
+            Пароль
+          </span>
+          <input
+            autocomplete="new-password"
+            minlength="6"
+            placeholder="мінімум 6 символів"
+            required=""
+            type="password"
+            value=""
+          />
+          <span
+            class="hint"
+          >
+            Щонайменше 6 символів.
+          </span>
+        </label>
+        <button
+          class="submit"
+          type="submit"
+        >
+          Зареєструватися
+        </button>
+      </form>
+      <p
+        class="switch"
+      >
+        Вже маєте акаунт?
+         
+        <a
+          href="/login"
+        >
+          Увійти
+        </a>
+      </p>
+    </div>
+  </main>
+</div>
+`;
+
+exports[`pages/RegisterPage shows error when password is too short 1`] = `
+<div>
+  <main
+    class="auth"
+  >
+    <div
+      class="card glass-strong"
+    >
+      <span
+        class="eyebrow"
+      >
+        Реєстрація
+      </span>
+      <h1
+        class="display-3 title"
+      >
+        Створіть акаунт.
+      </h1>
+      <p
+        class="lead"
+      >
+        Зареєструйтеся, щоб створювати ботів, запускати emulator і зберігати історичні тести.
+      </p>
+      <form
+        class="form"
+      >
+        <label
+          class="field"
+        >
+          <span>
+            Email
+          </span>
+          <input
+            autocomplete="email"
+            placeholder="you@example.com"
+            required=""
+            type="email"
+            value="u@test.com"
+          />
+        </label>
+        <label
+          class="field"
+        >
+          <span>
+            Пароль
+          </span>
+          <input
+            autocomplete="new-password"
+            minlength="6"
+            placeholder="мінімум 6 символів"
+            required=""
+            type="password"
+            value="123"
+          />
+          <span
+            class="hint"
+          >
+            Щонайменше 6 символів.
+          </span>
+        </label>
+        <div
+          class="error"
+          role="alert"
+        >
+          ⚠ 
+          Пароль має містити щонайменше 6 символів
+        </div>
+        <button
+          class="submit"
+          type="submit"
+        >
+          Зареєструватися
+        </button>
+      </form>
+      <p
+        class="switch"
+      >
+        Вже маєте акаунт?
+         
+        <a
+          href="/login"
+        >
+          Увійти
+        </a>
+      </p>
+    </div>
+  </main>
+</div>
+`;
+
+exports[`pages/RegisterPage snapshot — empty form 1`] = `
+<div>
+  <main
+    class="auth"
+  >
+    <div
+      class="card glass-strong"
+    >
+      <span
+        class="eyebrow"
+      >
+        Реєстрація
+      </span>
+      <h1
+        class="display-3 title"
+      >
+        Створіть акаунт.
+      </h1>
+      <p
+        class="lead"
+      >
+        Зареєструйтеся, щоб створювати ботів, запускати emulator і зберігати історичні тести.
+      </p>
+      <form
+        class="form"
+      >
+        <label
+          class="field"
+        >
+          <span>
+            Email
+          </span>
+          <input
+            autocomplete="email"
+            placeholder="you@example.com"
+            required=""
+            type="email"
+            value=""
+          />
+        </label>
+        <label
+          class="field"
+        >
+          <span>
+            Пароль
+          </span>
+          <input
+            autocomplete="new-password"
+            minlength="6"
+            placeholder="мінімум 6 символів"
+            required=""
+            type="password"
+            value=""
+          />
+          <span
+            class="hint"
+          >
+            Щонайменше 6 символів.
+          </span>
+        </label>
+        <button
+          class="submit"
+          type="submit"
+        >
+          Зареєструватися
+        </button>
+      </form>
+      <p
+        class="switch"
+      >
+        Вже маєте акаунт?
+         
+        <a
+          href="/login"
+        >
+          Увійти
+        </a>
+      </p>
+    </div>
+  </main>
+</div>
+`;

@@ -1,0 +1,146 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`landing/HowItWorks snapshot 1`] = `
+<section
+  class="hiw"
+  id="how-it-works"
+>
+  <div
+    class="container"
+  >
+    <div
+      class="section-header reveal is-visible"
+    >
+      <span
+        class="eyebrow"
+      >
+        Як це працює
+      </span>
+      <h2
+        class="display-2"
+      >
+        Чотири кроки.
+         
+        <span
+          class="italic-accent"
+        >
+          Жодного ризику.
+        </span>
+      </h2>
+      <p
+        class="lead"
+      >
+        Симуляція використовує реальні історичні дані. Жодних реальних ордерів: окремий exchange emulator відтворює Bybit API та зберігає повний стан тестового акаунта.
+      </p>
+    </div>
+    <div
+      class="hiwSteps reveal stagger is-visible"
+    >
+      <div
+        class="hiwStep"
+        style="--i: 0;"
+      >
+        <div
+          class="hiwStepNum"
+        >
+          <span>
+            01
+          </span>
+        </div>
+        <div
+          class="hiwStepBody"
+        >
+          <h3
+            class="hiwStepTitle"
+          >
+            Оберіть існуючого бота
+          </h3>
+          <p
+            class="hiwStepText"
+          >
+            Backtest зберігає snapshot його grid, TP, order quantity та risk settings, не змінюючи оригінал.
+          </p>
+        </div>
+      </div>
+      <div
+        class="hiwStep"
+        style="--i: 1;"
+      >
+        <div
+          class="hiwStepNum"
+        >
+          <span>
+            02
+          </span>
+        </div>
+        <div
+          class="hiwStepBody"
+        >
+          <h3
+            class="hiwStepTitle"
+          >
+            Оберіть історичний dataset
+          </h3>
+          <p
+            class="hiwStepText"
+          >
+            Вкажіть interval, період, execution path, початковий баланс, fees і slippage.
+          </p>
+        </div>
+      </div>
+      <div
+        class="hiwStep"
+        style="--i: 2;"
+      >
+        <div
+          class="hiwStepNum"
+        >
+          <span>
+            03
+          </span>
+        </div>
+        <div
+          class="hiwStepBody"
+        >
+          <h3
+            class="hiwStepTitle"
+          >
+            Запустіть ізольований прогін
+          </h3>
+          <p
+            class="hiwStepText"
+          >
+            Система створить тимчасовий emulator account і програє свічки через реальні orders, fills, positions та TP.
+          </p>
+        </div>
+      </div>
+      <div
+        class="hiwStep"
+        style="--i: 3;"
+      >
+        <div
+          class="hiwStepNum"
+        >
+          <span>
+            04
+          </span>
+        </div>
+        <div
+          class="hiwStepBody"
+        >
+          <h3
+            class="hiwStepTitle"
+          >
+            Запустіть і аналізуйте
+          </h3>
+          <p
+            class="hiwStepText"
+          >
+            Дивіться ордери на графіку, цикли, equity, drawdown, час у позиції та просадці, executions і конфігурацію запуску.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+`;

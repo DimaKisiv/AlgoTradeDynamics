@@ -1,0 +1,53 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`LanguageContext snapshot — English state 1`] = `
+<div>
+  <span
+    data-testid="lang"
+  >
+    en
+  </span>
+  <span
+    data-testid="home"
+  >
+    Overview
+  </span>
+  <span
+    data-testid="tr"
+  >
+    Hello
+  </span>
+  <button>
+    Switch EN
+  </button>
+  <button>
+    Switch UK
+  </button>
+</div>
+`;
+
+exports[`LanguageContext snapshot — default Ukrainian state 1`] = `
+<div>
+  <span
+    data-testid="lang"
+  >
+    uk
+  </span>
+  <span
+    data-testid="home"
+  >
+    Огляд
+  </span>
+  <span
+    data-testid="tr"
+  >
+    Привіт
+  </span>
+  <button>
+    Switch EN
+  </button>
+  <button>
+    Switch UK
+  </button>
+</div>
+`;

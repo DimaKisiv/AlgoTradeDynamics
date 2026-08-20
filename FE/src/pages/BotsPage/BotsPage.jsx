@@ -23,6 +23,7 @@ import {
 } from "../../api/bots";
 import { emulatorApi } from "../../api/emulator";
 import { useLanguage } from "../../context/LanguageContext";
+import { useConfirmModal } from "../../context/ConfirmModalContext";
 import styles from "./BotsPage.module.css";
 
 const INITIAL_FORM = {
@@ -271,6 +272,7 @@ function toPayload(form) {
 
 export default function BotsPage() {
   const { tr, locale } = useLanguage();
+  const { confirm } = useConfirmModal();
   const optionLabel = (label) => ({
     'Local Emulator': tr('Локальний Emulator', 'Local Emulator'),
     'Linear': tr('Лінійний', 'Linear'),
@@ -379,7 +381,14 @@ export default function BotsPage() {
   };
 
   const handleDelete = async (botId) => {
-    if (!window.confirm(tr('Видалити цього бота?', 'Delete this bot?'))) {return;}
+    const confirmed = await confirm({
+      title: tr('Видалити бота?', 'Delete this bot?'),
+      message: tr('Цю дію не можна скасувати.', 'This action cannot be undone.'),
+      confirmLabel: tr('Видалити', 'Delete'),
+      cancelLabel: tr('Скасувати', 'Cancel'),
+      isDanger: true,
+    });
+    if (!confirmed) return;
     try {
       setError("");
       setSuccessMessage("");

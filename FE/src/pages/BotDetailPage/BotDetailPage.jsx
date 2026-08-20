@@ -44,11 +44,13 @@ import {
   fmtPctSigned,
 } from "../../lib/format";
 import { useLanguage } from "../../context/LanguageContext";
+import { useConfirmModal } from "../../context/ConfirmModalContext";
 import { useAuthenticatedWebSocket } from "../../websocket/useAuthenticatedWebSocket";
 import styles from "./BotDetailPage.module.css";
 
 export default function BotDetailPage() {
   const { tr, locale } = useLanguage();
+  const { confirm } = useConfirmModal();
   const { botId } = useParams();
   const [bot, setBot] = useState(null);
   const [orders, setOrders] = useState([]);
@@ -118,9 +120,13 @@ export default function BotDetailPage() {
   };
 
   const handleClosePosition = async () => {
-    const confirmed = window.confirm(
-      tr('Поточну біржову позицію буде закрито reduce-only market ордером. Історія бота не буде видалена. Продовжити?', 'This will close the current exchange position with a reduce-only market order. It will not delete bot history. Continue?'),
-    );
+    const confirmed = await confirm({
+      title: tr('Закрити позицію?', 'Close position?'),
+      message: tr('Поточну біржову позицію буде закрито reduce-only market ордером. Історія бота не буде видалена. Продовжити?', 'This will close the current exchange position with a reduce-only market order. It will not delete bot history. Continue?'),
+      confirmLabel: tr('Закрити', 'Close'),
+      cancelLabel: tr('Скасувати', 'Cancel'),
+      isDanger: true,
+    });
 
     if (!confirmed) return;
 
@@ -201,9 +207,13 @@ export default function BotDetailPage() {
   };
 
   const handleClearHistory = async () => {
-    const confirmed = window.confirm(
-      tr('Це зупинить бота, скасує відкриті ордери бота та видалить локальну історію ордерів/подій. Існуючі позиції Bybit НЕ будуть закриті. Продовжити?', 'This will stop the bot, cancel open bot orders, and delete local order/event history. It will NOT close existing Bybit positions. Continue?'),
-    );
+    const confirmed = await confirm({
+      title: tr('Очистити історію?', 'Clear history?'),
+      message: tr('Це зупинить бота, скасує відкриті ордери бота та видалить локальну історію ордерів/подій. Існуючі позиції Bybit НЕ будуть закриті. Продовжити?', 'This will stop the bot, cancel open bot orders, and delete local order/event history. It will NOT close existing Bybit positions. Continue?'),
+      confirmLabel: tr('Очистити', 'Clear'),
+      cancelLabel: tr('Скасувати', 'Cancel'),
+      isDanger: true,
+    });
 
     if (!confirmed) {return;}
 

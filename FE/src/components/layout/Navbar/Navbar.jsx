@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
-import { Activity, LogOut, UserCircle } from "lucide-react";
+import { LogOut, UserCircle } from "lucide-react";
 
 import { useAuth } from "../../../context/AuthContext";
 import { useLanguage } from "../../../context/LanguageContext";
+import logo from "../../../assets/logo.png";
 import styles from "./Navbar.module.css";
 
 export default function Navbar() {
@@ -34,9 +35,7 @@ export default function Navbar() {
                 className={styles.navBrand}
                 aria-label={t("navbar.homeAria")}
             >
-          <span className={styles.navLogo}>
-            <Activity size={18} strokeWidth={2.5} />
-          </span>
+              <img className="logo" src={logo} alt="" aria-hidden="true" />
               <span className={styles.navBrandText}>
             AlgoTrade<span className="text-accent">Dynamics</span>
           </span>

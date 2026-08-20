@@ -16,20 +16,8 @@
   display: flex;
   gap: var(--space-3);
   align-items: flex-start;
-}
-
-.footerLogo {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  background: var(--gradient-accent);
-  color: #062017;
-  display: grid;
-  place-items: center;
-  font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 600;
-  flex-shrink: 0;
+  --logo-size: 40px;
+  --logo-radius: 12px;
 }
 
 .footerName {

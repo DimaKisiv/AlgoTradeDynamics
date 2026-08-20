@@ -242,6 +242,17 @@ section {
 .gap-5 { gap: var(--space-5); }
 .gap-6 { gap: var(--space-6); }
 
+/* Shared brand logo utility (customizable via CSS vars per context). */
+.logo {
+  width: var(--logo-size, 32px);
+  height: var(--logo-size, 32px);
+  display: block;
+  object-fit: contain;
+  flex-shrink: 0;
+  border-radius: var(--logo-radius, 10px);
+  box-shadow: var(--logo-shadow, 0 4px 16px var(--accent-glow));
+}
+
 /* ============================================================
    Responsive
    ============================================================ */

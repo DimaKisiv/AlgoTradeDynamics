@@ -220,7 +220,7 @@ def _get_scalper_performance(db: Session, bot: TradingBot) -> dict[str, Any]:
 
 def get_performance_summary(db: Session, bot: TradingBot) -> dict[str, Any]:
     """Calculate a best-effort PnL summary from executions and open position PnL."""
-    if bot.strategy_type == "pattern_scalper":
+    if bot.strategy_type in {"pattern_scalper", "momentum"}:
         return _get_scalper_performance(db, bot)
     orders = (
         db.query(TradingBotOrder)

@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { LanguageProvider } from '../../context/LanguageContext';
+import { ConfirmModalProvider } from '../../context/ConfirmModalContext';
 
 jest.mock('../../context/AuthContext', () => ({ useAuth: jest.fn() }));
 jest.mock('react-router-dom', () => ({
@@ -28,7 +29,7 @@ import { useAuth } from '../../context/AuthContext';
 import BacktestsPage from '../../pages/BacktestsPage/BacktestsPage';
 
 const Wrapper = ({ children }) => (
-  <MemoryRouter><LanguageProvider>{children}</LanguageProvider></MemoryRouter>
+  <MemoryRouter><LanguageProvider><ConfirmModalProvider>{children}</ConfirmModalProvider></LanguageProvider></MemoryRouter>
 );
 
 describe('pages/BacktestsPage', () => {
@@ -52,5 +53,10 @@ describe('pages/BacktestsPage', () => {
     const { container } = render(<BacktestsPage />, { wrapper: Wrapper });
     expect(screen.getByText('Offline')).toBeInTheDocument();
     expect(container).toMatchSnapshot();
+  });
+
+  it('mentions momentum support in the hero copy', () => {
+    render(<BacktestsPage />, { wrapper: Wrapper });
+    expect(screen.getByText(/Momentum Bot/)).toBeInTheDocument();
   });
 });

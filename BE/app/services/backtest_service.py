@@ -29,6 +29,7 @@ FINAL_STATUSES = {"completed", "failed", "cancelled"}
 MAX_CHART_POINTS = 1800
 # Strategies that only need a tick on the first point and after an order fill.
 FILL_DRIVEN_STRATEGY_TYPES = {"grid", "dca"}
+FAST_SIGNAL_STRATEGY_TYPES = {"pattern_scalper", "momentum"}
 
 
 def _utcnow() -> datetime:
@@ -158,6 +159,8 @@ def create_backtest(db: Session, payload: BacktestCreate, user_id: int) -> Backt
     get_strategy(bot.strategy_type)
     if bot.strategy_type == "pattern_scalper" and bot.category != "linear":
         raise ValueError("Pattern Scalper currently supports linear perpetuals only")
+    if bot.strategy_type == "momentum" and bot.category == "inverse":
+        raise ValueError("Momentum currently supports linear and spot markets only")
 
     settings = get_settings()
     emulator = BacktestEmulatorClient(settings.exchange_emulator_url)
@@ -170,8 +173,8 @@ def create_backtest(db: Session, payload: BacktestCreate, user_id: int) -> Backt
             )
         if str(dataset.get("category") or "") != bot.category:
             raise ValueError("Dataset market category does not match the selected bot")
-        if bot.strategy_type == "pattern_scalper" and not bool((dataset.get("quality") or {}).get("has_volume")):
-            raise ValueError("Pattern Scalper requires a dataset with non-zero volume data")
+        if bot.strategy_type in FAST_SIGNAL_STRATEGY_TYPES and not bool((dataset.get("quality") or {}).get("has_volume")):
+            raise ValueError(f"{bot.strategy_type.replace('_', ' ').title()} requires a dataset with non-zero volume data")
 
         range_stats = emulator.range_stats(
             dataset_id=payload.dataset_id,
@@ -181,8 +184,8 @@ def create_backtest(db: Session, payload: BacktestCreate, user_id: int) -> Backt
         candle_count = int(range_stats.get("count") or 0)
         if candle_count <= 0:
             raise ValueError("No candles exist in the selected dataset and period")
-        if bot.strategy_type == "pattern_scalper" and not bool(range_stats.get("has_volume")):
-            raise ValueError("Pattern Scalper requires non-zero volume inside the selected period")
+        if bot.strategy_type in FAST_SIGNAL_STRATEGY_TYPES and not bool(range_stats.get("has_volume")):
+            raise ValueError(f"{bot.strategy_type.replace('_', ' ').title()} requires non-zero volume inside the selected period")
         if not range_stats.get("coverage_complete"):
             raise ValueError("The selected period is outside the dataset coverage")
         missing = int(range_stats.get("missing_candles") or 0)
@@ -244,7 +247,11 @@ def create_backtest(db: Session, payload: BacktestCreate, user_id: int) -> Backt
             "path_mode": payload.path_mode,
             "end_behavior": payload.end_behavior,
             "application_version": "1.5.0",
-            "backtest_engine": "fast_scalper" if bot.strategy_type == "pattern_scalper" else "emulator",
+            "backtest_engine": (
+                "fast_scalper" if bot.strategy_type == "pattern_scalper"
+                else "fast_momentum" if bot.strategy_type == "momentum"
+                else "emulator"
+            ),
         },
         metrics={},
     )
@@ -729,6 +736,7 @@ def _run_emulator_backtest_job(run_id: int) -> None:
         snapshot = dict(run.bot_snapshot)
         bot_settings = dict(snapshot.get("settings") or {})
         bot_settings.pop("pattern_scalper_state", None)
+        bot_settings.pop("momentum_state", None)
         bot_settings.update({
             "emulator_api_key": account["api_key"],
             "run_interval_seconds": 0,
@@ -1098,5 +1106,9 @@ def run_backtest_job(run_id: int) -> None:
     if strategy_type == "pattern_scalper":
         from app.services.fast_scalper_backtest import run_fast_scalper_backtest_job
         run_fast_scalper_backtest_job(run_id)
+        return
+    if strategy_type == "momentum":
+        from app.services.fast_momentum_backtest import run_fast_momentum_backtest_job
+        run_fast_momentum_backtest_job(run_id)
         return
     _run_emulator_backtest_job(run_id)

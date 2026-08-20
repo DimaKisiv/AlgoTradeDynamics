@@ -28,6 +28,45 @@ const METRICS = [
   ["Загальні комісії", "Total fees", "total_fees", fmtMoney],
 ];
 
+function strategyLabel(strategyType, tr) {
+  if (strategyType === "momentum") return tr("Конфігурація Momentum", "Momentum configuration");
+  if (strategyType === "dca") return tr("Конфігурація DCA", "DCA configuration");
+  if (strategyType === "pattern_scalper") return tr("Конфігурація Scalper", "Scalper configuration");
+  return tr("Конфігурація Grid", "Grid configuration");
+}
+
+function strategySummary(run, tr) {
+  const snapshot = run?.bot_snapshot || {};
+  const settings = snapshot.settings || {};
+  if (snapshot.strategy_type === "momentum") {
+    return [
+      `${settings.timeframe || run.interval || "15"} ${tr("таймфрейм", "timeframe")}`,
+      `${String(settings.position_side || "both").toUpperCase()} ${tr("режим", "mode")}`,
+      `${settings.minimum_signal_score ?? 70}/100 ${tr("score", "score")}`,
+      `${settings.atr_take_profit_multiplier ?? 3} ATR TP`,
+    ].join(" · ");
+  }
+  if (snapshot.strategy_type === "dca") {
+    return [
+      `${snapshot.grid_orders_count} ${tr("страхувальних", "safety orders")}`,
+      `${snapshot.grid_step_percent}% ${tr("перший крок", "first step")}`,
+      `${settings.take_profit_percent ?? 1.5}% TP`,
+    ].join(" · ");
+  }
+  if (snapshot.strategy_type === "pattern_scalper") {
+    return [
+      `${settings.timeframe || run.interval || "15"} ${tr("таймфрейм", "timeframe")}`,
+      `${settings.risk_per_trade_percent ?? 0.5}% ${tr("ризик", "risk")}`,
+      `${settings.take_profit_atr ?? 1.5} ATR TP`,
+    ].join(" · ");
+  }
+  return [
+    `${snapshot.grid_orders_count} ${tr("рівнів", "levels")}`,
+    `${snapshot.grid_step_percent}% ${tr("крок", "step")}`,
+    `${settings.take_profit_percent ?? 1.5}% TP`,
+  ].join(" · ");
+}
+
 export default function BacktestComparePage() {
   const { tr, language, locale } = useLanguage();
   const duration = (seconds) => {
@@ -86,7 +125,7 @@ export default function BacktestComparePage() {
         <section className={styles.runCards}>{runs.map((run, index) => <article key={run.id} style={{ "--series-color": COLORS[index] }}><div><i/><StatusBadge status={run.status}/></div><Link to={`/backtests/${run.id}`}>{run.name}</Link><span>{run.bot_name} · {run.symbol}</span><strong><PnlValue value={run.metrics?.return_percent}>{fmtPctSigned(run.metrics?.return_percent)}</PnlValue></strong></article>)}</section>
         <section className={styles.chart}><h2>{tr('Дохідність equity', 'Equity return')}</h2><ResponsiveContainer width="100%" height={360}><LineChart data={chartData}><CartesianGrid stroke="rgba(255,255,255,.05)" vertical={false}/><XAxis dataKey="progress" tickFormatter={(v) => `${v}%`} stroke="#68718a"/><YAxis tickFormatter={(v) => `${v.toFixed(0)}%`} stroke="#68718a"/><Tooltip labelFormatter={(v) => `${v}% ${tr('періоду', 'of period')}`} formatter={(v, name) => [`${Number(v).toFixed(2)}%`, runs.find((r) => `run_${r.id}` === name)?.name || name]}/>{runs.map((run, index) => <Line key={run.id} type="monotone" dataKey={`run_${run.id}`} stroke={COLORS[index]} dot={false} connectNulls strokeWidth={2} isAnimationActive={false}/>)}</LineChart></ResponsiveContainer></section>
         <section className={styles.tableWrap}><table><thead><tr><th>{tr('Метрика', 'Metric')}</th>{runs.map((run) => <th key={run.id}>{run.name}</th>)}</tr></thead><tbody>
-          <tr><td>{tr('Конфігурація Grid', 'Grid configuration')}</td>{runs.map((run) => <td key={run.id}>{run.bot_snapshot.grid_orders_count} {tr('рівнів', 'levels')} · {run.bot_snapshot.grid_step_percent}% {tr('крок', 'step')} · {run.bot_snapshot.settings?.take_profit_percent ?? 1.5}% TP</td>)}</tr>
+          <tr><td>{runs.every((run) => run?.bot_snapshot?.strategy_type === runs[0]?.bot_snapshot?.strategy_type) ? strategyLabel(runs[0]?.bot_snapshot?.strategy_type, tr) : tr('Конфігурація стратегії', 'Strategy configuration')}</td>{runs.map((run) => <td key={run.id}>{strategySummary(run, tr)}</td>)}</tr>
           <tr><td>{tr('Період', 'Period')}</td>{runs.map((run) => <td key={run.id}>{new Date(run.start_time).toLocaleDateString(locale)} — {new Date(run.end_time).toLocaleDateString(locale)}</td>)}</tr>
           {METRICS.map(([ukLabel, enLabel, key, format]) => <tr key={key}><td>{tr(ukLabel, enLabel)}</td>{runs.map((run) => <td key={run.id}><PnlValue value={key.includes("pnl") || key.includes("drawdown") || key.includes("loss") ? run.metrics?.[key] : undefined}>{run.metrics?.[key] == null ? "—" : (format || duration)(run.metrics[key])}</PnlValue></td>)}</tr>)}
         </tbody></table></section>

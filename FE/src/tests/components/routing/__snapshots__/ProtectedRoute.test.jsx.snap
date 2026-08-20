@@ -1,0 +1,11 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`routing/ProtectedRoute snapshot — authenticated renders children 1`] = `
+<div
+  data-testid="child"
+>
+  Protected Content
+</div>
+`;
+
+exports[`routing/ProtectedRoute snapshot — loading returns null 1`] = `<div />`;

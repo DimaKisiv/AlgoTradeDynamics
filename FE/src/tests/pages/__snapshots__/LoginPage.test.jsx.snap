@@ -1,0 +1,423 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`pages/LoginPage calls login with email and password on submit 1`] = `
+<div>
+  <main
+    class="auth"
+  >
+    <div
+      class="card glass-strong"
+    >
+      <span
+        class="eyebrow"
+      >
+        Вхід
+      </span>
+      <h1
+        class="display-3 title"
+      >
+        З поверненням.
+      </h1>
+      <p
+        class="lead"
+      >
+        Увійдіть, щоб працювати з ботами, emulator та backtests.
+      </p>
+      <form
+        class="form"
+      >
+        <label
+          class="field"
+        >
+          <span>
+            Email
+          </span>
+          <input
+            autocomplete="email"
+            placeholder="you@example.com"
+            required=""
+            type="email"
+            value="u@test.com"
+          />
+        </label>
+        <label
+          class="field"
+        >
+          <span>
+            Пароль
+          </span>
+          <input
+            autocomplete="current-password"
+            placeholder="••••••••"
+            required=""
+            type="password"
+            value="pass123"
+          />
+        </label>
+        <button
+          class="submit"
+          type="submit"
+        >
+          Увійти
+        </button>
+      </form>
+      <p
+        class="switch"
+      >
+        Немає акаунта?
+         
+        <a
+          href="/register"
+        >
+          Зареєструватися
+        </a>
+      </p>
+      <p
+        class="demo"
+      >
+        Демо
+        : demo@algotrade.dev / demo1234
+      </p>
+    </div>
+  </main>
+</div>
+`;
+
+exports[`pages/LoginPage renders demo credentials hint 1`] = `
+<div>
+  <main
+    class="auth"
+  >
+    <div
+      class="card glass-strong"
+    >
+      <span
+        class="eyebrow"
+      >
+        Вхід
+      </span>
+      <h1
+        class="display-3 title"
+      >
+        З поверненням.
+      </h1>
+      <p
+        class="lead"
+      >
+        Увійдіть, щоб працювати з ботами, emulator та backtests.
+      </p>
+      <form
+        class="form"
+      >
+        <label
+          class="field"
+        >
+          <span>
+            Email
+          </span>
+          <input
+            autocomplete="email"
+            placeholder="you@example.com"
+            required=""
+            type="email"
+            value=""
+          />
+        </label>
+        <label
+          class="field"
+        >
+          <span>
+            Пароль
+          </span>
+          <input
+            autocomplete="current-password"
+            placeholder="••••••••"
+            required=""
+            type="password"
+            value=""
+          />
+        </label>
+        <button
+          class="submit"
+          type="submit"
+        >
+          Увійти
+        </button>
+      </form>
+      <p
+        class="switch"
+      >
+        Немає акаунта?
+         
+        <a
+          href="/register"
+        >
+          Зареєструватися
+        </a>
+      </p>
+      <p
+        class="demo"
+      >
+        Демо
+        : demo@algotrade.dev / demo1234
+      </p>
+    </div>
+  </main>
+</div>
+`;
+
+exports[`pages/LoginPage renders email and password inputs 1`] = `
+<div>
+  <main
+    class="auth"
+  >
+    <div
+      class="card glass-strong"
+    >
+      <span
+        class="eyebrow"
+      >
+        Вхід
+      </span>
+      <h1
+        class="display-3 title"
+      >
+        З поверненням.
+      </h1>
+      <p
+        class="lead"
+      >
+        Увійдіть, щоб працювати з ботами, emulator та backtests.
+      </p>
+      <form
+        class="form"
+      >
+        <label
+          class="field"
+        >
+          <span>
+            Email
+          </span>
+          <input
+            autocomplete="email"
+            placeholder="you@example.com"
+            required=""
+            type="email"
+            value=""
+          />
+        </label>
+        <label
+          class="field"
+        >
+          <span>
+            Пароль
+          </span>
+          <input
+            autocomplete="current-password"
+            placeholder="••••••••"
+            required=""
+            type="password"
+            value=""
+          />
+        </label>
+        <button
+          class="submit"
+          type="submit"
+        >
+          Увійти
+        </button>
+      </form>
+      <p
+        class="switch"
+      >
+        Немає акаунта?
+         
+        <a
+          href="/register"
+        >
+          Зареєструватися
+        </a>
+      </p>
+      <p
+        class="demo"
+      >
+        Демо
+        : demo@algotrade.dev / demo1234
+      </p>
+    </div>
+  </main>
+</div>
+`;
+
+exports[`pages/LoginPage shows error message when login fails 1`] = `
+<div>
+  <main
+    class="auth"
+  >
+    <div
+      class="card glass-strong"
+    >
+      <span
+        class="eyebrow"
+      >
+        Вхід
+      </span>
+      <h1
+        class="display-3 title"
+      >
+        З поверненням.
+      </h1>
+      <p
+        class="lead"
+      >
+        Увійдіть, щоб працювати з ботами, emulator та backtests.
+      </p>
+      <form
+        class="form"
+      >
+        <label
+          class="field"
+        >
+          <span>
+            Email
+          </span>
+          <input
+            autocomplete="email"
+            placeholder="you@example.com"
+            required=""
+            type="email"
+            value="bad@test.com"
+          />
+        </label>
+        <label
+          class="field"
+        >
+          <span>
+            Пароль
+          </span>
+          <input
+            autocomplete="current-password"
+            placeholder="••••••••"
+            required=""
+            type="password"
+            value="wrong"
+          />
+        </label>
+        <div
+          class="error"
+          role="alert"
+        >
+          ⚠ 
+          Invalid credentials
+        </div>
+        <button
+          class="submit"
+          type="submit"
+        >
+          Увійти
+        </button>
+      </form>
+      <p
+        class="switch"
+      >
+        Немає акаунта?
+         
+        <a
+          href="/register"
+        >
+          Зареєструватися
+        </a>
+      </p>
+      <p
+        class="demo"
+      >
+        Демо
+        : demo@algotrade.dev / demo1234
+      </p>
+    </div>
+  </main>
+</div>
+`;
+
+exports[`pages/LoginPage snapshot — empty form 1`] = `
+<div>
+  <main
+    class="auth"
+  >
+    <div
+      class="card glass-strong"
+    >
+      <span
+        class="eyebrow"
+      >
+        Вхід
+      </span>
+      <h1
+        class="display-3 title"
+      >
+        З поверненням.
+      </h1>
+      <p
+        class="lead"
+      >
+        Увійдіть, щоб працювати з ботами, emulator та backtests.
+      </p>
+      <form
+        class="form"
+      >
+        <label
+          class="field"
+        >
+          <span>
+            Email
+          </span>
+          <input
+            autocomplete="email"
+            placeholder="you@example.com"
+            required=""
+            type="email"
+            value=""
+          />
+        </label>
+        <label
+          class="field"
+        >
+          <span>
+            Пароль
+          </span>
+          <input
+            autocomplete="current-password"
+            placeholder="••••••••"
+            required=""
+            type="password"
+            value=""
+          />
+        </label>
+        <button
+          class="submit"
+          type="submit"
+        >
+          Увійти
+        </button>
+      </form>
+      <p
+        class="switch"
+      >
+        Немає акаунта?
+         
+        <a
+          href="/register"
+        >
+          Зареєструватися
+        </a>
+      </p>
+      <p
+        class="demo"
+      >
+        Демо
+        : demo@algotrade.dev / demo1234
+      </p>
+    </div>
+  </main>
+</div>
+`;

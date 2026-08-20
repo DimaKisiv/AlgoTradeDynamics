@@ -1,0 +1,583 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`pages/BotsPage renders main element 1`] = `
+<div>
+  <main
+    class="bots"
+  >
+    <div
+      class="container"
+    >
+      <header
+        class="hero"
+      >
+        <span
+          class="eyebrow"
+        >
+          Керування ботами
+        </span>
+        <h1
+          class="display-2"
+        >
+          Створюйте та керуйте
+           
+          <span
+            class="italic-accent"
+          >
+            конфігураціями ботів
+          </span>
+          .
+        </h1>
+        <p
+          class="lead"
+        >
+          Бот може працювати з локальним Exchange Emulator, Bybit Demo, Testnet або Live. Для безпечних тестів обирайте Local Emulator.
+        </p>
+        <div
+          class="heroActions"
+        >
+          <button
+            class="btn btnPrimary btnMd"
+            type="button"
+          >
+            <span
+              class="btnIcon"
+            >
+              <svg
+                class="lucide lucide-plus"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="16"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M5 12h14"
+                />
+                <path
+                  d="M12 5v14"
+                />
+              </svg>
+            </span>
+            <span
+              class="btnLabel"
+            >
+              Створити бота
+            </span>
+          </button>
+          <button
+            class="btn btnGhost btnMd"
+            disabled=""
+            type="button"
+          >
+            <span
+              class="btnIcon"
+            >
+              <svg
+                class="lucide lucide-refresh-cw"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="16"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"
+                />
+                <path
+                  d="M21 3v5h-5"
+                />
+                <path
+                  d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"
+                />
+                <path
+                  d="M8 16H3v5"
+                />
+              </svg>
+            </span>
+            <span
+              class="btnLabel"
+            >
+              Оновити список
+            </span>
+          </button>
+        </div>
+      </header>
+      <div
+        class="state"
+      >
+        Завантаження ботів…
+      </div>
+      <div
+        class="layout"
+      >
+        <section
+          class="listSection"
+        />
+        <aside
+          class="formSection"
+        >
+          <div
+            class="card glass-strong formCard"
+          >
+            <div
+              class="cardHeader "
+            >
+              <div>
+                <p
+                  class="eyebrow"
+                >
+                  Новий бот
+                </p>
+                <h3
+                  class="cardHeaderTitle"
+                >
+                  Створити конфігурацію
+                </h3>
+              </div>
+            </div>
+            <div
+              class="formPlaceholder"
+            >
+              <p
+                class="text-secondary"
+              >
+                Оберіть існуючого бота для редагування або створіть нового.
+              </p>
+              <button
+                class="btn btnPrimary btnMd"
+                type="button"
+              >
+                <span
+                  class="btnIcon"
+                >
+                  <svg
+                    class="lucide lucide-plus"
+                    fill="none"
+                    height="16"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="16"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M5 12h14"
+                    />
+                    <path
+                      d="M12 5v14"
+                    />
+                  </svg>
+                </span>
+                <span
+                  class="btnLabel"
+                >
+                  Відкрити форму
+                </span>
+              </button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+</div>
+`;
+
+exports[`pages/BotsPage renders without throwing 1`] = `
+<div>
+  <main
+    class="bots"
+  >
+    <div
+      class="container"
+    >
+      <header
+        class="hero"
+      >
+        <span
+          class="eyebrow"
+        >
+          Керування ботами
+        </span>
+        <h1
+          class="display-2"
+        >
+          Створюйте та керуйте
+           
+          <span
+            class="italic-accent"
+          >
+            конфігураціями ботів
+          </span>
+          .
+        </h1>
+        <p
+          class="lead"
+        >
+          Бот може працювати з локальним Exchange Emulator, Bybit Demo, Testnet або Live. Для безпечних тестів обирайте Local Emulator.
+        </p>
+        <div
+          class="heroActions"
+        >
+          <button
+            class="btn btnPrimary btnMd"
+            type="button"
+          >
+            <span
+              class="btnIcon"
+            >
+              <svg
+                class="lucide lucide-plus"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="16"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M5 12h14"
+                />
+                <path
+                  d="M12 5v14"
+                />
+              </svg>
+            </span>
+            <span
+              class="btnLabel"
+            >
+              Створити бота
+            </span>
+          </button>
+          <button
+            class="btn btnGhost btnMd"
+            disabled=""
+            type="button"
+          >
+            <span
+              class="btnIcon"
+            >
+              <svg
+                class="lucide lucide-refresh-cw"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="16"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"
+                />
+                <path
+                  d="M21 3v5h-5"
+                />
+                <path
+                  d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"
+                />
+                <path
+                  d="M8 16H3v5"
+                />
+              </svg>
+            </span>
+            <span
+              class="btnLabel"
+            >
+              Оновити список
+            </span>
+          </button>
+        </div>
+      </header>
+      <div
+        class="state"
+      >
+        Завантаження ботів…
+      </div>
+      <div
+        class="layout"
+      >
+        <section
+          class="listSection"
+        />
+        <aside
+          class="formSection"
+        >
+          <div
+            class="card glass-strong formCard"
+          >
+            <div
+              class="cardHeader "
+            >
+              <div>
+                <p
+                  class="eyebrow"
+                >
+                  Новий бот
+                </p>
+                <h3
+                  class="cardHeaderTitle"
+                >
+                  Створити конфігурацію
+                </h3>
+              </div>
+            </div>
+            <div
+              class="formPlaceholder"
+            >
+              <p
+                class="text-secondary"
+              >
+                Оберіть існуючого бота для редагування або створіть нового.
+              </p>
+              <button
+                class="btn btnPrimary btnMd"
+                type="button"
+              >
+                <span
+                  class="btnIcon"
+                >
+                  <svg
+                    class="lucide lucide-plus"
+                    fill="none"
+                    height="16"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="16"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M5 12h14"
+                    />
+                    <path
+                      d="M12 5v14"
+                    />
+                  </svg>
+                </span>
+                <span
+                  class="btnLabel"
+                >
+                  Відкрити форму
+                </span>
+              </button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+</div>
+`;
+
+exports[`pages/BotsPage snapshot — initial render 1`] = `
+<div>
+  <main
+    class="bots"
+  >
+    <div
+      class="container"
+    >
+      <header
+        class="hero"
+      >
+        <span
+          class="eyebrow"
+        >
+          Керування ботами
+        </span>
+        <h1
+          class="display-2"
+        >
+          Створюйте та керуйте
+           
+          <span
+            class="italic-accent"
+          >
+            конфігураціями ботів
+          </span>
+          .
+        </h1>
+        <p
+          class="lead"
+        >
+          Бот може працювати з локальним Exchange Emulator, Bybit Demo, Testnet або Live. Для безпечних тестів обирайте Local Emulator.
+        </p>
+        <div
+          class="heroActions"
+        >
+          <button
+            class="btn btnPrimary btnMd"
+            type="button"
+          >
+            <span
+              class="btnIcon"
+            >
+              <svg
+                class="lucide lucide-plus"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="16"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M5 12h14"
+                />
+                <path
+                  d="M12 5v14"
+                />
+              </svg>
+            </span>
+            <span
+              class="btnLabel"
+            >
+              Створити бота
+            </span>
+          </button>
+          <button
+            class="btn btnGhost btnMd"
+            disabled=""
+            type="button"
+          >
+            <span
+              class="btnIcon"
+            >
+              <svg
+                class="lucide lucide-refresh-cw"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="16"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"
+                />
+                <path
+                  d="M21 3v5h-5"
+                />
+                <path
+                  d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"
+                />
+                <path
+                  d="M8 16H3v5"
+                />
+              </svg>
+            </span>
+            <span
+              class="btnLabel"
+            >
+              Оновити список
+            </span>
+          </button>
+        </div>
+      </header>
+      <div
+        class="state"
+      >
+        Завантаження ботів…
+      </div>
+      <div
+        class="layout"
+      >
+        <section
+          class="listSection"
+        />
+        <aside
+          class="formSection"
+        >
+          <div
+            class="card glass-strong formCard"
+          >
+            <div
+              class="cardHeader "
+            >
+              <div>
+                <p
+                  class="eyebrow"
+                >
+                  Новий бот
+                </p>
+                <h3
+                  class="cardHeaderTitle"
+                >
+                  Створити конфігурацію
+                </h3>
+              </div>
+            </div>
+            <div
+              class="formPlaceholder"
+            >
+              <p
+                class="text-secondary"
+              >
+                Оберіть існуючого бота для редагування або створіть нового.
+              </p>
+              <button
+                class="btn btnPrimary btnMd"
+                type="button"
+              >
+                <span
+                  class="btnIcon"
+                >
+                  <svg
+                    class="lucide lucide-plus"
+                    fill="none"
+                    height="16"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="16"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M5 12h14"
+                    />
+                    <path
+                      d="M12 5v14"
+                    />
+                  </svg>
+                </span>
+                <span
+                  class="btnLabel"
+                >
+                  Відкрити форму
+                </span>
+              </button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+</div>
+`;

@@ -1,0 +1,3418 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`pages/LandingPage renders all 5 landing sections 1`] = `
+<div>
+  <main>
+    <section
+      class="hero"
+    >
+      <div
+        class="container heroInner"
+      >
+        <div
+          class="heroContent"
+        >
+          <div
+            class="pill"
+          >
+            <span
+              class="dot"
+            />
+            <span>
+              Реальний bot worker · Exchange emulator · Historical replay
+            </span>
+          </div>
+          <h1
+            class="display-1 heroTitle"
+          >
+            Тестуйте торгового бота
+             
+            <span
+              class="italic-accent"
+            >
+              без ризику
+            </span>
+             
+            для капіталу.
+          </h1>
+          <p
+            class="lead"
+          >
+            Оберіть Grid Bot або Pattern Scalper і проганяйте ту саму runtime-логіку через Bybit-compatible emulator: ордери, LONG/SHORT, SL/TP, комісії, equity та drawdown.
+          </p>
+          <div
+            class="heroActions"
+          >
+            <a
+              class="heroPrimary"
+              href="/backtests"
+            >
+              <span>
+                Запустити Backtest
+              </span>
+              <svg
+                class="lucide lucide-arrow-right"
+                fill="none"
+                height="18"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="18"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M5 12h14"
+                />
+                <path
+                  d="m12 5 7 7-7 7"
+                />
+              </svg>
+            </a>
+            <a
+              class="heroSecondary"
+              href="#how-it-works"
+            >
+              Як це працює
+            </a>
+          </div>
+          <div
+            class="heroBadges"
+          >
+            <span>
+              <svg
+                class="lucide lucide-sparkles"
+                fill="none"
+                height="14"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="14"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"
+                />
+                <path
+                  d="M20 3v4"
+                />
+                <path
+                  d="M22 5h-4"
+                />
+                <path
+                  d="M4 17v2"
+                />
+                <path
+                  d="M5 18H3"
+                />
+              </svg>
+               
+              Real bot logic
+            </span>
+            <span>
+              <svg
+                class="lucide lucide-shield-check"
+                fill="none"
+                height="14"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="14"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"
+                />
+                <path
+                  d="m9 12 2 2 4-4"
+                />
+              </svg>
+               
+              Risk-controlled
+            </span>
+            <span>
+              <svg
+                class="lucide lucide-trending-up"
+                fill="none"
+                height="14"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="14"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <polyline
+                  points="22 7 13.5 15.5 8.5 10.5 2 17"
+                />
+                <polyline
+                  points="16 7 22 7 22 13"
+                />
+              </svg>
+               
+              Historical datasets
+            </span>
+          </div>
+        </div>
+        <div
+          class="heroVisual"
+        >
+          <div
+            class="heroWindow glass-strong"
+          >
+            <div
+              class="heroWindowBar"
+            >
+              <span />
+              <span />
+              <span />
+              <p>
+                BTCUSDT · Grid Bot · 
+                Історичний
+              </p>
+            </div>
+            <div
+              class="heroWindowBody"
+            >
+              <div
+                class="heroWindowStat"
+              >
+                <p
+                  class="eyebrow"
+                >
+                  P&L
+                </p>
+                <h3
+                  class="display-3"
+                >
+                  +18.4%
+                </h3>
+                <p
+                  class="text-tertiary"
+                >
+                  за 366 днів
+                </p>
+              </div>
+              <div
+                class="heroWindowStat heroWindowStatRight"
+              >
+                <p
+                  class="eyebrow"
+                >
+                  Відсоток перемог
+                </p>
+                <h3
+                  class="display-3"
+                >
+                  58.6%
+                </h3>
+                <p
+                  class="text-tertiary"
+                >
+                  time in position
+                </p>
+              </div>
+              <svg
+                class="heroSparkline"
+                preserveAspectRatio="none"
+                viewBox="0 0 540 200"
+              >
+                <defs>
+                  <lineargradient
+                    id="sparkFill"
+                    x1="0"
+                    x2="0"
+                    y1="0"
+                    y2="1"
+                  >
+                    <stop
+                      offset="0%"
+                      stop-color="rgba(0,224,143,0.5)"
+                    />
+                    <stop
+                      offset="100%"
+                      stop-color="rgba(0,224,143,0)"
+                    />
+                  </lineargradient>
+                  <lineargradient
+                    id="sparkStroke"
+                    x1="0"
+                    x2="1"
+                    y1="0"
+                    y2="0"
+                  >
+                    <stop
+                      offset="0%"
+                      stop-color="#00e08f"
+                    />
+                    <stop
+                      offset="100%"
+                      stop-color="#66f0c4"
+                    />
+                  </lineargradient>
+                </defs>
+                <path
+                  d="M0,160 C40,150 80,170 120,155 C160,140 200,130 240,115 C280,100 320,95 360,80 C400,65 440,75 480,55 C520,35 540,40 540,40 L540,200 L0,200 Z"
+                  fill="url(#sparkFill)"
+                />
+                <path
+                  d="M0,160 C40,150 80,170 120,155 C160,140 200,130 240,115 C280,100 320,95 360,80 C400,65 440,75 480,55 C520,35 540,40 540,40"
+                  fill="none"
+                  stroke="url(#sparkStroke)"
+                  stroke-width="2.5"
+                />
+                <circle
+                  cx="540"
+                  cy="40"
+                  fill="#00e08f"
+                  r="5"
+                >
+                  <animate
+                    attributeName="r"
+                    dur="2.4s"
+                    repeatCount="indefinite"
+                    values="5;10;5"
+                  />
+                  <animate
+                    attributeName="opacity"
+                    dur="2.4s"
+                    repeatCount="indefinite"
+                    values="1;0.4;1"
+                  />
+                </circle>
+              </svg>
+            </div>
+          </div>
+          <div
+            class="heroChip heroChip1 glass"
+          >
+            <svg
+              class="lucide lucide-shield-check"
+              fill="none"
+              height="14"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="14"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"
+              />
+              <path
+                d="m9 12 2 2 4-4"
+              />
+            </svg>
+            <div>
+              <p
+                class="heroChipLabel"
+              >
+                Grid levels
+              </p>
+              <p
+                class="heroChipValue"
+              >
+                2
+              </p>
+            </div>
+          </div>
+          <div
+            class="heroChip heroChip2 glass"
+          >
+            <svg
+              class="lucide lucide-trending-up"
+              fill="none"
+              height="14"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="14"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <polyline
+                points="22 7 13.5 15.5 8.5 10.5 2 17"
+              />
+              <polyline
+                points="16 7 22 7 22 13"
+              />
+            </svg>
+            <div>
+              <p
+                class="heroChipLabel"
+              >
+                Max DD
+              </p>
+              <p
+                class="heroChipValue"
+              >
+                20%
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section
+      class="features"
+      id="features"
+    >
+      <div
+        class="container"
+      >
+        <div
+          class="section-header reveal is-visible"
+        >
+          <span
+            class="eyebrow"
+          >
+            Що всередині
+          </span>
+          <h2
+            class="display-2"
+          >
+            Усе для зрілого
+             
+            <span
+              class="italic-accent"
+            >
+              backtesting
+            </span>
+            .
+            <br />
+            Без зайвого шуму.
+          </h2>
+          <p
+            class="lead"
+          >
+            MVP сфокусований на одній задачі — дати трейдеру безпечне середовище для перевірки ідеї перед тим, як ризикувати реальним капіталом.
+          </p>
+        </div>
+        <div
+          class="featuresGrid reveal stagger is-visible"
+        >
+          <article
+            class="feature glass"
+            style="--i: 0;"
+          >
+            <div
+              class="featureIcon"
+            >
+              <svg
+                class="lucide lucide-cpu"
+                fill="none"
+                height="22"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="22"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <rect
+                  height="16"
+                  rx="2"
+                  width="16"
+                  x="4"
+                  y="4"
+                />
+                <rect
+                  height="6"
+                  rx="1"
+                  width="6"
+                  x="9"
+                  y="9"
+                />
+                <path
+                  d="M15 2v2"
+                />
+                <path
+                  d="M15 20v2"
+                />
+                <path
+                  d="M2 15h2"
+                />
+                <path
+                  d="M2 9h2"
+                />
+                <path
+                  d="M20 15h2"
+                />
+                <path
+                  d="M20 9h2"
+                />
+                <path
+                  d="M9 2v2"
+                />
+                <path
+                  d="M9 20v2"
+                />
+              </svg>
+            </div>
+            <h3
+              class="featureTitle"
+            >
+              Той самий bot worker
+            </h3>
+            <p
+              class="featureText"
+            >
+              Backtest запускає snapshot Grid Bot або Pattern Scalper через той самий strategy registry, order lifecycle, risk logic та emulator/live runtime.
+            </p>
+          </article>
+          <article
+            class="feature glass"
+            style="--i: 1;"
+          >
+            <div
+              class="featureIcon"
+            >
+              <svg
+                class="lucide lucide-shield-alert"
+                fill="none"
+                height="22"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="22"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"
+                />
+                <path
+                  d="M12 8v4"
+                />
+                <path
+                  d="M12 16h.01"
+                />
+              </svg>
+            </div>
+            <h3
+              class="featureTitle"
+            >
+              Risk-controlled execution
+            </h3>
+            <p
+              class="featureText"
+            >
+              Ізольований тестовий акаунт, баланс, leverage, fees, slippage та execution path не торкаються звичайної історії бота.
+            </p>
+          </article>
+          <article
+            class="feature glass"
+            style="--i: 2;"
+          >
+            <div
+              class="featureIcon"
+            >
+              <svg
+                class="lucide lucide-chart-line"
+                fill="none"
+                height="22"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="22"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M3 3v16a2 2 0 0 0 2 2h16"
+                />
+                <path
+                  d="m19 9-5 5-4-4-3 3"
+                />
+              </svg>
+            </div>
+            <h3
+              class="featureTitle"
+            >
+              Equity curve у реальному часі
+            </h3>
+            <p
+              class="featureText"
+            >
+              Графік ціни показує entries/exits вибраної стратегії, cancelled orders, equity, drawdown і position exposure.
+            </p>
+          </article>
+          <article
+            class="feature glass"
+            style="--i: 3;"
+          >
+            <div
+              class="featureIcon"
+            >
+              <svg
+                class="lucide lucide-chart-column"
+                fill="none"
+                height="22"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="22"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M3 3v16a2 2 0 0 0 2 2h16"
+                />
+                <path
+                  d="M18 17V9"
+                />
+                <path
+                  d="M13 17V5"
+                />
+                <path
+                  d="M8 17v-3"
+                />
+              </svg>
+            </div>
+            <h3
+              class="featureTitle"
+            >
+              Глибокі метрики
+            </h3>
+            <p
+              class="featureText"
+            >
+              PnL, fees, max drawdown, worst unrealized loss, time in position, time in loss, recovery та max exposure.
+            </p>
+          </article>
+          <article
+            class="feature glass"
+            style="--i: 4;"
+          >
+            <div
+              class="featureIcon"
+            >
+              <svg
+                class="lucide lucide-workflow"
+                fill="none"
+                height="22"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="22"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <rect
+                  height="8"
+                  rx="2"
+                  width="8"
+                  x="3"
+                  y="3"
+                />
+                <path
+                  d="M7 11v4a2 2 0 0 0 2 2h4"
+                />
+                <rect
+                  height="8"
+                  rx="2"
+                  width="8"
+                  x="13"
+                  y="13"
+                />
+              </svg>
+            </div>
+            <h3
+              class="featureTitle"
+            >
+              Журнал угод
+            </h3>
+            <p
+              class="featureText"
+            >
+              Orders, executions, position changes, cycles і worker events з переходом із таблиці до потрібного моменту графіка.
+            </p>
+          </article>
+          <article
+            class="feature glass"
+            style="--i: 5;"
+          >
+            <div
+              class="featureIcon"
+            >
+              <svg
+                class="lucide lucide-square-chart-gantt"
+                fill="none"
+                height="22"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="22"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <rect
+                  height="18"
+                  rx="2"
+                  width="18"
+                  x="3"
+                  y="3"
+                />
+                <path
+                  d="M9 8h7"
+                />
+                <path
+                  d="M8 12h6"
+                />
+                <path
+                  d="M11 16h5"
+                />
+              </svg>
+            </div>
+            <h3
+              class="featureTitle"
+            >
+              Історія запусків
+            </h3>
+            <p
+              class="featureText"
+            >
+              Кожен backtest зберігається в базі даних. Можна порівнювати конфігурації, відкривати минулі запуски та аналізувати тренди.
+            </p>
+          </article>
+        </div>
+      </div>
+    </section>
+    <section
+      class="hiw"
+      id="how-it-works"
+    >
+      <div
+        class="container"
+      >
+        <div
+          class="section-header reveal is-visible"
+        >
+          <span
+            class="eyebrow"
+          >
+            Як це працює
+          </span>
+          <h2
+            class="display-2"
+          >
+            Чотири кроки.
+             
+            <span
+              class="italic-accent"
+            >
+              Жодного ризику.
+            </span>
+          </h2>
+          <p
+            class="lead"
+          >
+            Симуляція використовує реальні історичні дані. Жодних реальних ордерів: окремий exchange emulator відтворює Bybit API та зберігає повний стан тестового акаунта.
+          </p>
+        </div>
+        <div
+          class="hiwSteps reveal stagger is-visible"
+        >
+          <div
+            class="hiwStep"
+            style="--i: 0;"
+          >
+            <div
+              class="hiwStepNum"
+            >
+              <span>
+                01
+              </span>
+            </div>
+            <div
+              class="hiwStepBody"
+            >
+              <h3
+                class="hiwStepTitle"
+              >
+                Оберіть існуючого бота
+              </h3>
+              <p
+                class="hiwStepText"
+              >
+                Backtest зберігає snapshot його grid, TP, order quantity та risk settings, не змінюючи оригінал.
+              </p>
+            </div>
+          </div>
+          <div
+            class="hiwStep"
+            style="--i: 1;"
+          >
+            <div
+              class="hiwStepNum"
+            >
+              <span>
+                02
+              </span>
+            </div>
+            <div
+              class="hiwStepBody"
+            >
+              <h3
+                class="hiwStepTitle"
+              >
+                Оберіть історичний dataset
+              </h3>
+              <p
+                class="hiwStepText"
+              >
+                Вкажіть interval, період, execution path, початковий баланс, fees і slippage.
+              </p>
+            </div>
+          </div>
+          <div
+            class="hiwStep"
+            style="--i: 2;"
+          >
+            <div
+              class="hiwStepNum"
+            >
+              <span>
+                03
+              </span>
+            </div>
+            <div
+              class="hiwStepBody"
+            >
+              <h3
+                class="hiwStepTitle"
+              >
+                Запустіть ізольований прогін
+              </h3>
+              <p
+                class="hiwStepText"
+              >
+                Система створить тимчасовий emulator account і програє свічки через реальні orders, fills, positions та TP.
+              </p>
+            </div>
+          </div>
+          <div
+            class="hiwStep"
+            style="--i: 3;"
+          >
+            <div
+              class="hiwStepNum"
+            >
+              <span>
+                04
+              </span>
+            </div>
+            <div
+              class="hiwStepBody"
+            >
+              <h3
+                class="hiwStepTitle"
+              >
+                Запустіть і аналізуйте
+              </h3>
+              <p
+                class="hiwStepText"
+              >
+                Дивіться ордери на графіку, цикли, equity, drawdown, час у позиції та просадці, executions і конфігурацію запуску.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section
+      class="strats"
+      id="strategies"
+    >
+      <div
+        class="container"
+      >
+        <div
+          class="section-header reveal is-visible"
+        >
+          <span
+            class="eyebrow"
+          >
+            Режими тестування
+          </span>
+          <h2
+            class="display-2"
+          >
+            Один бот.
+             
+            <span
+              class="italic-accent"
+            >
+              Три рівні перевірки.
+            </span>
+          </h2>
+          <p
+            class="lead"
+          >
+            Від ручного edge-case до багатомісячного історичного прогону без окремої спрощеної торгової логіки.
+          </p>
+        </div>
+        <div
+          class="stratsGrid reveal is-visible"
+        >
+          <article
+            class="strat glass-strong"
+            style="--bg: linear-gradient(135deg,rgba(0,224,143,.18),rgba(0,224,143,.04));"
+          >
+            <div
+              class="stratIcon"
+            >
+              <svg
+                class="lucide lucide-hand"
+                fill="none"
+                height="22"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="22"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"
+                />
+                <path
+                  d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"
+                />
+                <path
+                  d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"
+                />
+                <path
+                  d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"
+                />
+              </svg>
+            </div>
+            <span
+              class="stratTag"
+            >
+              Інтерактивний
+            </span>
+            <h3
+              class="stratName"
+            >
+              Ручне тестування
+            </h3>
+            <p
+              class="stratDesc"
+            >
+              Рухайте ціну руками, перевіряйте конкретні edge cases і дивіться, як реальний bot worker створює ордери, позицію та TP.
+            </p>
+            <ul
+              class="stratParams"
+            >
+              <li>
+                <span
+                  class="stratBullet"
+                />
+                Точний контроль ціни
+              </li>
+              <li>
+                <span
+                  class="stratBullet"
+                />
+                Live ордери та події
+              </li>
+            </ul>
+          </article>
+          <article
+            class="strat glass-strong"
+            style="--bg: linear-gradient(135deg,rgba(102,166,255,.15),rgba(102,166,255,.03));"
+          >
+            <div
+              class="stratIcon"
+            >
+              <svg
+                class="lucide lucide-route"
+                fill="none"
+                height="22"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="22"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle
+                  cx="6"
+                  cy="19"
+                  r="3"
+                />
+                <path
+                  d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"
+                />
+                <circle
+                  cx="18"
+                  cy="5"
+                  r="3"
+                />
+              </svg>
+            </div>
+            <span
+              class="stratTag"
+            >
+              Повторюваний
+            </span>
+            <h3
+              class="stratName"
+            >
+              Сценарне тестування
+            </h3>
+            <p
+              class="stratDesc"
+            >
+              Зберігайте послідовності руху ціни та повторюйте той самий сценарій після змін алгоритму.
+            </p>
+            <ul
+              class="stratParams"
+            >
+              <li>
+                <span
+                  class="stratBullet"
+                />
+                Збережені шляхи ціни
+              </li>
+              <li>
+                <span
+                  class="stratBullet"
+                />
+                Пауза та покроковий режим
+              </li>
+            </ul>
+          </article>
+          <article
+            class="strat glass-strong"
+            style="--bg: linear-gradient(135deg,rgba(185,140,255,.15),rgba(185,140,255,.03));"
+          >
+            <div
+              class="stratIcon"
+            >
+              <svg
+                class="lucide lucide-history"
+                fill="none"
+                height="22"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="22"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"
+                />
+                <path
+                  d="M3 3v5h5"
+                />
+                <path
+                  d="M12 7v5l4 2"
+                />
+              </svg>
+            </div>
+            <span
+              class="stratTag"
+            >
+              Історичний
+            </span>
+            <h3
+              class="stratName"
+            >
+              Backtesting бота
+            </h3>
+            <p
+              class="stratDesc"
+            >
+              Оберіть існуючого бота й програйте реальні історичні свічки через той самий Bybit-compatible emulator.
+            </p>
+            <ul
+              class="stratParams"
+            >
+              <li>
+                <span
+                  class="stratBullet"
+                />
+                Ордери на графіку ціни
+              </li>
+              <li>
+                <span
+                  class="stratBullet"
+                />
+                Equity, drawdown та exposure
+              </li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+    <section
+      class="cta"
+    >
+      <div
+        class="container"
+      >
+        <div
+          class="ctaCard glass-strong reveal is-visible"
+        >
+          <div
+            aria-hidden="true"
+            class="ctaGlow"
+          />
+          <div
+            class="ctaContent"
+          >
+            <span
+              class="eyebrow"
+            >
+              Готові спробувати?
+            </span>
+            <h2
+              class="display-2"
+            >
+              Запустіть перший backtest
+               
+              <br />
+              <span
+                class="italic-accent"
+              >
+                за 30 секунд.
+              </span>
+            </h2>
+            <p
+              class="lead"
+            >
+              Оберіть одного зі своїх ботів, dataset і період. Backtest створить ізольований акаунт та збере повний звіт.
+            </p>
+            <a
+              class="ctaBtn"
+              href="/backtests"
+            >
+              <span>
+                Відкрити Bot Backtests
+              </span>
+              <svg
+                class="lucide lucide-arrow-right"
+                fill="none"
+                height="18"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="18"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M5 12h14"
+                />
+                <path
+                  d="m12 5 7 7-7 7"
+                />
+              </svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+`;
+
+exports[`pages/LandingPage renders without throwing 1`] = `
+<div>
+  <main>
+    <section
+      class="hero"
+    >
+      <div
+        class="container heroInner"
+      >
+        <div
+          class="heroContent"
+        >
+          <div
+            class="pill"
+          >
+            <span
+              class="dot"
+            />
+            <span>
+              Реальний bot worker · Exchange emulator · Historical replay
+            </span>
+          </div>
+          <h1
+            class="display-1 heroTitle"
+          >
+            Тестуйте торгового бота
+             
+            <span
+              class="italic-accent"
+            >
+              без ризику
+            </span>
+             
+            для капіталу.
+          </h1>
+          <p
+            class="lead"
+          >
+            Оберіть Grid Bot або Pattern Scalper і проганяйте ту саму runtime-логіку через Bybit-compatible emulator: ордери, LONG/SHORT, SL/TP, комісії, equity та drawdown.
+          </p>
+          <div
+            class="heroActions"
+          >
+            <a
+              class="heroPrimary"
+              href="/backtests"
+            >
+              <span>
+                Запустити Backtest
+              </span>
+              <svg
+                class="lucide lucide-arrow-right"
+                fill="none"
+                height="18"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="18"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M5 12h14"
+                />
+                <path
+                  d="m12 5 7 7-7 7"
+                />
+              </svg>
+            </a>
+            <a
+              class="heroSecondary"
+              href="#how-it-works"
+            >
+              Як це працює
+            </a>
+          </div>
+          <div
+            class="heroBadges"
+          >
+            <span>
+              <svg
+                class="lucide lucide-sparkles"
+                fill="none"
+                height="14"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="14"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"
+                />
+                <path
+                  d="M20 3v4"
+                />
+                <path
+                  d="M22 5h-4"
+                />
+                <path
+                  d="M4 17v2"
+                />
+                <path
+                  d="M5 18H3"
+                />
+              </svg>
+               
+              Real bot logic
+            </span>
+            <span>
+              <svg
+                class="lucide lucide-shield-check"
+                fill="none"
+                height="14"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="14"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"
+                />
+                <path
+                  d="m9 12 2 2 4-4"
+                />
+              </svg>
+               
+              Risk-controlled
+            </span>
+            <span>
+              <svg
+                class="lucide lucide-trending-up"
+                fill="none"
+                height="14"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="14"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <polyline
+                  points="22 7 13.5 15.5 8.5 10.5 2 17"
+                />
+                <polyline
+                  points="16 7 22 7 22 13"
+                />
+              </svg>
+               
+              Historical datasets
+            </span>
+          </div>
+        </div>
+        <div
+          class="heroVisual"
+        >
+          <div
+            class="heroWindow glass-strong"
+          >
+            <div
+              class="heroWindowBar"
+            >
+              <span />
+              <span />
+              <span />
+              <p>
+                BTCUSDT · Grid Bot · 
+                Історичний
+              </p>
+            </div>
+            <div
+              class="heroWindowBody"
+            >
+              <div
+                class="heroWindowStat"
+              >
+                <p
+                  class="eyebrow"
+                >
+                  P&L
+                </p>
+                <h3
+                  class="display-3"
+                >
+                  +18.4%
+                </h3>
+                <p
+                  class="text-tertiary"
+                >
+                  за 366 днів
+                </p>
+              </div>
+              <div
+                class="heroWindowStat heroWindowStatRight"
+              >
+                <p
+                  class="eyebrow"
+                >
+                  Відсоток перемог
+                </p>
+                <h3
+                  class="display-3"
+                >
+                  58.6%
+                </h3>
+                <p
+                  class="text-tertiary"
+                >
+                  time in position
+                </p>
+              </div>
+              <svg
+                class="heroSparkline"
+                preserveAspectRatio="none"
+                viewBox="0 0 540 200"
+              >
+                <defs>
+                  <lineargradient
+                    id="sparkFill"
+                    x1="0"
+                    x2="0"
+                    y1="0"
+                    y2="1"
+                  >
+                    <stop
+                      offset="0%"
+                      stop-color="rgba(0,224,143,0.5)"
+                    />
+                    <stop
+                      offset="100%"
+                      stop-color="rgba(0,224,143,0)"
+                    />
+                  </lineargradient>
+                  <lineargradient
+                    id="sparkStroke"
+                    x1="0"
+                    x2="1"
+                    y1="0"
+                    y2="0"
+                  >
+                    <stop
+                      offset="0%"
+                      stop-color="#00e08f"
+                    />
+                    <stop
+                      offset="100%"
+                      stop-color="#66f0c4"
+                    />
+                  </lineargradient>
+                </defs>
+                <path
+                  d="M0,160 C40,150 80,170 120,155 C160,140 200,130 240,115 C280,100 320,95 360,80 C400,65 440,75 480,55 C520,35 540,40 540,40 L540,200 L0,200 Z"
+                  fill="url(#sparkFill)"
+                />
+                <path
+                  d="M0,160 C40,150 80,170 120,155 C160,140 200,130 240,115 C280,100 320,95 360,80 C400,65 440,75 480,55 C520,35 540,40 540,40"
+                  fill="none"
+                  stroke="url(#sparkStroke)"
+                  stroke-width="2.5"
+                />
+                <circle
+                  cx="540"
+                  cy="40"
+                  fill="#00e08f"
+                  r="5"
+                >
+                  <animate
+                    attributeName="r"
+                    dur="2.4s"
+                    repeatCount="indefinite"
+                    values="5;10;5"
+                  />
+                  <animate
+                    attributeName="opacity"
+                    dur="2.4s"
+                    repeatCount="indefinite"
+                    values="1;0.4;1"
+                  />
+                </circle>
+              </svg>
+            </div>
+          </div>
+          <div
+            class="heroChip heroChip1 glass"
+          >
+            <svg
+              class="lucide lucide-shield-check"
+              fill="none"
+              height="14"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="14"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"
+              />
+              <path
+                d="m9 12 2 2 4-4"
+              />
+            </svg>
+            <div>
+              <p
+                class="heroChipLabel"
+              >
+                Grid levels
+              </p>
+              <p
+                class="heroChipValue"
+              >
+                2
+              </p>
+            </div>
+          </div>
+          <div
+            class="heroChip heroChip2 glass"
+          >
+            <svg
+              class="lucide lucide-trending-up"
+              fill="none"
+              height="14"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="14"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <polyline
+                points="22 7 13.5 15.5 8.5 10.5 2 17"
+              />
+              <polyline
+                points="16 7 22 7 22 13"
+              />
+            </svg>
+            <div>
+              <p
+                class="heroChipLabel"
+              >
+                Max DD
+              </p>
+              <p
+                class="heroChipValue"
+              >
+                20%
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section
+      class="features"
+      id="features"
+    >
+      <div
+        class="container"
+      >
+        <div
+          class="section-header reveal is-visible"
+        >
+          <span
+            class="eyebrow"
+          >
+            Що всередині
+          </span>
+          <h2
+            class="display-2"
+          >
+            Усе для зрілого
+             
+            <span
+              class="italic-accent"
+            >
+              backtesting
+            </span>
+            .
+            <br />
+            Без зайвого шуму.
+          </h2>
+          <p
+            class="lead"
+          >
+            MVP сфокусований на одній задачі — дати трейдеру безпечне середовище для перевірки ідеї перед тим, як ризикувати реальним капіталом.
+          </p>
+        </div>
+        <div
+          class="featuresGrid reveal stagger is-visible"
+        >
+          <article
+            class="feature glass"
+            style="--i: 0;"
+          >
+            <div
+              class="featureIcon"
+            >
+              <svg
+                class="lucide lucide-cpu"
+                fill="none"
+                height="22"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="22"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <rect
+                  height="16"
+                  rx="2"
+                  width="16"
+                  x="4"
+                  y="4"
+                />
+                <rect
+                  height="6"
+                  rx="1"
+                  width="6"
+                  x="9"
+                  y="9"
+                />
+                <path
+                  d="M15 2v2"
+                />
+                <path
+                  d="M15 20v2"
+                />
+                <path
+                  d="M2 15h2"
+                />
+                <path
+                  d="M2 9h2"
+                />
+                <path
+                  d="M20 15h2"
+                />
+                <path
+                  d="M20 9h2"
+                />
+                <path
+                  d="M9 2v2"
+                />
+                <path
+                  d="M9 20v2"
+                />
+              </svg>
+            </div>
+            <h3
+              class="featureTitle"
+            >
+              Той самий bot worker
+            </h3>
+            <p
+              class="featureText"
+            >
+              Backtest запускає snapshot Grid Bot або Pattern Scalper через той самий strategy registry, order lifecycle, risk logic та emulator/live runtime.
+            </p>
+          </article>
+          <article
+            class="feature glass"
+            style="--i: 1;"
+          >
+            <div
+              class="featureIcon"
+            >
+              <svg
+                class="lucide lucide-shield-alert"
+                fill="none"
+                height="22"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="22"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"
+                />
+                <path
+                  d="M12 8v4"
+                />
+                <path
+                  d="M12 16h.01"
+                />
+              </svg>
+            </div>
+            <h3
+              class="featureTitle"
+            >
+              Risk-controlled execution
+            </h3>
+            <p
+              class="featureText"
+            >
+              Ізольований тестовий акаунт, баланс, leverage, fees, slippage та execution path не торкаються звичайної історії бота.
+            </p>
+          </article>
+          <article
+            class="feature glass"
+            style="--i: 2;"
+          >
+            <div
+              class="featureIcon"
+            >
+              <svg
+                class="lucide lucide-chart-line"
+                fill="none"
+                height="22"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="22"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M3 3v16a2 2 0 0 0 2 2h16"
+                />
+                <path
+                  d="m19 9-5 5-4-4-3 3"
+                />
+              </svg>
+            </div>
+            <h3
+              class="featureTitle"
+            >
+              Equity curve у реальному часі
+            </h3>
+            <p
+              class="featureText"
+            >
+              Графік ціни показує entries/exits вибраної стратегії, cancelled orders, equity, drawdown і position exposure.
+            </p>
+          </article>
+          <article
+            class="feature glass"
+            style="--i: 3;"
+          >
+            <div
+              class="featureIcon"
+            >
+              <svg
+                class="lucide lucide-chart-column"
+                fill="none"
+                height="22"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="22"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M3 3v16a2 2 0 0 0 2 2h16"
+                />
+                <path
+                  d="M18 17V9"
+                />
+                <path
+                  d="M13 17V5"
+                />
+                <path
+                  d="M8 17v-3"
+                />
+              </svg>
+            </div>
+            <h3
+              class="featureTitle"
+            >
+              Глибокі метрики
+            </h3>
+            <p
+              class="featureText"
+            >
+              PnL, fees, max drawdown, worst unrealized loss, time in position, time in loss, recovery та max exposure.
+            </p>
+          </article>
+          <article
+            class="feature glass"
+            style="--i: 4;"
+          >
+            <div
+              class="featureIcon"
+            >
+              <svg
+                class="lucide lucide-workflow"
+                fill="none"
+                height="22"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="22"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <rect
+                  height="8"
+                  rx="2"
+                  width="8"
+                  x="3"
+                  y="3"
+                />
+                <path
+                  d="M7 11v4a2 2 0 0 0 2 2h4"
+                />
+                <rect
+                  height="8"
+                  rx="2"
+                  width="8"
+                  x="13"
+                  y="13"
+                />
+              </svg>
+            </div>
+            <h3
+              class="featureTitle"
+            >
+              Журнал угод
+            </h3>
+            <p
+              class="featureText"
+            >
+              Orders, executions, position changes, cycles і worker events з переходом із таблиці до потрібного моменту графіка.
+            </p>
+          </article>
+          <article
+            class="feature glass"
+            style="--i: 5;"
+          >
+            <div
+              class="featureIcon"
+            >
+              <svg
+                class="lucide lucide-square-chart-gantt"
+                fill="none"
+                height="22"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="22"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <rect
+                  height="18"
+                  rx="2"
+                  width="18"
+                  x="3"
+                  y="3"
+                />
+                <path
+                  d="M9 8h7"
+                />
+                <path
+                  d="M8 12h6"
+                />
+                <path
+                  d="M11 16h5"
+                />
+              </svg>
+            </div>
+            <h3
+              class="featureTitle"
+            >
+              Історія запусків
+            </h3>
+            <p
+              class="featureText"
+            >
+              Кожен backtest зберігається в базі даних. Можна порівнювати конфігурації, відкривати минулі запуски та аналізувати тренди.
+            </p>
+          </article>
+        </div>
+      </div>
+    </section>
+    <section
+      class="hiw"
+      id="how-it-works"
+    >
+      <div
+        class="container"
+      >
+        <div
+          class="section-header reveal is-visible"
+        >
+          <span
+            class="eyebrow"
+          >
+            Як це працює
+          </span>
+          <h2
+            class="display-2"
+          >
+            Чотири кроки.
+             
+            <span
+              class="italic-accent"
+            >
+              Жодного ризику.
+            </span>
+          </h2>
+          <p
+            class="lead"
+          >
+            Симуляція використовує реальні історичні дані. Жодних реальних ордерів: окремий exchange emulator відтворює Bybit API та зберігає повний стан тестового акаунта.
+          </p>
+        </div>
+        <div
+          class="hiwSteps reveal stagger is-visible"
+        >
+          <div
+            class="hiwStep"
+            style="--i: 0;"
+          >
+            <div
+              class="hiwStepNum"
+            >
+              <span>
+                01
+              </span>
+            </div>
+            <div
+              class="hiwStepBody"
+            >
+              <h3
+                class="hiwStepTitle"
+              >
+                Оберіть існуючого бота
+              </h3>
+              <p
+                class="hiwStepText"
+              >
+                Backtest зберігає snapshot його grid, TP, order quantity та risk settings, не змінюючи оригінал.
+              </p>
+            </div>
+          </div>
+          <div
+            class="hiwStep"
+            style="--i: 1;"
+          >
+            <div
+              class="hiwStepNum"
+            >
+              <span>
+                02
+              </span>
+            </div>
+            <div
+              class="hiwStepBody"
+            >
+              <h3
+                class="hiwStepTitle"
+              >
+                Оберіть історичний dataset
+              </h3>
+              <p
+                class="hiwStepText"
+              >
+                Вкажіть interval, період, execution path, початковий баланс, fees і slippage.
+              </p>
+            </div>
+          </div>
+          <div
+            class="hiwStep"
+            style="--i: 2;"
+          >
+            <div
+              class="hiwStepNum"
+            >
+              <span>
+                03
+              </span>
+            </div>
+            <div
+              class="hiwStepBody"
+            >
+              <h3
+                class="hiwStepTitle"
+              >
+                Запустіть ізольований прогін
+              </h3>
+              <p
+                class="hiwStepText"
+              >
+                Система створить тимчасовий emulator account і програє свічки через реальні orders, fills, positions та TP.
+              </p>
+            </div>
+          </div>
+          <div
+            class="hiwStep"
+            style="--i: 3;"
+          >
+            <div
+              class="hiwStepNum"
+            >
+              <span>
+                04
+              </span>
+            </div>
+            <div
+              class="hiwStepBody"
+            >
+              <h3
+                class="hiwStepTitle"
+              >
+                Запустіть і аналізуйте
+              </h3>
+              <p
+                class="hiwStepText"
+              >
+                Дивіться ордери на графіку, цикли, equity, drawdown, час у позиції та просадці, executions і конфігурацію запуску.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section
+      class="strats"
+      id="strategies"
+    >
+      <div
+        class="container"
+      >
+        <div
+          class="section-header reveal is-visible"
+        >
+          <span
+            class="eyebrow"
+          >
+            Режими тестування
+          </span>
+          <h2
+            class="display-2"
+          >
+            Один бот.
+             
+            <span
+              class="italic-accent"
+            >
+              Три рівні перевірки.
+            </span>
+          </h2>
+          <p
+            class="lead"
+          >
+            Від ручного edge-case до багатомісячного історичного прогону без окремої спрощеної торгової логіки.
+          </p>
+        </div>
+        <div
+          class="stratsGrid reveal is-visible"
+        >
+          <article
+            class="strat glass-strong"
+            style="--bg: linear-gradient(135deg,rgba(0,224,143,.18),rgba(0,224,143,.04));"
+          >
+            <div
+              class="stratIcon"
+            >
+              <svg
+                class="lucide lucide-hand"
+                fill="none"
+                height="22"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="22"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"
+                />
+                <path
+                  d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"
+                />
+                <path
+                  d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"
+                />
+                <path
+                  d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"
+                />
+              </svg>
+            </div>
+            <span
+              class="stratTag"
+            >
+              Інтерактивний
+            </span>
+            <h3
+              class="stratName"
+            >
+              Ручне тестування
+            </h3>
+            <p
+              class="stratDesc"
+            >
+              Рухайте ціну руками, перевіряйте конкретні edge cases і дивіться, як реальний bot worker створює ордери, позицію та TP.
+            </p>
+            <ul
+              class="stratParams"
+            >
+              <li>
+                <span
+                  class="stratBullet"
+                />
+                Точний контроль ціни
+              </li>
+              <li>
+                <span
+                  class="stratBullet"
+                />
+                Live ордери та події
+              </li>
+            </ul>
+          </article>
+          <article
+            class="strat glass-strong"
+            style="--bg: linear-gradient(135deg,rgba(102,166,255,.15),rgba(102,166,255,.03));"
+          >
+            <div
+              class="stratIcon"
+            >
+              <svg
+                class="lucide lucide-route"
+                fill="none"
+                height="22"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="22"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle
+                  cx="6"
+                  cy="19"
+                  r="3"
+                />
+                <path
+                  d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"
+                />
+                <circle
+                  cx="18"
+                  cy="5"
+                  r="3"
+                />
+              </svg>
+            </div>
+            <span
+              class="stratTag"
+            >
+              Повторюваний
+            </span>
+            <h3
+              class="stratName"
+            >
+              Сценарне тестування
+            </h3>
+            <p
+              class="stratDesc"
+            >
+              Зберігайте послідовності руху ціни та повторюйте той самий сценарій після змін алгоритму.
+            </p>
+            <ul
+              class="stratParams"
+            >
+              <li>
+                <span
+                  class="stratBullet"
+                />
+                Збережені шляхи ціни
+              </li>
+              <li>
+                <span
+                  class="stratBullet"
+                />
+                Пауза та покроковий режим
+              </li>
+            </ul>
+          </article>
+          <article
+            class="strat glass-strong"
+            style="--bg: linear-gradient(135deg,rgba(185,140,255,.15),rgba(185,140,255,.03));"
+          >
+            <div
+              class="stratIcon"
+            >
+              <svg
+                class="lucide lucide-history"
+                fill="none"
+                height="22"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="22"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"
+                />
+                <path
+                  d="M3 3v5h5"
+                />
+                <path
+                  d="M12 7v5l4 2"
+                />
+              </svg>
+            </div>
+            <span
+              class="stratTag"
+            >
+              Історичний
+            </span>
+            <h3
+              class="stratName"
+            >
+              Backtesting бота
+            </h3>
+            <p
+              class="stratDesc"
+            >
+              Оберіть існуючого бота й програйте реальні історичні свічки через той самий Bybit-compatible emulator.
+            </p>
+            <ul
+              class="stratParams"
+            >
+              <li>
+                <span
+                  class="stratBullet"
+                />
+                Ордери на графіку ціни
+              </li>
+              <li>
+                <span
+                  class="stratBullet"
+                />
+                Equity, drawdown та exposure
+              </li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+    <section
+      class="cta"
+    >
+      <div
+        class="container"
+      >
+        <div
+          class="ctaCard glass-strong reveal is-visible"
+        >
+          <div
+            aria-hidden="true"
+            class="ctaGlow"
+          />
+          <div
+            class="ctaContent"
+          >
+            <span
+              class="eyebrow"
+            >
+              Готові спробувати?
+            </span>
+            <h2
+              class="display-2"
+            >
+              Запустіть перший backtest
+               
+              <br />
+              <span
+                class="italic-accent"
+              >
+                за 30 секунд.
+              </span>
+            </h2>
+            <p
+              class="lead"
+            >
+              Оберіть одного зі своїх ботів, dataset і період. Backtest створить ізольований акаунт та збере повний звіт.
+            </p>
+            <a
+              class="ctaBtn"
+              href="/backtests"
+            >
+              <span>
+                Відкрити Bot Backtests
+              </span>
+              <svg
+                class="lucide lucide-arrow-right"
+                fill="none"
+                height="18"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="18"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M5 12h14"
+                />
+                <path
+                  d="m12 5 7 7-7 7"
+                />
+              </svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+`;
+
+exports[`pages/LandingPage snapshot 1`] = `
+<div>
+  <main>
+    <section
+      class="hero"
+    >
+      <div
+        class="container heroInner"
+      >
+        <div
+          class="heroContent"
+        >
+          <div
+            class="pill"
+          >
+            <span
+              class="dot"
+            />
+            <span>
+              Реальний bot worker · Exchange emulator · Historical replay
+            </span>
+          </div>
+          <h1
+            class="display-1 heroTitle"
+          >
+            Тестуйте торгового бота
+             
+            <span
+              class="italic-accent"
+            >
+              без ризику
+            </span>
+             
+            для капіталу.
+          </h1>
+          <p
+            class="lead"
+          >
+            Оберіть Grid Bot або Pattern Scalper і проганяйте ту саму runtime-логіку через Bybit-compatible emulator: ордери, LONG/SHORT, SL/TP, комісії, equity та drawdown.
+          </p>
+          <div
+            class="heroActions"
+          >
+            <a
+              class="heroPrimary"
+              href="/backtests"
+            >
+              <span>
+                Запустити Backtest
+              </span>
+              <svg
+                class="lucide lucide-arrow-right"
+                fill="none"
+                height="18"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="18"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M5 12h14"
+                />
+                <path
+                  d="m12 5 7 7-7 7"
+                />
+              </svg>
+            </a>
+            <a
+              class="heroSecondary"
+              href="#how-it-works"
+            >
+              Як це працює
+            </a>
+          </div>
+          <div
+            class="heroBadges"
+          >
+            <span>
+              <svg
+                class="lucide lucide-sparkles"
+                fill="none"
+                height="14"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="14"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"
+                />
+                <path
+                  d="M20 3v4"
+                />
+                <path
+                  d="M22 5h-4"
+                />
+                <path
+                  d="M4 17v2"
+                />
+                <path
+                  d="M5 18H3"
+                />
+              </svg>
+               
+              Real bot logic
+            </span>
+            <span>
+              <svg
+                class="lucide lucide-shield-check"
+                fill="none"
+                height="14"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="14"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"
+                />
+                <path
+                  d="m9 12 2 2 4-4"
+                />
+              </svg>
+               
+              Risk-controlled
+            </span>
+            <span>
+              <svg
+                class="lucide lucide-trending-up"
+                fill="none"
+                height="14"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="14"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <polyline
+                  points="22 7 13.5 15.5 8.5 10.5 2 17"
+                />
+                <polyline
+                  points="16 7 22 7 22 13"
+                />
+              </svg>
+               
+              Historical datasets
+            </span>
+          </div>
+        </div>
+        <div
+          class="heroVisual"
+        >
+          <div
+            class="heroWindow glass-strong"
+          >
+            <div
+              class="heroWindowBar"
+            >
+              <span />
+              <span />
+              <span />
+              <p>
+                BTCUSDT · Grid Bot · 
+                Історичний
+              </p>
+            </div>
+            <div
+              class="heroWindowBody"
+            >
+              <div
+                class="heroWindowStat"
+              >
+                <p
+                  class="eyebrow"
+                >
+                  P&L
+                </p>
+                <h3
+                  class="display-3"
+                >
+                  +18.4%
+                </h3>
+                <p
+                  class="text-tertiary"
+                >
+                  за 366 днів
+                </p>
+              </div>
+              <div
+                class="heroWindowStat heroWindowStatRight"
+              >
+                <p
+                  class="eyebrow"
+                >
+                  Відсоток перемог
+                </p>
+                <h3
+                  class="display-3"
+                >
+                  58.6%
+                </h3>
+                <p
+                  class="text-tertiary"
+                >
+                  time in position
+                </p>
+              </div>
+              <svg
+                class="heroSparkline"
+                preserveAspectRatio="none"
+                viewBox="0 0 540 200"
+              >
+                <defs>
+                  <lineargradient
+                    id="sparkFill"
+                    x1="0"
+                    x2="0"
+                    y1="0"
+                    y2="1"
+                  >
+                    <stop
+                      offset="0%"
+                      stop-color="rgba(0,224,143,0.5)"
+                    />
+                    <stop
+                      offset="100%"
+                      stop-color="rgba(0,224,143,0)"
+                    />
+                  </lineargradient>
+                  <lineargradient
+                    id="sparkStroke"
+                    x1="0"
+                    x2="1"
+                    y1="0"
+                    y2="0"
+                  >
+                    <stop
+                      offset="0%"
+                      stop-color="#00e08f"
+                    />
+                    <stop
+                      offset="100%"
+                      stop-color="#66f0c4"
+                    />
+                  </lineargradient>
+                </defs>
+                <path
+                  d="M0,160 C40,150 80,170 120,155 C160,140 200,130 240,115 C280,100 320,95 360,80 C400,65 440,75 480,55 C520,35 540,40 540,40 L540,200 L0,200 Z"
+                  fill="url(#sparkFill)"
+                />
+                <path
+                  d="M0,160 C40,150 80,170 120,155 C160,140 200,130 240,115 C280,100 320,95 360,80 C400,65 440,75 480,55 C520,35 540,40 540,40"
+                  fill="none"
+                  stroke="url(#sparkStroke)"
+                  stroke-width="2.5"
+                />
+                <circle
+                  cx="540"
+                  cy="40"
+                  fill="#00e08f"
+                  r="5"
+                >
+                  <animate
+                    attributeName="r"
+                    dur="2.4s"
+                    repeatCount="indefinite"
+                    values="5;10;5"
+                  />
+                  <animate
+                    attributeName="opacity"
+                    dur="2.4s"
+                    repeatCount="indefinite"
+                    values="1;0.4;1"
+                  />
+                </circle>
+              </svg>
+            </div>
+          </div>
+          <div
+            class="heroChip heroChip1 glass"
+          >
+            <svg
+              class="lucide lucide-shield-check"
+              fill="none"
+              height="14"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="14"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"
+              />
+              <path
+                d="m9 12 2 2 4-4"
+              />
+            </svg>
+            <div>
+              <p
+                class="heroChipLabel"
+              >
+                Grid levels
+              </p>
+              <p
+                class="heroChipValue"
+              >
+                2
+              </p>
+            </div>
+          </div>
+          <div
+            class="heroChip heroChip2 glass"
+          >
+            <svg
+              class="lucide lucide-trending-up"
+              fill="none"
+              height="14"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="14"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <polyline
+                points="22 7 13.5 15.5 8.5 10.5 2 17"
+              />
+              <polyline
+                points="16 7 22 7 22 13"
+              />
+            </svg>
+            <div>
+              <p
+                class="heroChipLabel"
+              >
+                Max DD
+              </p>
+              <p
+                class="heroChipValue"
+              >
+                20%
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section
+      class="features"
+      id="features"
+    >
+      <div
+        class="container"
+      >
+        <div
+          class="section-header reveal is-visible"
+        >
+          <span
+            class="eyebrow"
+          >
+            Що всередині
+          </span>
+          <h2
+            class="display-2"
+          >
+            Усе для зрілого
+             
+            <span
+              class="italic-accent"
+            >
+              backtesting
+            </span>
+            .
+            <br />
+            Без зайвого шуму.
+          </h2>
+          <p
+            class="lead"
+          >
+            MVP сфокусований на одній задачі — дати трейдеру безпечне середовище для перевірки ідеї перед тим, як ризикувати реальним капіталом.
+          </p>
+        </div>
+        <div
+          class="featuresGrid reveal stagger is-visible"
+        >
+          <article
+            class="feature glass"
+            style="--i: 0;"
+          >
+            <div
+              class="featureIcon"
+            >
+              <svg
+                class="lucide lucide-cpu"
+                fill="none"
+                height="22"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="22"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <rect
+                  height="16"
+                  rx="2"
+                  width="16"
+                  x="4"
+                  y="4"
+                />
+                <rect
+                  height="6"
+                  rx="1"
+                  width="6"
+                  x="9"
+                  y="9"
+                />
+                <path
+                  d="M15 2v2"
+                />
+                <path
+                  d="M15 20v2"
+                />
+                <path
+                  d="M2 15h2"
+                />
+                <path
+                  d="M2 9h2"
+                />
+                <path
+                  d="M20 15h2"
+                />
+                <path
+                  d="M20 9h2"
+                />
+                <path
+                  d="M9 2v2"
+                />
+                <path
+                  d="M9 20v2"
+                />
+              </svg>
+            </div>
+            <h3
+              class="featureTitle"
+            >
+              Той самий bot worker
+            </h3>
+            <p
+              class="featureText"
+            >
+              Backtest запускає snapshot Grid Bot або Pattern Scalper через той самий strategy registry, order lifecycle, risk logic та emulator/live runtime.
+            </p>
+          </article>
+          <article
+            class="feature glass"
+            style="--i: 1;"
+          >
+            <div
+              class="featureIcon"
+            >
+              <svg
+                class="lucide lucide-shield-alert"
+                fill="none"
+                height="22"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="22"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"
+                />
+                <path
+                  d="M12 8v4"
+                />
+                <path
+                  d="M12 16h.01"
+                />
+              </svg>
+            </div>
+            <h3
+              class="featureTitle"
+            >
+              Risk-controlled execution
+            </h3>
+            <p
+              class="featureText"
+            >
+              Ізольований тестовий акаунт, баланс, leverage, fees, slippage та execution path не торкаються звичайної історії бота.
+            </p>
+          </article>
+          <article
+            class="feature glass"
+            style="--i: 2;"
+          >
+            <div
+              class="featureIcon"
+            >
+              <svg
+                class="lucide lucide-chart-line"
+                fill="none"
+                height="22"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="22"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M3 3v16a2 2 0 0 0 2 2h16"
+                />
+                <path
+                  d="m19 9-5 5-4-4-3 3"
+                />
+              </svg>
+            </div>
+            <h3
+              class="featureTitle"
+            >
+              Equity curve у реальному часі
+            </h3>
+            <p
+              class="featureText"
+            >
+              Графік ціни показує entries/exits вибраної стратегії, cancelled orders, equity, drawdown і position exposure.
+            </p>
+          </article>
+          <article
+            class="feature glass"
+            style="--i: 3;"
+          >
+            <div
+              class="featureIcon"
+            >
+              <svg
+                class="lucide lucide-chart-column"
+                fill="none"
+                height="22"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="22"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M3 3v16a2 2 0 0 0 2 2h16"
+                />
+                <path
+                  d="M18 17V9"
+                />
+                <path
+                  d="M13 17V5"
+                />
+                <path
+                  d="M8 17v-3"
+                />
+              </svg>
+            </div>
+            <h3
+              class="featureTitle"
+            >
+              Глибокі метрики
+            </h3>
+            <p
+              class="featureText"
+            >
+              PnL, fees, max drawdown, worst unrealized loss, time in position, time in loss, recovery та max exposure.
+            </p>
+          </article>
+          <article
+            class="feature glass"
+            style="--i: 4;"
+          >
+            <div
+              class="featureIcon"
+            >
+              <svg
+                class="lucide lucide-workflow"
+                fill="none"
+                height="22"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="22"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <rect
+                  height="8"
+                  rx="2"
+                  width="8"
+                  x="3"
+                  y="3"
+                />
+                <path
+                  d="M7 11v4a2 2 0 0 0 2 2h4"
+                />
+                <rect
+                  height="8"
+                  rx="2"
+                  width="8"
+                  x="13"
+                  y="13"
+                />
+              </svg>
+            </div>
+            <h3
+              class="featureTitle"
+            >
+              Журнал угод
+            </h3>
+            <p
+              class="featureText"
+            >
+              Orders, executions, position changes, cycles і worker events з переходом із таблиці до потрібного моменту графіка.
+            </p>
+          </article>
+          <article
+            class="feature glass"
+            style="--i: 5;"
+          >
+            <div
+              class="featureIcon"
+            >
+              <svg
+                class="lucide lucide-square-chart-gantt"
+                fill="none"
+                height="22"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="22"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <rect
+                  height="18"
+                  rx="2"
+                  width="18"
+                  x="3"
+                  y="3"
+                />
+                <path
+                  d="M9 8h7"
+                />
+                <path
+                  d="M8 12h6"
+                />
+                <path
+                  d="M11 16h5"
+                />
+              </svg>
+            </div>
+            <h3
+              class="featureTitle"
+            >
+              Історія запусків
+            </h3>
+            <p
+              class="featureText"
+            >
+              Кожен backtest зберігається в базі даних. Можна порівнювати конфігурації, відкривати минулі запуски та аналізувати тренди.
+            </p>
+          </article>
+        </div>
+      </div>
+    </section>
+    <section
+      class="hiw"
+      id="how-it-works"
+    >
+      <div
+        class="container"
+      >
+        <div
+          class="section-header reveal is-visible"
+        >
+          <span
+            class="eyebrow"
+          >
+            Як це працює
+          </span>
+          <h2
+            class="display-2"
+          >
+            Чотири кроки.
+             
+            <span
+              class="italic-accent"
+            >
+              Жодного ризику.
+            </span>
+          </h2>
+          <p
+            class="lead"
+          >
+            Симуляція використовує реальні історичні дані. Жодних реальних ордерів: окремий exchange emulator відтворює Bybit API та зберігає повний стан тестового акаунта.
+          </p>
+        </div>
+        <div
+          class="hiwSteps reveal stagger is-visible"
+        >
+          <div
+            class="hiwStep"
+            style="--i: 0;"
+          >
+            <div
+              class="hiwStepNum"
+            >
+              <span>
+                01
+              </span>
+            </div>
+            <div
+              class="hiwStepBody"
+            >
+              <h3
+                class="hiwStepTitle"
+              >
+                Оберіть існуючого бота
+              </h3>
+              <p
+                class="hiwStepText"
+              >
+                Backtest зберігає snapshot його grid, TP, order quantity та risk settings, не змінюючи оригінал.
+              </p>
+            </div>
+          </div>
+          <div
+            class="hiwStep"
+            style="--i: 1;"
+          >
+            <div
+              class="hiwStepNum"
+            >
+              <span>
+                02
+              </span>
+            </div>
+            <div
+              class="hiwStepBody"
+            >
+              <h3
+                class="hiwStepTitle"
+              >
+                Оберіть історичний dataset
+              </h3>
+              <p
+                class="hiwStepText"
+              >
+                Вкажіть interval, період, execution path, початковий баланс, fees і slippage.
+              </p>
+            </div>
+          </div>
+          <div
+            class="hiwStep"
+            style="--i: 2;"
+          >
+            <div
+              class="hiwStepNum"
+            >
+              <span>
+                03
+              </span>
+            </div>
+            <div
+              class="hiwStepBody"
+            >
+              <h3
+                class="hiwStepTitle"
+              >
+                Запустіть ізольований прогін
+              </h3>
+              <p
+                class="hiwStepText"
+              >
+                Система створить тимчасовий emulator account і програє свічки через реальні orders, fills, positions та TP.
+              </p>
+            </div>
+          </div>
+          <div
+            class="hiwStep"
+            style="--i: 3;"
+          >
+            <div
+              class="hiwStepNum"
+            >
+              <span>
+                04
+              </span>
+            </div>
+            <div
+              class="hiwStepBody"
+            >
+              <h3
+                class="hiwStepTitle"
+              >
+                Запустіть і аналізуйте
+              </h3>
+              <p
+                class="hiwStepText"
+              >
+                Дивіться ордери на графіку, цикли, equity, drawdown, час у позиції та просадці, executions і конфігурацію запуску.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section
+      class="strats"
+      id="strategies"
+    >
+      <div
+        class="container"
+      >
+        <div
+          class="section-header reveal is-visible"
+        >
+          <span
+            class="eyebrow"
+          >
+            Режими тестування
+          </span>
+          <h2
+            class="display-2"
+          >
+            Один бот.
+             
+            <span
+              class="italic-accent"
+            >
+              Три рівні перевірки.
+            </span>
+          </h2>
+          <p
+            class="lead"
+          >
+            Від ручного edge-case до багатомісячного історичного прогону без окремої спрощеної торгової логіки.
+          </p>
+        </div>
+        <div
+          class="stratsGrid reveal is-visible"
+        >
+          <article
+            class="strat glass-strong"
+            style="--bg: linear-gradient(135deg,rgba(0,224,143,.18),rgba(0,224,143,.04));"
+          >
+            <div
+              class="stratIcon"
+            >
+              <svg
+                class="lucide lucide-hand"
+                fill="none"
+                height="22"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="22"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"
+                />
+                <path
+                  d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"
+                />
+                <path
+                  d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"
+                />
+                <path
+                  d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"
+                />
+              </svg>
+            </div>
+            <span
+              class="stratTag"
+            >
+              Інтерактивний
+            </span>
+            <h3
+              class="stratName"
+            >
+              Ручне тестування
+            </h3>
+            <p
+              class="stratDesc"
+            >
+              Рухайте ціну руками, перевіряйте конкретні edge cases і дивіться, як реальний bot worker створює ордери, позицію та TP.
+            </p>
+            <ul
+              class="stratParams"
+            >
+              <li>
+                <span
+                  class="stratBullet"
+                />
+                Точний контроль ціни
+              </li>
+              <li>
+                <span
+                  class="stratBullet"
+                />
+                Live ордери та події
+              </li>
+            </ul>
+          </article>
+          <article
+            class="strat glass-strong"
+            style="--bg: linear-gradient(135deg,rgba(102,166,255,.15),rgba(102,166,255,.03));"
+          >
+            <div
+              class="stratIcon"
+            >
+              <svg
+                class="lucide lucide-route"
+                fill="none"
+                height="22"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="22"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle
+                  cx="6"
+                  cy="19"
+                  r="3"
+                />
+                <path
+                  d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"
+                />
+                <circle
+                  cx="18"
+                  cy="5"
+                  r="3"
+                />
+              </svg>
+            </div>
+            <span
+              class="stratTag"
+            >
+              Повторюваний
+            </span>
+            <h3
+              class="stratName"
+            >
+              Сценарне тестування
+            </h3>
+            <p
+              class="stratDesc"
+            >
+              Зберігайте послідовності руху ціни та повторюйте той самий сценарій після змін алгоритму.
+            </p>
+            <ul
+              class="stratParams"
+            >
+              <li>
+                <span
+                  class="stratBullet"
+                />
+                Збережені шляхи ціни
+              </li>
+              <li>
+                <span
+                  class="stratBullet"
+                />
+                Пауза та покроковий режим
+              </li>
+            </ul>
+          </article>
+          <article
+            class="strat glass-strong"
+            style="--bg: linear-gradient(135deg,rgba(185,140,255,.15),rgba(185,140,255,.03));"
+          >
+            <div
+              class="stratIcon"
+            >
+              <svg
+                class="lucide lucide-history"
+                fill="none"
+                height="22"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="22"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"
+                />
+                <path
+                  d="M3 3v5h5"
+                />
+                <path
+                  d="M12 7v5l4 2"
+                />
+              </svg>
+            </div>
+            <span
+              class="stratTag"
+            >
+              Історичний
+            </span>
+            <h3
+              class="stratName"
+            >
+              Backtesting бота
+            </h3>
+            <p
+              class="stratDesc"
+            >
+              Оберіть існуючого бота й програйте реальні історичні свічки через той самий Bybit-compatible emulator.
+            </p>
+            <ul
+              class="stratParams"
+            >
+              <li>
+                <span
+                  class="stratBullet"
+                />
+                Ордери на графіку ціни
+              </li>
+              <li>
+                <span
+                  class="stratBullet"
+                />
+                Equity, drawdown та exposure
+              </li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+    <section
+      class="cta"
+    >
+      <div
+        class="container"
+      >
+        <div
+          class="ctaCard glass-strong reveal is-visible"
+        >
+          <div
+            aria-hidden="true"
+            class="ctaGlow"
+          />
+          <div
+            class="ctaContent"
+          >
+            <span
+              class="eyebrow"
+            >
+              Готові спробувати?
+            </span>
+            <h2
+              class="display-2"
+            >
+              Запустіть перший backtest
+               
+              <br />
+              <span
+                class="italic-accent"
+              >
+                за 30 секунд.
+              </span>
+            </h2>
+            <p
+              class="lead"
+            >
+              Оберіть одного зі своїх ботів, dataset і період. Backtest створить ізольований акаунт та збере повний звіт.
+            </p>
+            <a
+              class="ctaBtn"
+              href="/backtests"
+            >
+              <span>
+                Відкрити Bot Backtests
+              </span>
+              <svg
+                class="lucide lucide-arrow-right"
+                fill="none"
+                height="18"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="18"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M5 12h14"
+                />
+                <path
+                  d="m12 5 7 7-7 7"
+                />
+              </svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+`;

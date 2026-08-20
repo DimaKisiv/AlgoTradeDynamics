@@ -1,0 +1,1229 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`pages/AccountPage renders Telegram section 1`] = `
+<div>
+  <main
+    class="account"
+  >
+    <div
+      class="container"
+    >
+      <div
+        class="stack"
+      >
+        <div
+          class="card glass-strong"
+        >
+          <header
+            class="head"
+          >
+            <span
+              class="eyebrow"
+            >
+              Обліковий запис
+            </span>
+            <h1
+              class="display-3"
+            >
+              Ваш профіль
+            </h1>
+          </header>
+          <div
+            class="rows"
+          >
+            <div
+              class="row"
+            >
+              <span
+                class="label"
+              >
+                Email
+              </span>
+              <span
+                class="value mono"
+              >
+                user@test.com
+              </span>
+            </div>
+            <div
+              class="row"
+            >
+              <span
+                class="label"
+              >
+                Збережених backtest-сесій
+              </span>
+              <span
+                class="value mono"
+              >
+                0
+              </span>
+            </div>
+            <div
+              class="row"
+            >
+              <span
+                class="label"
+              >
+                Акаунт створено
+              </span>
+              <span
+                class="value mono"
+              >
+                —
+              </span>
+            </div>
+          </div>
+          <div
+            class="actions"
+          >
+            <a
+              class="link"
+              href="/backtests"
+            >
+              Мої backtests
+            </a>
+            <button
+              class="logout"
+              type="button"
+            >
+              <svg
+                class="lucide lucide-log-out"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="16"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"
+                />
+                <polyline
+                  points="16 17 21 12 16 7"
+                />
+                <line
+                  x1="21"
+                  x2="9"
+                  y1="12"
+                  y2="12"
+                />
+              </svg>
+               
+              Вийти
+            </button>
+          </div>
+        </div>
+        <section
+          class="card glass-strong"
+        >
+          <header
+            class="telegramHead"
+          >
+            <div>
+              <span
+                class="eyebrow"
+              >
+                Сповіщення
+              </span>
+              <h2
+                class="sectionTitle"
+              >
+                <svg
+                  class="lucide lucide-bell"
+                  fill="none"
+                  height="21"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="21"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"
+                  />
+                  <path
+                    d="M10.3 21a1.94 1.94 0 0 0 3.4 0"
+                  />
+                </svg>
+                 Telegram
+              </h2>
+            </div>
+          </header>
+          <p
+            class="muted"
+          >
+            Завантаження…
+          </p>
+        </section>
+        <section
+          class="card glass-strong"
+        >
+          <header
+            class="telegramHead"
+          >
+            <div>
+              <span
+                class="eyebrow"
+              >
+                GDPR / Privacy
+              </span>
+              <h2
+                class="sectionTitle"
+              >
+                <svg
+                  class="lucide lucide-shield-check"
+                  fill="none"
+                  height="21"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="21"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"
+                  />
+                  <path
+                    d="m9 12 2 2 4-4"
+                  />
+                </svg>
+                 
+                Ваші дані
+              </h2>
+            </div>
+          </header>
+          <p
+            class="muted"
+          >
+            Ви можете завантажити дані, пов’язані з вашим акаунтом. При видаленні профіль, боти, backtests, sessions та preferences видаляються; immutable regulatory audit може зберігатися згідно retention policy.
+          </p>
+          <div
+            class="actions"
+          >
+            <button
+              class="primaryAction"
+              type="button"
+            >
+              <svg
+                class="lucide lucide-download"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="16"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+                />
+                <polyline
+                  points="7 10 12 15 17 10"
+                />
+                <line
+                  x1="12"
+                  x2="12"
+                  y1="15"
+                  y2="3"
+                />
+              </svg>
+               
+              Завантажити мої дані
+            </button>
+          </div>
+          <div
+            class="deleteZone"
+          >
+            <div>
+              <strong>
+                Видалення акаунта
+              </strong>
+              <small>
+                Потрібен ваш пароль. Дія незворотна для operational data.
+              </small>
+            </div>
+            <input
+              autocomplete="current-password"
+              placeholder="Поточний пароль"
+              type="password"
+              value=""
+            />
+            <button
+              class="disconnect"
+              type="button"
+            >
+              <svg
+                class="lucide lucide-trash2"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="16"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M3 6h18"
+                />
+                <path
+                  d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"
+                />
+                <path
+                  d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"
+                />
+                <line
+                  x1="10"
+                  x2="10"
+                  y1="11"
+                  y2="17"
+                />
+                <line
+                  x1="14"
+                  x2="14"
+                  y1="11"
+                  y2="17"
+                />
+              </svg>
+               
+              Видалити акаунт
+            </button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+`;
+
+exports[`pages/AccountPage renders main element 1`] = `
+<div>
+  <main
+    class="account"
+  >
+    <div
+      class="container"
+    >
+      <div
+        class="stack"
+      >
+        <div
+          class="card glass-strong"
+        >
+          <header
+            class="head"
+          >
+            <span
+              class="eyebrow"
+            >
+              Обліковий запис
+            </span>
+            <h1
+              class="display-3"
+            >
+              Ваш профіль
+            </h1>
+          </header>
+          <div
+            class="rows"
+          >
+            <div
+              class="row"
+            >
+              <span
+                class="label"
+              >
+                Email
+              </span>
+              <span
+                class="value mono"
+              >
+                user@test.com
+              </span>
+            </div>
+            <div
+              class="row"
+            >
+              <span
+                class="label"
+              >
+                Збережених backtest-сесій
+              </span>
+              <span
+                class="value mono"
+              >
+                0
+              </span>
+            </div>
+            <div
+              class="row"
+            >
+              <span
+                class="label"
+              >
+                Акаунт створено
+              </span>
+              <span
+                class="value mono"
+              >
+                —
+              </span>
+            </div>
+          </div>
+          <div
+            class="actions"
+          >
+            <a
+              class="link"
+              href="/backtests"
+            >
+              Мої backtests
+            </a>
+            <button
+              class="logout"
+              type="button"
+            >
+              <svg
+                class="lucide lucide-log-out"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="16"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"
+                />
+                <polyline
+                  points="16 17 21 12 16 7"
+                />
+                <line
+                  x1="21"
+                  x2="9"
+                  y1="12"
+                  y2="12"
+                />
+              </svg>
+               
+              Вийти
+            </button>
+          </div>
+        </div>
+        <section
+          class="card glass-strong"
+        >
+          <header
+            class="telegramHead"
+          >
+            <div>
+              <span
+                class="eyebrow"
+              >
+                Сповіщення
+              </span>
+              <h2
+                class="sectionTitle"
+              >
+                <svg
+                  class="lucide lucide-bell"
+                  fill="none"
+                  height="21"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="21"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"
+                  />
+                  <path
+                    d="M10.3 21a1.94 1.94 0 0 0 3.4 0"
+                  />
+                </svg>
+                 Telegram
+              </h2>
+            </div>
+          </header>
+          <p
+            class="muted"
+          >
+            Завантаження…
+          </p>
+        </section>
+        <section
+          class="card glass-strong"
+        >
+          <header
+            class="telegramHead"
+          >
+            <div>
+              <span
+                class="eyebrow"
+              >
+                GDPR / Privacy
+              </span>
+              <h2
+                class="sectionTitle"
+              >
+                <svg
+                  class="lucide lucide-shield-check"
+                  fill="none"
+                  height="21"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="21"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"
+                  />
+                  <path
+                    d="m9 12 2 2 4-4"
+                  />
+                </svg>
+                 
+                Ваші дані
+              </h2>
+            </div>
+          </header>
+          <p
+            class="muted"
+          >
+            Ви можете завантажити дані, пов’язані з вашим акаунтом. При видаленні профіль, боти, backtests, sessions та preferences видаляються; immutable regulatory audit може зберігатися згідно retention policy.
+          </p>
+          <div
+            class="actions"
+          >
+            <button
+              class="primaryAction"
+              type="button"
+            >
+              <svg
+                class="lucide lucide-download"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="16"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+                />
+                <polyline
+                  points="7 10 12 15 17 10"
+                />
+                <line
+                  x1="12"
+                  x2="12"
+                  y1="15"
+                  y2="3"
+                />
+              </svg>
+               
+              Завантажити мої дані
+            </button>
+          </div>
+          <div
+            class="deleteZone"
+          >
+            <div>
+              <strong>
+                Видалення акаунта
+              </strong>
+              <small>
+                Потрібен ваш пароль. Дія незворотна для operational data.
+              </small>
+            </div>
+            <input
+              autocomplete="current-password"
+              placeholder="Поточний пароль"
+              type="password"
+              value=""
+            />
+            <button
+              class="disconnect"
+              type="button"
+            >
+              <svg
+                class="lucide lucide-trash2"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="16"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M3 6h18"
+                />
+                <path
+                  d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"
+                />
+                <path
+                  d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"
+                />
+                <line
+                  x1="10"
+                  x2="10"
+                  y1="11"
+                  y2="17"
+                />
+                <line
+                  x1="14"
+                  x2="14"
+                  y1="11"
+                  y2="17"
+                />
+              </svg>
+               
+              Видалити акаунт
+            </button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+`;
+
+exports[`pages/AccountPage shows user email 1`] = `
+<div>
+  <main
+    class="account"
+  >
+    <div
+      class="container"
+    >
+      <div
+        class="stack"
+      >
+        <div
+          class="card glass-strong"
+        >
+          <header
+            class="head"
+          >
+            <span
+              class="eyebrow"
+            >
+              Обліковий запис
+            </span>
+            <h1
+              class="display-3"
+            >
+              Ваш профіль
+            </h1>
+          </header>
+          <div
+            class="rows"
+          >
+            <div
+              class="row"
+            >
+              <span
+                class="label"
+              >
+                Email
+              </span>
+              <span
+                class="value mono"
+              >
+                user@test.com
+              </span>
+            </div>
+            <div
+              class="row"
+            >
+              <span
+                class="label"
+              >
+                Збережених backtest-сесій
+              </span>
+              <span
+                class="value mono"
+              >
+                0
+              </span>
+            </div>
+            <div
+              class="row"
+            >
+              <span
+                class="label"
+              >
+                Акаунт створено
+              </span>
+              <span
+                class="value mono"
+              >
+                —
+              </span>
+            </div>
+          </div>
+          <div
+            class="actions"
+          >
+            <a
+              class="link"
+              href="/backtests"
+            >
+              Мої backtests
+            </a>
+            <button
+              class="logout"
+              type="button"
+            >
+              <svg
+                class="lucide lucide-log-out"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="16"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"
+                />
+                <polyline
+                  points="16 17 21 12 16 7"
+                />
+                <line
+                  x1="21"
+                  x2="9"
+                  y1="12"
+                  y2="12"
+                />
+              </svg>
+               
+              Вийти
+            </button>
+          </div>
+        </div>
+        <section
+          class="card glass-strong"
+        >
+          <header
+            class="telegramHead"
+          >
+            <div>
+              <span
+                class="eyebrow"
+              >
+                Сповіщення
+              </span>
+              <h2
+                class="sectionTitle"
+              >
+                <svg
+                  class="lucide lucide-bell"
+                  fill="none"
+                  height="21"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="21"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"
+                  />
+                  <path
+                    d="M10.3 21a1.94 1.94 0 0 0 3.4 0"
+                  />
+                </svg>
+                 Telegram
+              </h2>
+            </div>
+          </header>
+          <p
+            class="muted"
+          >
+            Завантаження…
+          </p>
+        </section>
+        <section
+          class="card glass-strong"
+        >
+          <header
+            class="telegramHead"
+          >
+            <div>
+              <span
+                class="eyebrow"
+              >
+                GDPR / Privacy
+              </span>
+              <h2
+                class="sectionTitle"
+              >
+                <svg
+                  class="lucide lucide-shield-check"
+                  fill="none"
+                  height="21"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="21"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"
+                  />
+                  <path
+                    d="m9 12 2 2 4-4"
+                  />
+                </svg>
+                 
+                Ваші дані
+              </h2>
+            </div>
+          </header>
+          <p
+            class="muted"
+          >
+            Ви можете завантажити дані, пов’язані з вашим акаунтом. При видаленні профіль, боти, backtests, sessions та preferences видаляються; immutable regulatory audit може зберігатися згідно retention policy.
+          </p>
+          <div
+            class="actions"
+          >
+            <button
+              class="primaryAction"
+              type="button"
+            >
+              <svg
+                class="lucide lucide-download"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="16"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+                />
+                <polyline
+                  points="7 10 12 15 17 10"
+                />
+                <line
+                  x1="12"
+                  x2="12"
+                  y1="15"
+                  y2="3"
+                />
+              </svg>
+               
+              Завантажити мої дані
+            </button>
+          </div>
+          <div
+            class="deleteZone"
+          >
+            <div>
+              <strong>
+                Видалення акаунта
+              </strong>
+              <small>
+                Потрібен ваш пароль. Дія незворотна для operational data.
+              </small>
+            </div>
+            <input
+              autocomplete="current-password"
+              placeholder="Поточний пароль"
+              type="password"
+              value=""
+            />
+            <button
+              class="disconnect"
+              type="button"
+            >
+              <svg
+                class="lucide lucide-trash2"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="16"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M3 6h18"
+                />
+                <path
+                  d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"
+                />
+                <path
+                  d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"
+                />
+                <line
+                  x1="10"
+                  x2="10"
+                  y1="11"
+                  y2="17"
+                />
+                <line
+                  x1="14"
+                  x2="14"
+                  y1="11"
+                  y2="17"
+                />
+              </svg>
+               
+              Видалити акаунт
+            </button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+`;
+
+exports[`pages/AccountPage snapshot — initial render 1`] = `
+<div>
+  <main
+    class="account"
+  >
+    <div
+      class="container"
+    >
+      <div
+        class="stack"
+      >
+        <div
+          class="card glass-strong"
+        >
+          <header
+            class="head"
+          >
+            <span
+              class="eyebrow"
+            >
+              Обліковий запис
+            </span>
+            <h1
+              class="display-3"
+            >
+              Ваш профіль
+            </h1>
+          </header>
+          <div
+            class="rows"
+          >
+            <div
+              class="row"
+            >
+              <span
+                class="label"
+              >
+                Email
+              </span>
+              <span
+                class="value mono"
+              >
+                user@test.com
+              </span>
+            </div>
+            <div
+              class="row"
+            >
+              <span
+                class="label"
+              >
+                Збережених backtest-сесій
+              </span>
+              <span
+                class="value mono"
+              >
+                0
+              </span>
+            </div>
+            <div
+              class="row"
+            >
+              <span
+                class="label"
+              >
+                Акаунт створено
+              </span>
+              <span
+                class="value mono"
+              >
+                —
+              </span>
+            </div>
+          </div>
+          <div
+            class="actions"
+          >
+            <a
+              class="link"
+              href="/backtests"
+            >
+              Мої backtests
+            </a>
+            <button
+              class="logout"
+              type="button"
+            >
+              <svg
+                class="lucide lucide-log-out"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="16"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"
+                />
+                <polyline
+                  points="16 17 21 12 16 7"
+                />
+                <line
+                  x1="21"
+                  x2="9"
+                  y1="12"
+                  y2="12"
+                />
+              </svg>
+               
+              Вийти
+            </button>
+          </div>
+        </div>
+        <section
+          class="card glass-strong"
+        >
+          <header
+            class="telegramHead"
+          >
+            <div>
+              <span
+                class="eyebrow"
+              >
+                Сповіщення
+              </span>
+              <h2
+                class="sectionTitle"
+              >
+                <svg
+                  class="lucide lucide-bell"
+                  fill="none"
+                  height="21"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="21"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"
+                  />
+                  <path
+                    d="M10.3 21a1.94 1.94 0 0 0 3.4 0"
+                  />
+                </svg>
+                 Telegram
+              </h2>
+            </div>
+          </header>
+          <p
+            class="muted"
+          >
+            Завантаження…
+          </p>
+        </section>
+        <section
+          class="card glass-strong"
+        >
+          <header
+            class="telegramHead"
+          >
+            <div>
+              <span
+                class="eyebrow"
+              >
+                GDPR / Privacy
+              </span>
+              <h2
+                class="sectionTitle"
+              >
+                <svg
+                  class="lucide lucide-shield-check"
+                  fill="none"
+                  height="21"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="21"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"
+                  />
+                  <path
+                    d="m9 12 2 2 4-4"
+                  />
+                </svg>
+                 
+                Ваші дані
+              </h2>
+            </div>
+          </header>
+          <p
+            class="muted"
+          >
+            Ви можете завантажити дані, пов’язані з вашим акаунтом. При видаленні профіль, боти, backtests, sessions та preferences видаляються; immutable regulatory audit може зберігатися згідно retention policy.
+          </p>
+          <div
+            class="actions"
+          >
+            <button
+              class="primaryAction"
+              type="button"
+            >
+              <svg
+                class="lucide lucide-download"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="16"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+                />
+                <polyline
+                  points="7 10 12 15 17 10"
+                />
+                <line
+                  x1="12"
+                  x2="12"
+                  y1="15"
+                  y2="3"
+                />
+              </svg>
+               
+              Завантажити мої дані
+            </button>
+          </div>
+          <div
+            class="deleteZone"
+          >
+            <div>
+              <strong>
+                Видалення акаунта
+              </strong>
+              <small>
+                Потрібен ваш пароль. Дія незворотна для operational data.
+              </small>
+            </div>
+            <input
+              autocomplete="current-password"
+              placeholder="Поточний пароль"
+              type="password"
+              value=""
+            />
+            <button
+              class="disconnect"
+              type="button"
+            >
+              <svg
+                class="lucide lucide-trash2"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="16"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M3 6h18"
+                />
+                <path
+                  d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"
+                />
+                <path
+                  d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"
+                />
+                <line
+                  x1="10"
+                  x2="10"
+                  y1="11"
+                  y2="17"
+                />
+                <line
+                  x1="14"
+                  x2="14"
+                  y1="11"
+                  y2="17"
+                />
+              </svg>
+               
+              Видалити акаунт
+            </button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+`;

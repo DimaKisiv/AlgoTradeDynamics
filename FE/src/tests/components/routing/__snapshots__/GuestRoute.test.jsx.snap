@@ -1,0 +1,11 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`routing/GuestRoute snapshot — guest renders children 1`] = `
+<div
+  data-testid="form"
+>
+  Login Form
+</div>
+`;
+
+exports[`routing/GuestRoute snapshot — loading returns null 1`] = `<div />`;

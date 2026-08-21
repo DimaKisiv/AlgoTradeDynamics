@@ -78,12 +78,14 @@ def is_live_environment(bot: TradingBot) -> bool:
 
 
 def get_effective_bot_settings(bot: TradingBot) -> dict:
-    max_position_qty = bot.order_qty * bot.grid_orders_count
+    order_qty = _safe_float(bot.order_qty, 0.0)
+    grid_orders_count = max(int(bot.grid_orders_count or 1), 1)
+    max_position_qty = order_qty * grid_orders_count
     return {
         "max_position_qty": float(get_bot_setting(bot, "max_position_qty", max_position_qty)),
-        "max_open_orders": int(get_bot_setting(bot, "max_open_orders", bot.grid_orders_count + 1)),
+        "max_open_orders": int(get_bot_setting(bot, "max_open_orders", grid_orders_count + 1)),
         "max_notional_usdt": get_bot_setting(bot, "max_notional_usdt", None),
-        "max_grid_levels": int(get_bot_setting(bot, "max_grid_levels", bot.grid_orders_count)),
+        "max_grid_levels": int(get_bot_setting(bot, "max_grid_levels", grid_orders_count)),
         "allow_live_trading": bool(get_bot_setting(bot, "allow_live_trading", False)),
         "stop_bot_on_error": bool(get_bot_setting(bot, "stop_bot_on_error", True)),
         "error_max_retries": int(get_bot_setting(bot, "error_max_retries", 5)),

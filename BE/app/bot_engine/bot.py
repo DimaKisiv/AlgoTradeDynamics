@@ -48,6 +48,8 @@ def stop_bot_once(db, bot: TradingBot, current_user: User, *, cancel_open: bool 
     if bot.user_id != current_user.id:
         raise PermissionError("Trading bot access denied")
     strategy = get_strategy(bot.strategy_type)
+    if bool(strategy.get_effective_settings(bot).get("close_position_on_stop", False)):
+        strategy.close_position(db, bot)
     if cancel_open and bool(strategy.get_effective_settings(bot).get("cancel_orders_on_stop", True)):
         strategy.cancel_orders(db, bot)
     bot.runtime_status = "stopped"; bot.stopped_at = _utcnow(); clear_bot_runtime_error(bot)

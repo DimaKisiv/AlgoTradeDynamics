@@ -20,10 +20,16 @@ def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def _validate_strategy_configuration(strategy_type: str, category: str) -> None:
+def _validate_strategy_configuration(strategy_type: str, category: str, grid_step_percent: float) -> None:
     get_strategy(strategy_type)
+    if strategy_type == "grid" and grid_step_percent <= 0:
+        raise ValueError("Grid bot step percent must be greater than zero")
+    if strategy_type == "dca" and grid_step_percent <= 0:
+        raise ValueError("DCA bot step percent must be greater than zero")
     if strategy_type == "pattern_scalper" and category != "linear":
         raise ValueError("Pattern Scalper currently supports linear perpetuals only")
+    if strategy_type == "momentum" and category == "inverse":
+        raise ValueError("Momentum currently supports linear and spot markets only")
 
 
 def _serialize_trading_bot(db: Session, bot: TradingBot) -> dict:
@@ -84,7 +90,7 @@ def get_trading_bot(db: Session, bot_id: int, user_id: int) -> TradingBot | None
 
 def create_trading_bot(db: Session, payload: TradingBotCreate, user_id: int) -> TradingBot:
     bot = TradingBot(user_id=user_id, **payload.model_dump())
-    _validate_strategy_configuration(bot.strategy_type, bot.category)
+    _validate_strategy_configuration(bot.strategy_type, bot.category, bot.grid_step_percent)
     db.add(bot); db.commit(); db.refresh(bot)
     return _serialize_trading_bot(db, bot)
 
@@ -93,7 +99,8 @@ def update_trading_bot(db: Session, bot: TradingBot, payload: TradingBotUpdate) 
     updates = payload.model_dump(exclude_unset=True)
     strategy_type = updates.get("strategy_type", bot.strategy_type)
     category = updates.get("category", bot.category)
-    _validate_strategy_configuration(strategy_type, category)
+    grid_step_percent = updates.get("grid_step_percent", bot.grid_step_percent)
+    _validate_strategy_configuration(strategy_type, category, grid_step_percent)
     for field, value in updates.items():
         setattr(bot, field, value)
     db.add(bot); db.commit(); db.refresh(bot)
@@ -151,6 +158,7 @@ def clear_trading_bot_history(db: Session, bot: TradingBot, current_user: User) 
     clear_bot_runtime_error(bot)
     settings = dict(bot.settings or {})
     settings.pop("pattern_scalper_state", None)
+    settings.pop("momentum_state", None)
     bot.settings = settings
     db.add(bot); db.flush()
     try:

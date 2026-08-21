@@ -31,7 +31,7 @@ exports[`pages/BacktestsPage renders main element 1`] = `
           <p
             class="lead"
           >
-            Запускайте Grid Bot, DCA Bot або Pattern Scalper на конкретному ізольованому OHLCV dataset без змішування джерел і періодів.
+            Запускайте Grid Bot, DCA Bot, Momentum Bot або Pattern Scalper на конкретному ізольованому OHLCV dataset без змішування джерел і періодів.
           </p>
         </div>
         <div
@@ -309,7 +309,7 @@ exports[`pages/BacktestsPage shows connection status badge 1`] = `
           <p
             class="lead"
           >
-            Запускайте Grid Bot, DCA Bot або Pattern Scalper на конкретному ізольованому OHLCV dataset без змішування джерел і періодів.
+            Запускайте Grid Bot, DCA Bot, Momentum Bot або Pattern Scalper на конкретному ізольованому OHLCV dataset без змішування джерел і періодів.
           </p>
         </div>
         <div
@@ -587,7 +587,7 @@ exports[`pages/BacktestsPage snapshot — initial render 1`] = `
           <p
             class="lead"
           >
-            Запускайте Grid Bot, DCA Bot або Pattern Scalper на конкретному ізольованому OHLCV dataset без змішування джерел і періодів.
+            Запускайте Grid Bot, DCA Bot, Momentum Bot або Pattern Scalper на конкретному ізольованому OHLCV dataset без змішування джерел і періодів.
           </p>
         </div>
         <div

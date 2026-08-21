@@ -86,7 +86,7 @@ def _bot_belongs_to_user(bot_id: int, user_id: int) -> bool:
         db.close()
 
 
-def _build_bot_snapshot(bot_id: int, user_id: int) -> dict[str, Any] | None:
+def _build_bot_snapshot(bot_id: int, user_id: int, *, refresh_exchange: bool = False) -> dict[str, Any] | None:
     db = SessionLocal()
     try:
         user = db.get(User, user_id)
@@ -102,13 +102,23 @@ def _build_bot_snapshot(bot_id: int, user_id: int) -> dict[str, Any] | None:
                 errors[name] = str(exc)
                 return default
 
+        performance = safe(
+            "performance",
+            lambda: get_trading_bot_performance(
+                db, bot, user, refresh_exchange=refresh_exchange
+            ),
+            None,
+        )
+
         return jsonable_encoder({
             "bot": serialize_trading_bot(db, bot),
+            # Performance refresh above reconciles Grid/DCA orders first, so the
+            # initial browser snapshot cannot pair a fresh PnL with stale orders.
             "orders": list_trading_bot_orders(db, bot.id, user_id),
             "events": list_trading_bot_events(db, bot.id, user_id),
             "position": safe("position", lambda: get_trading_bot_position(db, bot, user), None),
             "risk": safe("risk", lambda: get_trading_bot_risk(db, bot, user), None),
-            "performance": safe("performance", lambda: get_trading_bot_performance(db, bot, user), None),
+            "performance": performance,
             "stream_errors": errors,
         })
     finally:
@@ -128,7 +138,7 @@ async def bot_browser_stream(websocket: WebSocket, bot_id: int) -> None:
 
     subscription_id, queue = bot_ui_stream_hub.subscribe(bot_id)
     try:
-        snapshot = await asyncio.to_thread(_build_bot_snapshot, bot_id, user_id)
+        snapshot = await asyncio.to_thread(_build_bot_snapshot, bot_id, user_id, refresh_exchange=True)
         if snapshot is None:
             await websocket.close(code=4404, reason="Trading bot not found")
             return

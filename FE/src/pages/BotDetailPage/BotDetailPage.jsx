@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -64,11 +64,14 @@ export default function BotDetailPage() {
   const [action, setAction] = useState("");
   const [orderFilter, setOrderFilter] = useState("open");
   const [showAllEvents, setShowAllEvents] = useState(false);
+  const wsSnapshotVersionRef = useRef(0);
 
   const wsStatus = useAuthenticatedWebSocket(`/ws/bots/${botId}`, {
     enabled: Boolean(botId),
     onMessage: (event) => {
       if (event.type === "bot.snapshot" && event.data) {
+        if (event.data.bot?.id != null && String(event.data.bot.id) !== String(botId)) return;
+        wsSnapshotVersionRef.current += 1;
         setBot(event.data.bot);
         setOrders(event.data.orders || []);
         setEvents(event.data.events || []);
@@ -88,6 +91,7 @@ export default function BotDetailPage() {
   });
 
   const load = async () => {
+    const wsVersionAtStart = wsSnapshotVersionRef.current;
     try {
       setLoading(true);
       setError("");
@@ -106,6 +110,12 @@ export default function BotDetailPage() {
         getBotRisk(botId),
         getBotPerformance(botId),
       ]);
+
+      // REST and WebSocket start in parallel on page open. If a newer WS
+      // snapshot arrived while these requests were in flight, do not let the
+      // older REST payload overwrite fresh orders/PnL with stale zero values.
+      if (wsSnapshotVersionRef.current !== wsVersionAtStart) return;
+
       setBot(botData);
       setOrders(ordersData);
       setEvents(eventsData);

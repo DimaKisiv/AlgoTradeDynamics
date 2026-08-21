@@ -197,9 +197,29 @@ def get_trading_bot_risk(db: Session, bot: TradingBot, current_user: User) -> di
     return get_strategy(bot.strategy_type).get_risk(db, bot)
 
 
-def get_trading_bot_performance(db: Session, bot: TradingBot, current_user: User) -> dict:
+def get_trading_bot_performance(
+    db: Session,
+    bot: TradingBot,
+    current_user: User,
+    *,
+    refresh_exchange: bool = False,
+) -> dict:
     if bot.user_id != current_user.id:
         raise PermissionError("Trading bot access denied")
+
+    # Grid/DCA performance is calculated from locally reconciled TradingBotOrder
+    # rows. A freshly completed emulator scenario can fill exchange orders before
+    # the background worker has persisted those statuses locally, which makes the
+    # bot page briefly show an all-zero/stale performance summary. For explicit
+    # reads (REST and the initial browser WS snapshot), do one best-effort
+    # reconciliation first so the summary reflects exchange state immediately.
+    if refresh_exchange and bot.strategy_type in {"grid", "dca"}:
+        try:
+            sync_bot_orders(db, bot)
+            db.commit()
+        except Exception:  # noqa: BLE001 - keep performance readable if exchange refresh fails.
+            db.rollback()
+
     return get_performance_summary(db, bot)
 
 

@@ -946,6 +946,72 @@ def test_instrument_rules_reject_too_small_qty(client, auth_headers, monkeypatch
     assert any(event["event_type"] == "error" for event in events)
 
 
+def test_performance_refreshes_exchange_state_before_returning_summary(client, auth_headers, monkeypatch):
+    bot = _create_runtime_bot(client, auth_headers)
+    remote_state = {}
+    remote_positions = []
+    _mock_runtime(
+        monkeypatch,
+        remote_state=remote_state,
+        remote_positions=remote_positions,
+        current_price=100.0,
+    )
+
+    client.post(f"/api/bots/{bot['id']}/start", headers=auth_headers)
+    _tick_bot(bot["id"])
+
+    entry_link = next(
+        link for link in remote_state
+        if "-entry-1-" in link and "position-tp" not in link
+    )
+    entry = remote_state[entry_link]
+    entry_price = float(entry["price"])
+    entry_qty = float(entry["qty"])
+    entry.update({
+        "orderStatus": "Filled",
+        "cumExecQty": entry["qty"],
+        "avgPrice": entry["price"],
+        "cumExecFee": "0.00001",
+    })
+    remote_positions[:] = [{
+        "side": "Buy",
+        "size": entry["qty"],
+        "avgPrice": entry["price"],
+        "unrealisedPnl": "0",
+        "positionValue": str(entry_price * entry_qty),
+    }]
+
+    # This worker tick sees the entry fill and creates the managed position TP.
+    _tick_bot(bot["id"])
+    tp_link = next(link for link in remote_state if "position-tp" in link)
+    tp = remote_state[tp_link]
+    tp.update({
+        "orderStatus": "Filled",
+        "cumExecQty": tp["qty"],
+        "avgPrice": tp["price"],
+        "cumExecFee": "0.00001",
+    })
+    remote_positions.clear()
+
+    # Intentionally do NOT tick the worker again. The exchange is already filled
+    # while the local TP row is still New -- the exact stale-summary race seen
+    # after a fast emulator scenario. The performance read must reconcile first.
+    response = client.get(
+        f"/api/bots/{bot['id']}/performance", headers=auth_headers
+    )
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload["closed_cycles"] == 1
+    assert float(payload["gross_realized_pnl"]) > 0
+    assert float(payload["net_realized_pnl"]) > 0
+
+    orders = client.get(
+        f"/api/bots/{bot['id']}/orders", headers=auth_headers
+    ).json()
+    refreshed_tp = next(order for order in orders if order["order_link_id"] == tp_link)
+    assert refreshed_tp["status"] == "Filled"
+
+
 def test_stop_cancels_active_orders_when_configured(client, auth_headers, monkeypatch):
     bot = _create_runtime_bot(client, auth_headers, {
                               "settings": {"cancel_orders_on_stop": True}})

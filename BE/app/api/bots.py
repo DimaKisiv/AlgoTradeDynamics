@@ -129,7 +129,7 @@ def get_bot_performance(
     bot = get_trading_bot(db, bot_id, current_user.id)
     if bot is None:
         raise HTTPException(status_code=404, detail="Trading bot not found")
-    return get_trading_bot_performance(db, bot, current_user)
+    return get_trading_bot_performance(db, bot, current_user, refresh_exchange=True)
 
 
 @router.get("/{bot_id}/orders", response_model=list[TradingBotOrderResponse])

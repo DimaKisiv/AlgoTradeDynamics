@@ -47,6 +47,7 @@ exports[`landing/Features snapshot 1`] = `
           class="featureIcon"
         >
           <svg
+            aria-hidden="true"
             class="lucide lucide-cpu"
             fill="none"
             height="22"
@@ -58,6 +59,42 @@ exports[`landing/Features snapshot 1`] = `
             width="22"
             xmlns="http://www.w3.org/2000/svg"
           >
+            <path
+              d="M12 20v2"
+            />
+            <path
+              d="M12 2v2"
+            />
+            <path
+              d="M17 20v2"
+            />
+            <path
+              d="M17 2v2"
+            />
+            <path
+              d="M2 12h2"
+            />
+            <path
+              d="M2 17h2"
+            />
+            <path
+              d="M2 7h2"
+            />
+            <path
+              d="M20 12h2"
+            />
+            <path
+              d="M20 17h2"
+            />
+            <path
+              d="M20 7h2"
+            />
+            <path
+              d="M7 20v2"
+            />
+            <path
+              d="M7 2v2"
+            />
             <rect
               height="16"
               rx="2"
@@ -66,35 +103,11 @@ exports[`landing/Features snapshot 1`] = `
               y="4"
             />
             <rect
-              height="6"
+              height="8"
               rx="1"
-              width="6"
-              x="9"
-              y="9"
-            />
-            <path
-              d="M15 2v2"
-            />
-            <path
-              d="M15 20v2"
-            />
-            <path
-              d="M2 15h2"
-            />
-            <path
-              d="M2 9h2"
-            />
-            <path
-              d="M20 15h2"
-            />
-            <path
-              d="M20 9h2"
-            />
-            <path
-              d="M9 2v2"
-            />
-            <path
-              d="M9 20v2"
+              width="8"
+              x="8"
+              y="8"
             />
           </svg>
         </div>
@@ -117,6 +130,7 @@ exports[`landing/Features snapshot 1`] = `
           class="featureIcon"
         >
           <svg
+            aria-hidden="true"
             class="lucide lucide-shield-alert"
             fill="none"
             height="22"
@@ -158,6 +172,7 @@ exports[`landing/Features snapshot 1`] = `
           class="featureIcon"
         >
           <svg
+            aria-hidden="true"
             class="lucide lucide-chart-line"
             fill="none"
             height="22"
@@ -196,6 +211,7 @@ exports[`landing/Features snapshot 1`] = `
           class="featureIcon"
         >
           <svg
+            aria-hidden="true"
             class="lucide lucide-chart-column"
             fill="none"
             height="22"
@@ -240,6 +256,7 @@ exports[`landing/Features snapshot 1`] = `
           class="featureIcon"
         >
           <svg
+            aria-hidden="true"
             class="lucide lucide-workflow"
             fill="none"
             height="22"
@@ -289,6 +306,7 @@ exports[`landing/Features snapshot 1`] = `
           class="featureIcon"
         >
           <svg
+            aria-hidden="true"
             class="lucide lucide-square-chart-gantt"
             fill="none"
             height="22"

@@ -491,7 +491,7 @@ export default function BotsPage() {
       cancelLabel: tr('Скасувати', 'Cancel'),
       isDanger: true,
     });
-    if (!confirmed) return;
+    if (!confirmed) {return;}
     try {
       setError("");
       setSuccessMessage("");
@@ -834,4 +834,3 @@ function formatStrategyLabel(strategyType) {
   }
   return "Grid Bot";
 }
-

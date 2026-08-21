@@ -41,12 +41,14 @@ exports[`landing/CTA snapshot 1`] = `
         </p>
         <a
           class="ctaBtn"
+          data-discover="true"
           href="/backtests"
         >
           <span>
             Відкрити Bot Backtests
           </span>
           <svg
+            aria-hidden="true"
             class="lucide lucide-arrow-right"
             fill="none"
             height="18"

@@ -8,7 +8,7 @@ export default function ConfirmModal() {
 
   // Close on Escape key
   useEffect(() => {
-    if (!state.isOpen) return;
+    if (!state.isOpen) {return;}
 
     const handleEscape = (e) => {
       if (e.key === 'Escape') {
@@ -18,9 +18,9 @@ export default function ConfirmModal() {
 
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
-  }, [state.isOpen, state.onCancel]);
+  }, [state]);
 
-  if (!state.isOpen) return null;
+  if (!state.isOpen) {return null;}
 
   return (
     <>

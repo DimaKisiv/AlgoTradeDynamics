@@ -33,7 +33,7 @@ export function useAuthenticatedWebSocket(path, { enabled = true, onMessage } = 
     let retryCount = 0;
 
     const scheduleReconnect = () => {
-      if (!active) return;
+      if (!active) {return;}
       setStatus("reconnecting");
       const delay = Math.min(1000 * (2 ** Math.min(retryCount, 3)), 8000);
       retryCount += 1;
@@ -41,7 +41,7 @@ export function useAuthenticatedWebSocket(path, { enabled = true, onMessage } = 
     };
 
     const connect = async () => {
-      if (!active) return;
+      if (!active) {return;}
       setStatus("reconnecting");
 
       let token = getToken();
@@ -49,20 +49,20 @@ export function useAuthenticatedWebSocket(path, { enabled = true, onMessage } = 
         try {
           token = await refreshAccessToken();
         } catch {
-          if (active) setStatus("offline");
+          if (active) {setStatus("offline");}
           return;
         }
       }
 
-      if (!active) return;
+      if (!active) {return;}
       socket = new WebSocket(buildApiWebSocketUrl(path));
 
       socket.onopen = () => {
-        if (active) socket.send(JSON.stringify({ op: "auth", token }));
+        if (active) {socket.send(JSON.stringify({ op: "auth", token }));}
       };
 
       socket.onmessage = (event) => {
-        if (!active) return;
+        if (!active) {return;}
         let message;
         try { message = JSON.parse(event.data); } catch { return; }
 
@@ -75,13 +75,13 @@ export function useAuthenticatedWebSocket(path, { enabled = true, onMessage } = 
           socket.close(4401, "Authentication failed");
           return;
         }
-        if (message.type === "ping") return;
+        if (message.type === "ping") {return;}
         callbackRef.current?.(message);
       };
 
       socket.onerror = () => socket?.close();
       socket.onclose = async (event) => {
-        if (!active) return;
+        if (!active) {return;}
         if (event.code === 4403 || event.code === 4404) {
           setStatus("offline");
           return;
@@ -90,7 +90,7 @@ export function useAuthenticatedWebSocket(path, { enabled = true, onMessage } = 
           try {
             await refreshAccessToken();
           } catch {
-            if (active) setStatus("offline");
+            if (active) {setStatus("offline");}
             return;
           }
         }
@@ -101,8 +101,8 @@ export function useAuthenticatedWebSocket(path, { enabled = true, onMessage } = 
     connect();
     return () => {
       active = false;
-      if (retryTimer) window.clearTimeout(retryTimer);
-      if (socket && socket.readyState <= WebSocket.OPEN) socket.close(1000, "Page changed");
+      if (retryTimer) {window.clearTimeout(retryTimer);}
+      if (socket && socket.readyState <= WebSocket.OPEN) {socket.close(1000, "Page changed");}
     };
   }, [enabled, path]);
 

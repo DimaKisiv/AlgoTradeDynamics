@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Bell, CheckCircle2, Download, ExternalLink, LogOut, Send, ShieldCheck, Trash2, Unplug } from 'lucide-react';
 
@@ -44,8 +44,8 @@ export default function AccountPage() {
   const [privacyError, setPrivacyError] = useState('');
   const [deletePassword, setDeletePassword] = useState('');
 
-  const loadTelegram = async ({ quiet = false } = {}) => {
-    if (!quiet) setTelegramLoading(true);
+  const loadTelegram = useCallback(async ({ quiet = false } = {}) => {
+    if (!quiet) {setTelegramLoading(true);}
     try {
       const data = await fetchTelegramStatus();
       setTelegram(data);
@@ -56,19 +56,19 @@ export default function AccountPage() {
       }
       return data;
     } catch (error) {
-      if (!quiet) setTelegramError(error.detail || error.message || tr('Не вдалося завантажити Telegram settings', 'Failed to load Telegram settings'));
+      if (!quiet) {setTelegramError(error.detail || error.message || tr('Не вдалося завантажити Telegram settings', 'Failed to load Telegram settings'));}
       return null;
     } finally {
-      if (!quiet) setTelegramLoading(false);
+      if (!quiet) {setTelegramLoading(false);}
     }
-  };
+  }, [tr]);
 
   useEffect(() => {
     loadTelegram();
     return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
+      if (pollRef.current) {clearInterval(pollRef.current);}
     };
-  }, []);
+  }, [loadTelegram]);
 
   const handleLogout = () => {
     logout();
@@ -83,7 +83,7 @@ export default function AccountPage() {
       const data = await createTelegramConnectLink();
       window.open(data.connect_url, '_blank', 'noopener,noreferrer');
       setTelegramMessage(tr('У Telegram натисніть Start. Статус тут оновиться автоматично.', 'Press Start in Telegram. The status here will update automatically.'));
-      if (pollRef.current) clearInterval(pollRef.current);
+      if (pollRef.current) {clearInterval(pollRef.current);}
       pollRef.current = setInterval(() => loadTelegram({ quiet: true }), 2000);
     } catch (error) {
       setTelegramError(error.detail || error.message || tr('Не вдалося створити Telegram link', 'Failed to create Telegram link'));
@@ -163,7 +163,7 @@ export default function AccountPage() {
        cancelLabel: tr('Скасувати', 'Cancel'),
        isDanger: true,
      });
-     if (!confirmed) return;
+     if (!confirmed) {return;}
      setPrivacyBusy(true);
      setPrivacyError('');
      try {

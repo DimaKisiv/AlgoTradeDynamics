@@ -31,6 +31,14 @@ def now_utc() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def timestamp_ms(value: datetime | None = None) -> int:
+    """Convert aware or SQLite-naive UTC datetimes to Unix milliseconds."""
+    timestamp = value or now_utc()
+    if timestamp.tzinfo is None:
+        timestamp = timestamp.replace(tzinfo=timezone.utc)
+    return int(timestamp.timestamp() * 1000)
+
+
 def market_time(market: Market | AccountMarket | None) -> datetime:
     if isinstance(market, AccountMarket) and market.simulation_time is not None:
         raw = market.simulation_time
@@ -247,8 +255,8 @@ def serialize_order(order: Order) -> dict:
         "orderStatus": order.status,
         "reduceOnly": order.reduce_only,
         "rejectReason": order.reject_reason or "EC_NoError",
-        "createdTime": str(int(order.created_at.timestamp() * 1000)),
-        "updatedTime": str(int(order.updated_at.timestamp() * 1000)),
+        "createdTime": str(timestamp_ms(order.created_at)),
+        "updatedTime": str(timestamp_ms(order.updated_at)),
     }
 
 
@@ -349,14 +357,13 @@ def position_payload(db: Session, position: Position) -> dict:
         "mmrSysUpdatedTime": "",
         "leverageSysUpdatedTime": "",
         "createdTime": "",
-        "updatedTime": str(int(position.updated_at.timestamp() * 1000)),
+        "updatedTime": str(timestamp_ms(position.updated_at)),
     }
 
 
 
 def _event_timestamp_ms(value: datetime | None = None) -> int:
-    timestamp = value or now_utc()
-    return int(timestamp.timestamp() * 1000)
+    return timestamp_ms(value)
 
 
 def publish_ticker_update(market: Market | AccountMarket, *, account_id: int | None = None) -> None:

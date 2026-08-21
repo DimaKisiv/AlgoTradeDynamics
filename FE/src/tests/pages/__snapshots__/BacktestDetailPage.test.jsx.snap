@@ -12,6 +12,7 @@ exports[`pages/BacktestDetailPage renders main element 1`] = `
         class="loading"
       >
         <svg
+          aria-hidden="true"
           class="lucide lucide-loader-circle"
           fill="none"
           height="24"
@@ -47,6 +48,7 @@ exports[`pages/BacktestDetailPage renders without throwing 1`] = `
         class="loading"
       >
         <svg
+          aria-hidden="true"
           class="lucide lucide-loader-circle"
           fill="none"
           height="24"
@@ -82,6 +84,7 @@ exports[`pages/BacktestDetailPage snapshot — loading state 1`] = `
         class="loading"
       >
         <svg
+          aria-hidden="true"
           class="lucide lucide-loader-circle"
           fill="none"
           height="24"

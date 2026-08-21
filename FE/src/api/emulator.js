@@ -54,7 +54,7 @@ export const emulatorApi = {
     const body = new FormData();
     body.append("file", file);
     const query = new URLSearchParams({ symbol, interval });
-    if (name.trim()) query.set("name", name.trim());
+    if (name.trim()) {query.set("name", name.trim());}
     return emulatorRequest(`/api/admin/historical/import-csv?${query.toString()}`, {
       method: "POST",
       body,

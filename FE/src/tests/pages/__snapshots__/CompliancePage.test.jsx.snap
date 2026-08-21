@@ -12,6 +12,7 @@ exports[`pages/CompliancePage renders main element 1`] = `
         class="loading"
       >
         <svg
+          aria-hidden="true"
           class="lucide lucide-loader-circle spin"
           fill="none"
           height="24"
@@ -46,6 +47,7 @@ exports[`pages/CompliancePage renders without throwing 1`] = `
         class="loading"
       >
         <svg
+          aria-hidden="true"
           class="lucide lucide-loader-circle spin"
           fill="none"
           height="24"
@@ -80,6 +82,7 @@ exports[`pages/CompliancePage snapshot — loading state 1`] = `
         class="loading"
       >
         <svg
+          aria-hidden="true"
           class="lucide lucide-loader-circle spin"
           fill="none"
           height="24"

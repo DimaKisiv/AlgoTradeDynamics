@@ -45,12 +45,14 @@ exports[`pages/LandingPage renders all 5 landing sections 1`] = `
           >
             <a
               class="heroPrimary"
+              data-discover="true"
               href="/backtests"
             >
               <span>
                 Запустити Backtest
               </span>
               <svg
+                aria-hidden="true"
                 class="lucide lucide-arrow-right"
                 fill="none"
                 height="18"
@@ -82,6 +84,7 @@ exports[`pages/LandingPage renders all 5 landing sections 1`] = `
           >
             <span>
               <svg
+                aria-hidden="true"
                 class="lucide lucide-sparkles"
                 fill="none"
                 height="14"
@@ -94,19 +97,18 @@ exports[`pages/LandingPage renders all 5 landing sections 1`] = `
                 xmlns="http://www.w3.org/2000/svg"
               >
                 <path
-                  d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"
+                  d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"
                 />
                 <path
-                  d="M20 3v4"
+                  d="M20 2v4"
                 />
                 <path
-                  d="M22 5h-4"
+                  d="M22 4h-4"
                 />
-                <path
-                  d="M4 17v2"
-                />
-                <path
-                  d="M5 18H3"
+                <circle
+                  cx="4"
+                  cy="20"
+                  r="2"
                 />
               </svg>
                
@@ -114,6 +116,7 @@ exports[`pages/LandingPage renders all 5 landing sections 1`] = `
             </span>
             <span>
               <svg
+                aria-hidden="true"
                 class="lucide lucide-shield-check"
                 fill="none"
                 height="14"
@@ -137,6 +140,7 @@ exports[`pages/LandingPage renders all 5 landing sections 1`] = `
             </span>
             <span>
               <svg
+                aria-hidden="true"
                 class="lucide lucide-trending-up"
                 fill="none"
                 height="14"
@@ -148,11 +152,11 @@ exports[`pages/LandingPage renders all 5 landing sections 1`] = `
                 width="14"
                 xmlns="http://www.w3.org/2000/svg"
               >
-                <polyline
-                  points="22 7 13.5 15.5 8.5 10.5 2 17"
+                <path
+                  d="M16 7h6v6"
                 />
-                <polyline
-                  points="16 7 22 7 22 13"
+                <path
+                  d="m22 7-8.5 8.5-5-5L2 17"
                 />
               </svg>
                
@@ -293,6 +297,7 @@ exports[`pages/LandingPage renders all 5 landing sections 1`] = `
             class="heroChip heroChip1 glass"
           >
             <svg
+              aria-hidden="true"
               class="lucide lucide-shield-check"
               fill="none"
               height="14"
@@ -328,6 +333,7 @@ exports[`pages/LandingPage renders all 5 landing sections 1`] = `
             class="heroChip heroChip2 glass"
           >
             <svg
+              aria-hidden="true"
               class="lucide lucide-trending-up"
               fill="none"
               height="14"
@@ -339,11 +345,11 @@ exports[`pages/LandingPage renders all 5 landing sections 1`] = `
               width="14"
               xmlns="http://www.w3.org/2000/svg"
             >
-              <polyline
-                points="22 7 13.5 15.5 8.5 10.5 2 17"
+              <path
+                d="M16 7h6v6"
               />
-              <polyline
-                points="16 7 22 7 22 13"
+              <path
+                d="m22 7-8.5 8.5-5-5L2 17"
               />
             </svg>
             <div>
@@ -408,6 +414,7 @@ exports[`pages/LandingPage renders all 5 landing sections 1`] = `
               class="featureIcon"
             >
               <svg
+                aria-hidden="true"
                 class="lucide lucide-cpu"
                 fill="none"
                 height="22"
@@ -419,6 +426,42 @@ exports[`pages/LandingPage renders all 5 landing sections 1`] = `
                 width="22"
                 xmlns="http://www.w3.org/2000/svg"
               >
+                <path
+                  d="M12 20v2"
+                />
+                <path
+                  d="M12 2v2"
+                />
+                <path
+                  d="M17 20v2"
+                />
+                <path
+                  d="M17 2v2"
+                />
+                <path
+                  d="M2 12h2"
+                />
+                <path
+                  d="M2 17h2"
+                />
+                <path
+                  d="M2 7h2"
+                />
+                <path
+                  d="M20 12h2"
+                />
+                <path
+                  d="M20 17h2"
+                />
+                <path
+                  d="M20 7h2"
+                />
+                <path
+                  d="M7 20v2"
+                />
+                <path
+                  d="M7 2v2"
+                />
                 <rect
                   height="16"
                   rx="2"
@@ -427,35 +470,11 @@ exports[`pages/LandingPage renders all 5 landing sections 1`] = `
                   y="4"
                 />
                 <rect
-                  height="6"
+                  height="8"
                   rx="1"
-                  width="6"
-                  x="9"
-                  y="9"
-                />
-                <path
-                  d="M15 2v2"
-                />
-                <path
-                  d="M15 20v2"
-                />
-                <path
-                  d="M2 15h2"
-                />
-                <path
-                  d="M2 9h2"
-                />
-                <path
-                  d="M20 15h2"
-                />
-                <path
-                  d="M20 9h2"
-                />
-                <path
-                  d="M9 2v2"
-                />
-                <path
-                  d="M9 20v2"
+                  width="8"
+                  x="8"
+                  y="8"
                 />
               </svg>
             </div>
@@ -478,6 +497,7 @@ exports[`pages/LandingPage renders all 5 landing sections 1`] = `
               class="featureIcon"
             >
               <svg
+                aria-hidden="true"
                 class="lucide lucide-shield-alert"
                 fill="none"
                 height="22"
@@ -519,6 +539,7 @@ exports[`pages/LandingPage renders all 5 landing sections 1`] = `
               class="featureIcon"
             >
               <svg
+                aria-hidden="true"
                 class="lucide lucide-chart-line"
                 fill="none"
                 height="22"
@@ -557,6 +578,7 @@ exports[`pages/LandingPage renders all 5 landing sections 1`] = `
               class="featureIcon"
             >
               <svg
+                aria-hidden="true"
                 class="lucide lucide-chart-column"
                 fill="none"
                 height="22"
@@ -601,6 +623,7 @@ exports[`pages/LandingPage renders all 5 landing sections 1`] = `
               class="featureIcon"
             >
               <svg
+                aria-hidden="true"
                 class="lucide lucide-workflow"
                 fill="none"
                 height="22"
@@ -650,6 +673,7 @@ exports[`pages/LandingPage renders all 5 landing sections 1`] = `
               class="featureIcon"
             >
               <svg
+                aria-hidden="true"
                 class="lucide lucide-square-chart-gantt"
                 fill="none"
                 height="22"
@@ -878,6 +902,7 @@ exports[`pages/LandingPage renders all 5 landing sections 1`] = `
               class="stratIcon"
             >
               <svg
+                aria-hidden="true"
                 class="lucide lucide-hand"
                 fill="none"
                 height="22"
@@ -943,6 +968,7 @@ exports[`pages/LandingPage renders all 5 landing sections 1`] = `
               class="stratIcon"
             >
               <svg
+                aria-hidden="true"
                 class="lucide lucide-route"
                 fill="none"
                 height="22"
@@ -1009,7 +1035,8 @@ exports[`pages/LandingPage renders all 5 landing sections 1`] = `
               class="stratIcon"
             >
               <svg
-                class="lucide lucide-history"
+                aria-hidden="true"
+                class="lucide lucide-rotate-ccw-clock"
                 fill="none"
                 height="22"
                 stroke="currentColor"
@@ -1106,12 +1133,14 @@ exports[`pages/LandingPage renders all 5 landing sections 1`] = `
             </p>
             <a
               class="ctaBtn"
+              data-discover="true"
               href="/backtests"
             >
               <span>
                 Відкрити Bot Backtests
               </span>
               <svg
+                aria-hidden="true"
                 class="lucide lucide-arrow-right"
                 fill="none"
                 height="18"
@@ -1184,12 +1213,14 @@ exports[`pages/LandingPage renders without throwing 1`] = `
           >
             <a
               class="heroPrimary"
+              data-discover="true"
               href="/backtests"
             >
               <span>
                 Запустити Backtest
               </span>
               <svg
+                aria-hidden="true"
                 class="lucide lucide-arrow-right"
                 fill="none"
                 height="18"
@@ -1221,6 +1252,7 @@ exports[`pages/LandingPage renders without throwing 1`] = `
           >
             <span>
               <svg
+                aria-hidden="true"
                 class="lucide lucide-sparkles"
                 fill="none"
                 height="14"
@@ -1233,19 +1265,18 @@ exports[`pages/LandingPage renders without throwing 1`] = `
                 xmlns="http://www.w3.org/2000/svg"
               >
                 <path
-                  d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"
+                  d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"
                 />
                 <path
-                  d="M20 3v4"
+                  d="M20 2v4"
                 />
                 <path
-                  d="M22 5h-4"
+                  d="M22 4h-4"
                 />
-                <path
-                  d="M4 17v2"
-                />
-                <path
-                  d="M5 18H3"
+                <circle
+                  cx="4"
+                  cy="20"
+                  r="2"
                 />
               </svg>
                
@@ -1253,6 +1284,7 @@ exports[`pages/LandingPage renders without throwing 1`] = `
             </span>
             <span>
               <svg
+                aria-hidden="true"
                 class="lucide lucide-shield-check"
                 fill="none"
                 height="14"
@@ -1276,6 +1308,7 @@ exports[`pages/LandingPage renders without throwing 1`] = `
             </span>
             <span>
               <svg
+                aria-hidden="true"
                 class="lucide lucide-trending-up"
                 fill="none"
                 height="14"
@@ -1287,11 +1320,11 @@ exports[`pages/LandingPage renders without throwing 1`] = `
                 width="14"
                 xmlns="http://www.w3.org/2000/svg"
               >
-                <polyline
-                  points="22 7 13.5 15.5 8.5 10.5 2 17"
+                <path
+                  d="M16 7h6v6"
                 />
-                <polyline
-                  points="16 7 22 7 22 13"
+                <path
+                  d="m22 7-8.5 8.5-5-5L2 17"
                 />
               </svg>
                
@@ -1432,6 +1465,7 @@ exports[`pages/LandingPage renders without throwing 1`] = `
             class="heroChip heroChip1 glass"
           >
             <svg
+              aria-hidden="true"
               class="lucide lucide-shield-check"
               fill="none"
               height="14"
@@ -1467,6 +1501,7 @@ exports[`pages/LandingPage renders without throwing 1`] = `
             class="heroChip heroChip2 glass"
           >
             <svg
+              aria-hidden="true"
               class="lucide lucide-trending-up"
               fill="none"
               height="14"
@@ -1478,11 +1513,11 @@ exports[`pages/LandingPage renders without throwing 1`] = `
               width="14"
               xmlns="http://www.w3.org/2000/svg"
             >
-              <polyline
-                points="22 7 13.5 15.5 8.5 10.5 2 17"
+              <path
+                d="M16 7h6v6"
               />
-              <polyline
-                points="16 7 22 7 22 13"
+              <path
+                d="m22 7-8.5 8.5-5-5L2 17"
               />
             </svg>
             <div>
@@ -1547,6 +1582,7 @@ exports[`pages/LandingPage renders without throwing 1`] = `
               class="featureIcon"
             >
               <svg
+                aria-hidden="true"
                 class="lucide lucide-cpu"
                 fill="none"
                 height="22"
@@ -1558,6 +1594,42 @@ exports[`pages/LandingPage renders without throwing 1`] = `
                 width="22"
                 xmlns="http://www.w3.org/2000/svg"
               >
+                <path
+                  d="M12 20v2"
+                />
+                <path
+                  d="M12 2v2"
+                />
+                <path
+                  d="M17 20v2"
+                />
+                <path
+                  d="M17 2v2"
+                />
+                <path
+                  d="M2 12h2"
+                />
+                <path
+                  d="M2 17h2"
+                />
+                <path
+                  d="M2 7h2"
+                />
+                <path
+                  d="M20 12h2"
+                />
+                <path
+                  d="M20 17h2"
+                />
+                <path
+                  d="M20 7h2"
+                />
+                <path
+                  d="M7 20v2"
+                />
+                <path
+                  d="M7 2v2"
+                />
                 <rect
                   height="16"
                   rx="2"
@@ -1566,35 +1638,11 @@ exports[`pages/LandingPage renders without throwing 1`] = `
                   y="4"
                 />
                 <rect
-                  height="6"
+                  height="8"
                   rx="1"
-                  width="6"
-                  x="9"
-                  y="9"
-                />
-                <path
-                  d="M15 2v2"
-                />
-                <path
-                  d="M15 20v2"
-                />
-                <path
-                  d="M2 15h2"
-                />
-                <path
-                  d="M2 9h2"
-                />
-                <path
-                  d="M20 15h2"
-                />
-                <path
-                  d="M20 9h2"
-                />
-                <path
-                  d="M9 2v2"
-                />
-                <path
-                  d="M9 20v2"
+                  width="8"
+                  x="8"
+                  y="8"
                 />
               </svg>
             </div>
@@ -1617,6 +1665,7 @@ exports[`pages/LandingPage renders without throwing 1`] = `
               class="featureIcon"
             >
               <svg
+                aria-hidden="true"
                 class="lucide lucide-shield-alert"
                 fill="none"
                 height="22"
@@ -1658,6 +1707,7 @@ exports[`pages/LandingPage renders without throwing 1`] = `
               class="featureIcon"
             >
               <svg
+                aria-hidden="true"
                 class="lucide lucide-chart-line"
                 fill="none"
                 height="22"
@@ -1696,6 +1746,7 @@ exports[`pages/LandingPage renders without throwing 1`] = `
               class="featureIcon"
             >
               <svg
+                aria-hidden="true"
                 class="lucide lucide-chart-column"
                 fill="none"
                 height="22"
@@ -1740,6 +1791,7 @@ exports[`pages/LandingPage renders without throwing 1`] = `
               class="featureIcon"
             >
               <svg
+                aria-hidden="true"
                 class="lucide lucide-workflow"
                 fill="none"
                 height="22"
@@ -1789,6 +1841,7 @@ exports[`pages/LandingPage renders without throwing 1`] = `
               class="featureIcon"
             >
               <svg
+                aria-hidden="true"
                 class="lucide lucide-square-chart-gantt"
                 fill="none"
                 height="22"
@@ -2017,6 +2070,7 @@ exports[`pages/LandingPage renders without throwing 1`] = `
               class="stratIcon"
             >
               <svg
+                aria-hidden="true"
                 class="lucide lucide-hand"
                 fill="none"
                 height="22"
@@ -2082,6 +2136,7 @@ exports[`pages/LandingPage renders without throwing 1`] = `
               class="stratIcon"
             >
               <svg
+                aria-hidden="true"
                 class="lucide lucide-route"
                 fill="none"
                 height="22"
@@ -2148,7 +2203,8 @@ exports[`pages/LandingPage renders without throwing 1`] = `
               class="stratIcon"
             >
               <svg
-                class="lucide lucide-history"
+                aria-hidden="true"
+                class="lucide lucide-rotate-ccw-clock"
                 fill="none"
                 height="22"
                 stroke="currentColor"
@@ -2245,12 +2301,14 @@ exports[`pages/LandingPage renders without throwing 1`] = `
             </p>
             <a
               class="ctaBtn"
+              data-discover="true"
               href="/backtests"
             >
               <span>
                 Відкрити Bot Backtests
               </span>
               <svg
+                aria-hidden="true"
                 class="lucide lucide-arrow-right"
                 fill="none"
                 height="18"
@@ -2323,12 +2381,14 @@ exports[`pages/LandingPage snapshot 1`] = `
           >
             <a
               class="heroPrimary"
+              data-discover="true"
               href="/backtests"
             >
               <span>
                 Запустити Backtest
               </span>
               <svg
+                aria-hidden="true"
                 class="lucide lucide-arrow-right"
                 fill="none"
                 height="18"
@@ -2360,6 +2420,7 @@ exports[`pages/LandingPage snapshot 1`] = `
           >
             <span>
               <svg
+                aria-hidden="true"
                 class="lucide lucide-sparkles"
                 fill="none"
                 height="14"
@@ -2372,19 +2433,18 @@ exports[`pages/LandingPage snapshot 1`] = `
                 xmlns="http://www.w3.org/2000/svg"
               >
                 <path
-                  d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"
+                  d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"
                 />
                 <path
-                  d="M20 3v4"
+                  d="M20 2v4"
                 />
                 <path
-                  d="M22 5h-4"
+                  d="M22 4h-4"
                 />
-                <path
-                  d="M4 17v2"
-                />
-                <path
-                  d="M5 18H3"
+                <circle
+                  cx="4"
+                  cy="20"
+                  r="2"
                 />
               </svg>
                
@@ -2392,6 +2452,7 @@ exports[`pages/LandingPage snapshot 1`] = `
             </span>
             <span>
               <svg
+                aria-hidden="true"
                 class="lucide lucide-shield-check"
                 fill="none"
                 height="14"
@@ -2415,6 +2476,7 @@ exports[`pages/LandingPage snapshot 1`] = `
             </span>
             <span>
               <svg
+                aria-hidden="true"
                 class="lucide lucide-trending-up"
                 fill="none"
                 height="14"
@@ -2426,11 +2488,11 @@ exports[`pages/LandingPage snapshot 1`] = `
                 width="14"
                 xmlns="http://www.w3.org/2000/svg"
               >
-                <polyline
-                  points="22 7 13.5 15.5 8.5 10.5 2 17"
+                <path
+                  d="M16 7h6v6"
                 />
-                <polyline
-                  points="16 7 22 7 22 13"
+                <path
+                  d="m22 7-8.5 8.5-5-5L2 17"
                 />
               </svg>
                
@@ -2571,6 +2633,7 @@ exports[`pages/LandingPage snapshot 1`] = `
             class="heroChip heroChip1 glass"
           >
             <svg
+              aria-hidden="true"
               class="lucide lucide-shield-check"
               fill="none"
               height="14"
@@ -2606,6 +2669,7 @@ exports[`pages/LandingPage snapshot 1`] = `
             class="heroChip heroChip2 glass"
           >
             <svg
+              aria-hidden="true"
               class="lucide lucide-trending-up"
               fill="none"
               height="14"
@@ -2617,11 +2681,11 @@ exports[`pages/LandingPage snapshot 1`] = `
               width="14"
               xmlns="http://www.w3.org/2000/svg"
             >
-              <polyline
-                points="22 7 13.5 15.5 8.5 10.5 2 17"
+              <path
+                d="M16 7h6v6"
               />
-              <polyline
-                points="16 7 22 7 22 13"
+              <path
+                d="m22 7-8.5 8.5-5-5L2 17"
               />
             </svg>
             <div>
@@ -2686,6 +2750,7 @@ exports[`pages/LandingPage snapshot 1`] = `
               class="featureIcon"
             >
               <svg
+                aria-hidden="true"
                 class="lucide lucide-cpu"
                 fill="none"
                 height="22"
@@ -2697,6 +2762,42 @@ exports[`pages/LandingPage snapshot 1`] = `
                 width="22"
                 xmlns="http://www.w3.org/2000/svg"
               >
+                <path
+                  d="M12 20v2"
+                />
+                <path
+                  d="M12 2v2"
+                />
+                <path
+                  d="M17 20v2"
+                />
+                <path
+                  d="M17 2v2"
+                />
+                <path
+                  d="M2 12h2"
+                />
+                <path
+                  d="M2 17h2"
+                />
+                <path
+                  d="M2 7h2"
+                />
+                <path
+                  d="M20 12h2"
+                />
+                <path
+                  d="M20 17h2"
+                />
+                <path
+                  d="M20 7h2"
+                />
+                <path
+                  d="M7 20v2"
+                />
+                <path
+                  d="M7 2v2"
+                />
                 <rect
                   height="16"
                   rx="2"
@@ -2705,35 +2806,11 @@ exports[`pages/LandingPage snapshot 1`] = `
                   y="4"
                 />
                 <rect
-                  height="6"
+                  height="8"
                   rx="1"
-                  width="6"
-                  x="9"
-                  y="9"
-                />
-                <path
-                  d="M15 2v2"
-                />
-                <path
-                  d="M15 20v2"
-                />
-                <path
-                  d="M2 15h2"
-                />
-                <path
-                  d="M2 9h2"
-                />
-                <path
-                  d="M20 15h2"
-                />
-                <path
-                  d="M20 9h2"
-                />
-                <path
-                  d="M9 2v2"
-                />
-                <path
-                  d="M9 20v2"
+                  width="8"
+                  x="8"
+                  y="8"
                 />
               </svg>
             </div>
@@ -2756,6 +2833,7 @@ exports[`pages/LandingPage snapshot 1`] = `
               class="featureIcon"
             >
               <svg
+                aria-hidden="true"
                 class="lucide lucide-shield-alert"
                 fill="none"
                 height="22"
@@ -2797,6 +2875,7 @@ exports[`pages/LandingPage snapshot 1`] = `
               class="featureIcon"
             >
               <svg
+                aria-hidden="true"
                 class="lucide lucide-chart-line"
                 fill="none"
                 height="22"
@@ -2835,6 +2914,7 @@ exports[`pages/LandingPage snapshot 1`] = `
               class="featureIcon"
             >
               <svg
+                aria-hidden="true"
                 class="lucide lucide-chart-column"
                 fill="none"
                 height="22"
@@ -2879,6 +2959,7 @@ exports[`pages/LandingPage snapshot 1`] = `
               class="featureIcon"
             >
               <svg
+                aria-hidden="true"
                 class="lucide lucide-workflow"
                 fill="none"
                 height="22"
@@ -2928,6 +3009,7 @@ exports[`pages/LandingPage snapshot 1`] = `
               class="featureIcon"
             >
               <svg
+                aria-hidden="true"
                 class="lucide lucide-square-chart-gantt"
                 fill="none"
                 height="22"
@@ -3156,6 +3238,7 @@ exports[`pages/LandingPage snapshot 1`] = `
               class="stratIcon"
             >
               <svg
+                aria-hidden="true"
                 class="lucide lucide-hand"
                 fill="none"
                 height="22"
@@ -3221,6 +3304,7 @@ exports[`pages/LandingPage snapshot 1`] = `
               class="stratIcon"
             >
               <svg
+                aria-hidden="true"
                 class="lucide lucide-route"
                 fill="none"
                 height="22"
@@ -3287,7 +3371,8 @@ exports[`pages/LandingPage snapshot 1`] = `
               class="stratIcon"
             >
               <svg
-                class="lucide lucide-history"
+                aria-hidden="true"
+                class="lucide lucide-rotate-ccw-clock"
                 fill="none"
                 height="22"
                 stroke="currentColor"
@@ -3384,12 +3469,14 @@ exports[`pages/LandingPage snapshot 1`] = `
             </p>
             <a
               class="ctaBtn"
+              data-discover="true"
               href="/backtests"
             >
               <span>
                 Відкрити Bot Backtests
               </span>
               <svg
+                aria-hidden="true"
                 class="lucide lucide-arrow-right"
                 fill="none"
                 height="18"

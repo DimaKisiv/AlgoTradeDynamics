@@ -7,21 +7,25 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 import jwt
-from passlib.context import CryptContext
+from pwdlib import PasswordHash
+from pwdlib.hashers.argon2 import Argon2Hasher
+from pwdlib.hashers.bcrypt import BcryptHasher
 
 from app.core.config import get_settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# New passwords use Argon2. Bcrypt remains enabled so users created by older
+# project versions can still sign in after the dependency upgrade.
+password_hash = PasswordHash((Argon2Hasher(), BcryptHasher()))
 
 
 def hash_password(password: str) -> str:
-    """Return a bcrypt password hash with an automatically generated salt."""
-    return pwd_context.hash(password)
+    """Return an Argon2 password hash with an automatically generated salt."""
+    return password_hash.hash(password)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a password against the stored hash."""
-    return pwd_context.verify(plain_password, hashed_password)
+    """Verify a password against an Argon2 or legacy bcrypt hash."""
+    return password_hash.verify(plain_password, hashed_password)
 
 
 def create_access_token(subject: str | int) -> str:

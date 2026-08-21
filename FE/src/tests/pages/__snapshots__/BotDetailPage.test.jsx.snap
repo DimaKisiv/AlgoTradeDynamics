@@ -10,9 +10,11 @@ exports[`pages/BotDetailPage renders main element 1`] = `
     >
       <a
         class="backLink"
+        data-discover="true"
         href="/bots"
       >
         <svg
+          aria-hidden="true"
           class="lucide lucide-arrow-left"
           fill="none"
           height="16"
@@ -54,9 +56,11 @@ exports[`pages/BotDetailPage renders without throwing 1`] = `
     >
       <a
         class="backLink"
+        data-discover="true"
         href="/bots"
       >
         <svg
+          aria-hidden="true"
           class="lucide lucide-arrow-left"
           fill="none"
           height="16"
@@ -98,9 +102,11 @@ exports[`pages/BotDetailPage snapshot — loading state 1`] = `
     >
       <a
         class="backLink"
+        data-discover="true"
         href="/bots"
       >
         <svg
+          aria-hidden="true"
           class="lucide lucide-arrow-left"
           fill="none"
           height="16"
@@ -142,9 +148,11 @@ exports[`pages/BotDetailPage snapshot — with botId param provided 1`] = `
     >
       <a
         class="backLink"
+        data-discover="true"
         href="/bots"
       >
         <svg
+          aria-hidden="true"
           class="lucide lucide-arrow-left"
           fill="none"
           height="16"

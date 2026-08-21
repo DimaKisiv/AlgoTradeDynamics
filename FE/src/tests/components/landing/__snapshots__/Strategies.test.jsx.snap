@@ -44,6 +44,7 @@ exports[`landing/Strategies snapshot 1`] = `
           class="stratIcon"
         >
           <svg
+            aria-hidden="true"
             class="lucide lucide-hand"
             fill="none"
             height="22"
@@ -109,6 +110,7 @@ exports[`landing/Strategies snapshot 1`] = `
           class="stratIcon"
         >
           <svg
+            aria-hidden="true"
             class="lucide lucide-route"
             fill="none"
             height="22"
@@ -175,7 +177,8 @@ exports[`landing/Strategies snapshot 1`] = `
           class="stratIcon"
         >
           <svg
-            class="lucide lucide-history"
+            aria-hidden="true"
+            class="lucide lucide-rotate-ccw-clock"
             fill="none"
             height="22"
             stroke="currentColor"

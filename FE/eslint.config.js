@@ -1,6 +1,5 @@
 import js from '@eslint/js';
 import globals from 'globals';
-import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 
 export default [
@@ -38,26 +37,10 @@ export default [
         },
 
         plugins: {
-            react,
             'react-hooks': reactHooks,
         },
 
-        settings: {
-            react: {
-                version: 'detect',
-            },
-        },
-
         rules: {
-            // =========================
-            // React
-            // =========================
-
-            'react/prop-types': 'off',
-
-            // React 17+ / new JSX transform
-            'react/react-in-jsx-scope': 'off',
-
             // =========================
             // React Hooks
             // =========================
@@ -84,7 +67,10 @@ export default [
 
             'prefer-const': 'error',
 
-            'eqeqeq': ['error', 'always'],
+            // `value == null` is an intentional concise nullish check that
+            // matches both null and undefined. Other loose comparisons remain
+            // errors.
+            'eqeqeq': ['error', 'always', { null: 'ignore' }],
 
             'curly': ['error', 'all'],
 
@@ -120,6 +106,14 @@ export default [
             'no-trailing-spaces': 'error',
 
             'eol-last': ['error', 'always'],
+        },
+    },
+    {
+        files: ['src/tests/**/*.{js,jsx,cjs}'],
+        languageOptions: {
+            globals: {
+                ...globals.jest,
+            },
         },
     },
 ];

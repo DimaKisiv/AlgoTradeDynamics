@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Any
 from urllib.parse import urlencode, urlparse, urlunparse
 
-import httpx
+import httpx2 as httpx
 import jwt
 import websockets
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect

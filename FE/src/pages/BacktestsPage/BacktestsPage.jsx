@@ -72,7 +72,7 @@ export default function BacktestsPage() {
       setBots(botData);
       setDatasets(datasetData);
       setForm((current) => {
-        if (current.bot_id || !botData.length) return current;
+        if (current.bot_id || !botData.length) {return current;}
         const bot = botData[0];
         const matching = datasetData.find((item) => item.symbol === bot.symbol && item.category === bot.category) || null;
         return {
@@ -98,7 +98,7 @@ export default function BacktestsPage() {
       } else if (event.type === "backtest.updated" && event.data) {
         setRuns((current) => {
           const exists = current.some((run) => run.id === event.data.id);
-          if (!exists) return [event.data, ...current];
+          if (!exists) {return [event.data, ...current];}
           return current.map((run) => run.id === event.data.id ? { ...run, ...event.data } : run);
         });
       } else if (event.type === "backtest.deleted") {
@@ -110,7 +110,7 @@ export default function BacktestsPage() {
   useEffect(() => { load(); }, [load]);
   useEffect(() => {
     const duplicateId = Number(searchParams.get("duplicate"));
-    if (!duplicateId) return;
+    if (!duplicateId) {return;}
     backtestsApi.get(duplicateId).then((detail) => {
       setForm({
         bot_id: String(detail.source_bot_id || ""), dataset_id: String(detail.dataset_id || detail.configuration?.dataset?.id || ""),
@@ -186,7 +186,7 @@ export default function BacktestsPage() {
       cancelLabel: tr('Скасувати', 'Cancel'),
       isDanger: true,
     });
-    if (!confirmed) return;
+    if (!confirmed) {return;}
     try { await backtestsApi.remove(run.id); await load(); }
     catch (e) { setError(e.detail || e.message); }
   };
@@ -220,7 +220,6 @@ export default function BacktestsPage() {
       ? current.filter((item) => item !== runId)
       : [...current, runId].slice(-5));
   };
-
 
   const completed = runs.filter((run) => run.status === "completed");
   const best = completed.reduce((value, run) => Math.max(value, Number(run.metrics?.return_percent || -Infinity)), -Infinity);

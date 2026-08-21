@@ -123,14 +123,14 @@ export function PnlValue({ value, children, className = "" }) {
 
 export function inferRoleFromLinkId(linkId) {
   const value = normalize(linkId);
-  if (!value) return "";
+  if (!value) {return "";}
   if (value.includes("position_take_profit") || value.includes("take_profit") || value.includes("take-profit") || value.includes("-tp") || value.endsWith("tp")) {
     return "position_take_profit";
   }
   const gridMatch = value.match(/grid[_-]?entry[_-]?(\d+)?/);
-  if (gridMatch) return `grid_entry_${gridMatch[1] || ""}`.replace(/_$/, "");
-  if (value.includes("entry")) return "entry";
-  if (value.includes("stop") || value.includes("sl")) return "stop_loss";
+  if (gridMatch) {return `grid_entry_${gridMatch[1] || ""}`.replace(/_$/, "");}
+  if (value.includes("entry")) {return "entry";}
+  if (value.includes("stop") || value.includes("sl")) {return "stop_loss";}
   return "";
 }
 
@@ -147,7 +147,7 @@ function humanize(value, tr) {
     position_closed: tr('Позицію закрито', 'Position closed'), risk_blocked: tr('Заблоковано risk guard', 'Blocked by risk guard'),
     runtime_error: tr('Runtime помилка', 'Runtime error'), bot_error: tr('Помилка бота', 'Bot error'),
   };
-  if (known[normalized]) return known[normalized];
+  if (known[normalized]) {return known[normalized];}
   return String(value || tr('Подія', 'Event'))
     .replace(/_/g, " ")
     .replace(/\b\w/g, (character) => character.toUpperCase());

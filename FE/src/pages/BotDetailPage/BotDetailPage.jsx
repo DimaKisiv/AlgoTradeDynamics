@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -70,14 +70,14 @@ export default function BotDetailPage() {
     enabled: Boolean(botId),
     onMessage: (event) => {
       if (event.type === "bot.snapshot" && event.data) {
-        if (event.data.bot?.id != null && String(event.data.bot.id) !== String(botId)) return;
+        if (event.data.bot?.id != null && String(event.data.bot.id) !== String(botId)) {return;}
         wsSnapshotVersionRef.current += 1;
         setBot(event.data.bot);
         setOrders(event.data.orders || []);
         setEvents(event.data.events || []);
-        if (!event.data.stream_errors?.position) setPosition(event.data.position || null);
-        if (!event.data.stream_errors?.risk) setRisk(event.data.risk || null);
-        if (!event.data.stream_errors?.performance) setPerformance(event.data.performance || null);
+        if (!event.data.stream_errors?.position) {setPosition(event.data.position || null);}
+        if (!event.data.stream_errors?.risk) {setRisk(event.data.risk || null);}
+        if (!event.data.stream_errors?.performance) {setPerformance(event.data.performance || null);}
         setLoading(false);
         return;
       }
@@ -90,7 +90,7 @@ export default function BotDetailPage() {
     },
   });
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const wsVersionAtStart = wsSnapshotVersionRef.current;
     try {
       setLoading(true);
@@ -114,7 +114,7 @@ export default function BotDetailPage() {
       // REST and WebSocket start in parallel on page open. If a newer WS
       // snapshot arrived while these requests were in flight, do not let the
       // older REST payload overwrite fresh orders/PnL with stale zero values.
-      if (wsSnapshotVersionRef.current !== wsVersionAtStart) return;
+      if (wsSnapshotVersionRef.current !== wsVersionAtStart) {return;}
 
       setBot(botData);
       setOrders(ordersData);
@@ -127,7 +127,7 @@ export default function BotDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [botId, tr]);
 
   const handleClosePosition = async () => {
     const confirmed = await confirm({
@@ -138,7 +138,7 @@ export default function BotDetailPage() {
       isDanger: true,
     });
 
-    if (!confirmed) return;
+    if (!confirmed) {return;}
 
     try {
       setAction("close-position");
@@ -155,8 +155,7 @@ export default function BotDetailPage() {
 
   useEffect(() => {
     load();
-  }, [botId]);
-
+  }, [load]);
 
   const handleStart = async () => {
     try {
@@ -1043,14 +1042,14 @@ function isOpenOrderStatus(status) {
 
 function getOrderRowClass(order) {
   const classes = [];
-  if (order.side === "Buy") classes.push(styles.orderRowBuy);
-  if (order.side === "Sell") classes.push(styles.orderRowSell);
-  if (isOpenOrderStatus(order.status)) classes.push(styles.orderRowOpen);
+  if (order.side === "Buy") {classes.push(styles.orderRowBuy);}
+  if (order.side === "Sell") {classes.push(styles.orderRowSell);}
+  if (isOpenOrderStatus(order.status)) {classes.push(styles.orderRowOpen);}
   return classes.join(" ");
 }
 
 function shortId(value) {
-  if (!value) return "—";
+  if (!value) {return "—";}
   const text = String(value);
   return text.length > 14 ? `${text.slice(0, 7)}…${text.slice(-5)}` : text;
 }
@@ -1061,7 +1060,7 @@ function capitalize(value) {
 }
 
 function capitalizeRuntimeState(value) {
-  if (!value) return "Stopped";
+  if (!value) {return "Stopped";}
   return value
     .split("_")
     .map((part) => capitalize(part))
@@ -1114,22 +1113,22 @@ function formatErrorSeverity(value, tr) {
 }
 
 function toNumberOrNull(value) {
-  if (value === null || value === undefined) return null;
+  if (value === null || value === undefined) {return null;}
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
 }
 
 function formatSignalScore(score, isMomentum = false) {
-  if (score == null) return "—";
+  if (score == null) {return "—";}
   return isMomentum ? `${Math.round(score)}%` : `${Math.round(score * 100)}%`;
 }
 
 function formatMaybeNumber(value, decimals = 2) {
-  if (value == null) return "—";
+  if (value == null) {return "—";}
   return fmtNumber(Number(value), decimals);
 }
 
 function formatMaybeMoney(value) {
-  if (value == null) return "—";
+  if (value == null) {return "—";}
   return fmtMoney(Number(value));
 }

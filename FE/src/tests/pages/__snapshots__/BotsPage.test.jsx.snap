@@ -44,6 +44,7 @@ exports[`pages/BotsPage renders main element 1`] = `
               class="btnIcon"
             >
               <svg
+                aria-hidden="true"
                 class="lucide lucide-plus"
                 fill="none"
                 height="16"
@@ -78,6 +79,7 @@ exports[`pages/BotsPage renders main element 1`] = `
               class="btnIcon"
             >
               <svg
+                aria-hidden="true"
                 class="lucide lucide-refresh-cw"
                 fill="none"
                 height="16"
@@ -160,6 +162,7 @@ exports[`pages/BotsPage renders main element 1`] = `
                   class="btnIcon"
                 >
                   <svg
+                    aria-hidden="true"
                     class="lucide lucide-plus"
                     fill="none"
                     height="16"
@@ -238,6 +241,7 @@ exports[`pages/BotsPage renders without throwing 1`] = `
               class="btnIcon"
             >
               <svg
+                aria-hidden="true"
                 class="lucide lucide-plus"
                 fill="none"
                 height="16"
@@ -272,6 +276,7 @@ exports[`pages/BotsPage renders without throwing 1`] = `
               class="btnIcon"
             >
               <svg
+                aria-hidden="true"
                 class="lucide lucide-refresh-cw"
                 fill="none"
                 height="16"
@@ -354,6 +359,7 @@ exports[`pages/BotsPage renders without throwing 1`] = `
                   class="btnIcon"
                 >
                   <svg
+                    aria-hidden="true"
                     class="lucide lucide-plus"
                     fill="none"
                     height="16"
@@ -432,6 +438,7 @@ exports[`pages/BotsPage snapshot — initial render 1`] = `
               class="btnIcon"
             >
               <svg
+                aria-hidden="true"
                 class="lucide lucide-plus"
                 fill="none"
                 height="16"
@@ -466,6 +473,7 @@ exports[`pages/BotsPage snapshot — initial render 1`] = `
               class="btnIcon"
             >
               <svg
+                aria-hidden="true"
                 class="lucide lucide-refresh-cw"
                 fill="none"
                 height="16"
@@ -548,6 +556,7 @@ exports[`pages/BotsPage snapshot — initial render 1`] = `
                   class="btnIcon"
                 >
                   <svg
+                    aria-hidden="true"
                     class="lucide lucide-plus"
                     fill="none"
                     height="16"

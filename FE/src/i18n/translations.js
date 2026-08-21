@@ -342,5 +342,3 @@ export const translations = {
     },
   },
 };
-
-

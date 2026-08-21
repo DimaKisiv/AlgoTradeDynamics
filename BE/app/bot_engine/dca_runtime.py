@@ -17,6 +17,7 @@ from app.bot_engine.grid_runtime import (
     POSITION_TP_ROLE,
     _active_order_exists,
     _current_generation_open_orders,
+    _get_bot_owned_long_position,
     _get_current_long_position,
     _log_risk_blocked,
     _mark_order_filled_logged,
@@ -262,8 +263,10 @@ def create_missing_dca_orders(db, bot: TradingBot, current_position_size: float 
 def get_dca_risk_summary(db, bot: TradingBot) -> dict:
     session = get_bybit_session(bot)
     settings = get_effective_dca_settings(bot)
-    position = _get_current_long_position(
+    exchange_position = _get_current_long_position(
         session, category=bot.category, symbol=bot.symbol)
+    position = _get_bot_owned_long_position(
+        db, bot, exchange_position=exchange_position)
     current_position_qty = position["size"] if position is not None else 0.0
 
     open_orders = _current_generation_open_orders(session, bot)

@@ -325,6 +325,101 @@ def _get_current_long_position(session, *, category: str, symbol: str) -> dict |
     return None
 
 
+def _filled_order_qty(order: TradingBotOrder) -> float:
+    """Return the executed quantity represented by a locally persisted filled order."""
+    filled_qty = _safe_float(order.filled_qty, 0.0)
+    if filled_qty > 1e-12:
+        return filled_qty
+    if order.status == "Filled":
+        return max(_safe_float(order.qty, 0.0), 0.0)
+    return 0.0
+
+
+def _filled_entry_price(order: TradingBotOrder) -> float | None:
+    """Best available execution price for a filled bot entry."""
+    raw = order.raw_response or {}
+    for value in (raw.get("avgPrice"), raw.get("execPrice"), raw.get("price"), order.price):
+        price = _safe_float(value, 0.0)
+        if price > 0:
+            return price
+    return None
+
+
+def _get_bot_owned_long_position(
+    db,
+    bot: TradingBot,
+    *,
+    exchange_position: dict | None = None,
+) -> dict | None:
+    """Reconstruct the long quantity owned by this bot from its own fills.
+
+    Bybit/emulator exposes one net position per account+symbol. Multiple bots on
+    the same account therefore see the same exchange position. Runtime decisions
+    must not treat that shared quantity as belonging to every bot. The order-link
+    prefix is the ownership boundary.
+    """
+    orders = (
+        db.query(TradingBotOrder)
+        .filter(
+            TradingBotOrder.bot_id == bot.id,
+            TradingBotOrder.status == "Filled",
+        )
+        .order_by(TradingBotOrder.created_at, TradingBotOrder.id)
+        .all()
+    )
+
+    position_qty = 0.0
+    avg_entry_price: float | None = None
+    for order in orders:
+        if not _is_current_generation_link_id(bot, order.order_link_id):
+            continue
+
+        qty = _filled_order_qty(order)
+        if qty <= 1e-12:
+            continue
+
+        is_entry = order.side == "Buy" and order.order_role.startswith(("grid_entry_", "dca_entry_"))
+        is_exit = order.side == "Sell" and order.order_role in {POSITION_TP_ROLE, POSITION_CLOSE_ROLE}
+
+        if is_entry:
+            price = _filled_entry_price(order)
+            if position_qty <= 1e-12:
+                avg_entry_price = price
+                position_qty = qty
+            else:
+                new_qty = position_qty + qty
+                if avg_entry_price is not None and price is not None:
+                    avg_entry_price = ((position_qty * avg_entry_price) + (qty * price)) / new_qty
+                else:
+                    avg_entry_price = None
+                position_qty = new_qty
+            continue
+
+        if is_exit and position_qty > 1e-12:
+            position_qty = max(position_qty - min(qty, position_qty), 0.0)
+            if position_qty <= 1e-12:
+                position_qty = 0.0
+                avg_entry_price = None
+
+    if position_qty <= 1e-12:
+        return None
+
+    # Market entries can initially have no execution price in the local row. It
+    # is safe to borrow the exchange average only when the whole exchange
+    # position equals this bot's reconstructed quantity. If another bot left a
+    # position behind, sizes differ and we deliberately do not adopt its basis.
+    if avg_entry_price is None and exchange_position is not None:
+        exchange_size = _safe_float(exchange_position.get("size"), 0.0)
+        if abs(exchange_size - position_qty) <= 1e-9:
+            avg_entry_price = _safe_float(exchange_position.get("avg_entry_price"), 0.0) or None
+
+    return {
+        "size": position_qty,
+        "avg_entry_price": avg_entry_price,
+        "raw": (exchange_position or {}).get("raw", {}),
+    }
+
+
 def _build_position_take_profit_order(bot: TradingBot, position_size: float, avg_entry_price: float) -> OrderRequest:
     take_profit_percent = float(
         get_bot_setting(bot, "take_profit_percent", 1.5))
@@ -500,8 +595,10 @@ def get_position_snapshot(db, bot: TradingBot) -> dict:
     session = get_bybit_session(bot)
     ticker = get_ticker_snapshot(
         session, category=bot.category, symbol=bot.symbol)
-    position = _get_current_long_position(
+    exchange_position = _get_current_long_position(
         session, category=bot.category, symbol=bot.symbol)
+    position = _get_bot_owned_long_position(
+        db, bot, exchange_position=exchange_position)
     active_tp = _find_active_position_take_profit_order(db, bot, session)
     mark_price_value = ticker.get("markPrice") or ticker.get("lastPrice")
     mark_price = _safe_float(
@@ -524,16 +621,17 @@ def get_position_snapshot(db, bot: TradingBot) -> dict:
             "take_profit": None,
         }
 
-    raw = position["raw"]
+    raw = position.get("raw") or {}
     size = position["size"]
-    avg_entry_price = position["avg_entry_price"]
-    unrealized_pnl = _safe_float(
-        raw.get("unrealisedPnl") or raw.get("unrealizedPnl"), 0.0)
-    position_value = _safe_float(
-        raw.get("positionValue"), size * (mark_price or avg_entry_price))
+    avg_entry_price = position.get("avg_entry_price")
+    position_value = size * mark_price if mark_price is not None else None
+    unrealized_pnl = None
     unrealized_pnl_percent = None
-    if position_value > 0:
-        unrealized_pnl_percent = (unrealized_pnl / position_value) * 100
+    if avg_entry_price is not None and mark_price is not None:
+        unrealized_pnl = (mark_price - avg_entry_price) * size
+        entry_value = size * avg_entry_price
+        if entry_value > 0:
+            unrealized_pnl_percent = (unrealized_pnl / entry_value) * 100
 
     take_profit = None
     if active_tp is not None:
@@ -549,7 +647,7 @@ def get_position_snapshot(db, bot: TradingBot) -> dict:
     return {
         "symbol": bot.symbol,
         "category": bot.category,
-        "side": raw.get("side") or "Buy",
+        "side": "Buy",
         "size": _format_optional_number(size),
         "avg_entry_price": _format_optional_number(avg_entry_price),
         "mark_price": _format_optional_number(mark_price_value),
@@ -566,8 +664,10 @@ def get_position_snapshot(db, bot: TradingBot) -> dict:
 def get_risk_summary(db, bot: TradingBot) -> dict:
     session = get_bybit_session(bot)
     settings = get_effective_bot_settings(bot)
-    position = _get_current_long_position(
+    exchange_position = _get_current_long_position(
         session, category=bot.category, symbol=bot.symbol)
+    position = _get_bot_owned_long_position(
+        db, bot, exchange_position=exchange_position)
     current_position_qty = position["size"] if position is not None else 0.0
     open_orders = _current_generation_open_orders(session, bot)
     pending_buy_qty = sum(
@@ -619,7 +719,6 @@ def get_risk_summary(db, bot: TradingBot) -> dict:
         "blocked": blocked,
         "reason": reason,
     }
-
 
 def get_runtime_state(db, bot: TradingBot) -> tuple[str, str | None]:
     latest_event = _latest_bot_event(db, bot)
@@ -860,8 +959,10 @@ def sync_position_take_profit(db, bot: TradingBot) -> tuple[list[TradingBotOrder
     session = get_bybit_session(bot)
     rules = get_instrument_rules(
         session, category=bot.category, symbol=bot.symbol)
-    position = _get_current_long_position(
+    exchange_position = _get_current_long_position(
         session, category=bot.category, symbol=bot.symbol)
+    position = _get_bot_owned_long_position(
+        db, bot, exchange_position=exchange_position)
 
     _sync_exchange_open_position_take_profit_orders(db, bot, session)
 
@@ -881,6 +982,10 @@ def sync_position_take_profit(db, bot: TradingBot) -> tuple[list[TradingBotOrder
             )
         )
 
+    # A position visible on the exchange is not automatically owned by this
+    # bot. Only this bot's filled current-generation entry orders establish
+    # ownership. This prevents a newly started Grid/DCA bot from adopting a
+    # position left behind by a previously stopped bot on the same account.
     if position is None:
         for active_tp in active_position_tps:
             changed_orders.append(
@@ -895,25 +1000,73 @@ def sync_position_take_profit(db, bot: TradingBot) -> tuple[list[TradingBotOrder
             )
         return changed_orders, 0.0
 
+    owned_size = position["size"]
+    if exchange_position is None:
+        for active_tp in active_position_tps:
+            changed_orders.append(
+                _cancel_local_order(
+                    db,
+                    bot,
+                    session,
+                    active_tp,
+                    event_type="position_take_profit_cancelled",
+                    message="Cancelled position take-profit order because exchange position is closed",
+                )
+            )
+        _log_risk_blocked(
+            db,
+            bot,
+            "Bot-owned position is not present on the exchange",
+            {"bot_position_qty": owned_size, "exchange_position_qty": 0.0},
+        )
+        return changed_orders, owned_size
+
+    exchange_size = exchange_position["size"]
+    if owned_size > exchange_size + 1e-9:
+        _log_risk_blocked(
+            db,
+            bot,
+            "Bot-owned position exceeds exchange long position",
+            {
+                "bot_position_qty": owned_size,
+                "exchange_position_qty": exchange_size,
+            },
+        )
+        return changed_orders, owned_size
+
+    if position.get("avg_entry_price") is None:
+        log_bot_event(
+            db,
+            bot,
+            "position_reconciliation_waiting",
+            "Waiting for this bot's entry fill price before creating take-profit",
+            {
+                "bot_position_qty": owned_size,
+                "exchange_position_qty": exchange_size,
+            },
+        )
+        return changed_orders, owned_size
+
     target_order = normalize_order_request(
         _build_position_take_profit_order(
-            bot, position["size"], position["avg_entry_price"]),
+            bot, owned_size, position["avg_entry_price"]),
         rules,
     )
-    if target_order.qty > position["size"]:
+    if target_order.qty > owned_size + 1e-12 or target_order.qty > exchange_size + 1e-12:
         payload = {
-            "position_size": position["size"],
+            "bot_position_qty": owned_size,
+            "exchange_position_qty": exchange_size,
             "tp_qty": target_order.qty,
             "order_link_id": target_order.order_link_id,
         }
         _log_risk_blocked(
-            db, bot, "Position TP quantity exceeds current long position size", payload)
-        return changed_orders, position["size"]
+            db, bot, "Position TP quantity exceeds available bot-owned position", payload)
+        return changed_orders, owned_size
     validation_error = validate_order_request(target_order, rules)
     if validation_error:
         log_bot_event(db, bot, "error", validation_error, {
                       "order_link_id": target_order.order_link_id})
-        return changed_orders, position["size"]
+        return changed_orders, owned_size
 
     matching_tp = None
     for active_tp in active_position_tps:
@@ -935,7 +1088,7 @@ def sync_position_take_profit(db, bot: TradingBot) -> tuple[list[TradingBotOrder
         )
 
     if matching_tp is not None:
-        return changed_orders, position["size"]
+        return changed_orders, owned_size
 
     response = place_order(session, category=bot.category,
                            symbol=bot.symbol, order=target_order)
@@ -944,7 +1097,7 @@ def sync_position_take_profit(db, bot: TradingBot) -> tuple[list[TradingBotOrder
             "order_link_id": target_order.order_link_id,
             "ret_code": _response_ret_code(response),
         })
-        return changed_orders, position["size"]
+        return changed_orders, owned_size
     created = _record_order(db, bot, target_order, response)
     _attach_position_take_profit_snapshot(created, position, target_order)
     db.add(created)
@@ -958,8 +1111,7 @@ def sync_position_take_profit(db, bot: TradingBot) -> tuple[list[TradingBotOrder
         "qty": target_order.qty,
         "price": target_order.price,
     })
-    return changed_orders, position["size"]
-
+    return changed_orders, owned_size
 
 def _should_tick(bot: TradingBot) -> bool:
     interval = int(get_bot_setting(bot, "run_interval_seconds", 10))
@@ -1213,10 +1365,18 @@ def close_bot_position(db, bot: TradingBot) -> dict:
     session = get_bybit_session(bot)
     rules = get_instrument_rules(
         session, category=bot.category, symbol=bot.symbol)
-    position = _get_current_long_position(
+    exchange_position = _get_current_long_position(
         session, category=bot.category, symbol=bot.symbol)
+    position = _get_bot_owned_long_position(
+        db, bot, exchange_position=exchange_position)
     if position is None:
-        return {"message": "No open position to close", "order": None}
+        return {"message": "No open position owned by this bot to close", "order": None}
+    if exchange_position is None:
+        raise ValueError("Bot-owned position is not present on the exchange")
+
+    close_qty = min(position["size"], exchange_position["size"])
+    if close_qty <= 1e-12:
+        return {"message": "No open position owned by this bot to close", "order": None}
 
     for active_tp in _active_position_take_profit_orders(db, bot):
         _cancel_local_order(
@@ -1229,12 +1389,12 @@ def close_bot_position(db, bot: TradingBot) -> dict:
         )
 
     close_order = normalize_order_request(
-        _build_close_position_order(bot, position["size"]),
+        _build_close_position_order(bot, close_qty),
         rules,
     )
-    if close_order.qty > position["size"]:
+    if close_order.qty > position["size"] + 1e-12 or close_order.qty > exchange_position["size"] + 1e-12:
         raise ValueError(
-            "Close position order quantity exceeds current long position size")
+            "Close position order quantity exceeds bot-owned or exchange position size")
 
     validation_error = validate_order_request(close_order, rules)
     if validation_error:
@@ -1243,6 +1403,7 @@ def close_bot_position(db, bot: TradingBot) -> dict:
     log_bot_event(db, bot, "position_close_requested", "Requested manual position close", {
         "order_link_id": close_order.order_link_id,
         "position_size": position["size"],
+        "exchange_position_size": exchange_position["size"],
     })
     response = place_order(session, category=bot.category,
                            symbol=bot.symbol, order=close_order)
@@ -1255,7 +1416,6 @@ def close_bot_position(db, bot: TradingBot) -> dict:
     db.add(created)
     db.flush()
     return {"message": "Position close order submitted", "order": created}
-
 
 def tick_grid_bot(db, bot: TradingBot) -> dict:
     if bot.runtime_status != "running":

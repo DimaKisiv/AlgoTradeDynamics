@@ -171,21 +171,13 @@ def test_worker_tick_creates_grid_orders_without_duplicates(client, auth_headers
 
 def test_filled_entry_creates_position_take_profit_order(client, auth_headers, monkeypatch):
     bot = _create_runtime_bot(client, auth_headers)
+    remote_state = {}
     remote_positions = []
-    _mock_runtime(monkeypatch, remote_positions=remote_positions)
+    _mock_runtime(monkeypatch, remote_state=remote_state, remote_positions=remote_positions)
     client.post(f"/api/bots/{bot['id']}/start", headers=auth_headers)
     _tick_bot(bot["id"])
 
-    db = SessionLocal()
-    try:
-        entry = db.query(TradingBotOrder).filter(TradingBotOrder.bot_id ==
-                                                 bot["id"], TradingBotOrder.order_role == "grid_entry_1").first()
-        entry.status = "Filled"
-        entry.filled_qty = entry.qty
-        db.add(entry)
-        db.commit()
-    finally:
-        db.close()
+    _fill_remote_grid_entry(remote_state, bot["id"], level=1)
 
     remote_positions[:] = [{
         "side": "Buy",
@@ -218,18 +210,7 @@ def test_existing_exchange_position_tp_is_synced_without_duplicate_creation(clie
     client.post(f"/api/bots/{bot['id']}/start", headers=auth_headers)
     _tick_bot(bot["id"])
 
-    db = SessionLocal()
-    try:
-        entry = db.query(TradingBotOrder).filter(
-            TradingBotOrder.bot_id == bot["id"],
-            TradingBotOrder.order_role == "grid_entry_1",
-        ).first()
-        entry.status = "Filled"
-        entry.filled_qty = entry.qty
-        db.add(entry)
-        db.commit()
-    finally:
-        db.close()
+    _fill_remote_grid_entry(remote_state, bot["id"], level=1)
 
     remote_positions[:] = [{
         "side": "Buy",
@@ -280,8 +261,8 @@ def test_risk_blocks_new_buy_when_max_position_qty_exceeded(client, auth_headers
     assert any(event["event_type"] == "risk_blocked" for event in events)
     orders = client.get(
         f"/api/bots/{bot['id']}/orders", headers=auth_headers).json()
-    assert not any(order["order_role"].startswith("grid_entry_")
-                   for order in orders)
+    entry_orders = [order for order in orders if order["order_role"].startswith("grid_entry_")]
+    assert len(entry_orders) == 1
 
 
 def test_risk_blocks_new_buy_when_max_open_orders_exceeded(client, auth_headers, monkeypatch):
@@ -326,18 +307,7 @@ def test_second_filled_entry_replaces_position_take_profit_order(client, auth_he
     client.post(f"/api/bots/{bot['id']}/start", headers=auth_headers)
     _tick_bot(bot["id"])
 
-    db = SessionLocal()
-    try:
-        entry_one = db.query(TradingBotOrder).filter(
-            TradingBotOrder.bot_id == bot["id"],
-            TradingBotOrder.order_role == "grid_entry_1",
-        ).first()
-        entry_one.status = "Filled"
-        entry_one.filled_qty = entry_one.qty
-        db.add(entry_one)
-        db.commit()
-    finally:
-        db.close()
+    _fill_remote_grid_entry(remote_state, bot["id"], level=1)
 
     remote_positions[:] = [{
         "side": "Buy",
@@ -346,18 +316,7 @@ def test_second_filled_entry_replaces_position_take_profit_order(client, auth_he
     }]
     _tick_bot(bot["id"])
 
-    db = SessionLocal()
-    try:
-        entry_two = db.query(TradingBotOrder).filter(
-            TradingBotOrder.bot_id == bot["id"],
-            TradingBotOrder.order_role == "grid_entry_2",
-        ).first()
-        entry_two.status = "Filled"
-        entry_two.filled_qty = entry_two.qty
-        db.add(entry_two)
-        db.commit()
-    finally:
-        db.close()
+    _fill_remote_grid_entry(remote_state, bot["id"], level=2)
 
     remote_positions[:] = [{
         "side": "Buy",
@@ -647,18 +606,7 @@ def test_position_take_profit_fill_logs_once(client, auth_headers, monkeypatch):
     client.post(f"/api/bots/{bot['id']}/start", headers=auth_headers)
     _tick_bot(bot["id"])
 
-    db = SessionLocal()
-    try:
-        entry = db.query(TradingBotOrder).filter(
-            TradingBotOrder.bot_id == bot["id"],
-            TradingBotOrder.order_role == "grid_entry_1",
-        ).first()
-        entry.status = "Filled"
-        entry.filled_qty = entry.qty
-        db.add(entry)
-        db.commit()
-    finally:
-        db.close()
+    _fill_remote_grid_entry(remote_state, bot["id"], level=1)
 
     remote_positions[:] = [{
         "side": "Buy",
@@ -700,18 +648,7 @@ def test_position_size_zero_cancels_active_position_take_profit(client, auth_hea
     client.post(f"/api/bots/{bot['id']}/start", headers=auth_headers)
     _tick_bot(bot["id"])
 
-    db = SessionLocal()
-    try:
-        entry = db.query(TradingBotOrder).filter(
-            TradingBotOrder.bot_id == bot["id"],
-            TradingBotOrder.order_role == "grid_entry_1",
-        ).first()
-        entry.status = "Filled"
-        entry.filled_qty = entry.qty
-        db.add(entry)
-        db.commit()
-    finally:
-        db.close()
+    _fill_remote_grid_entry(remote_state, bot["id"], level=1)
 
     remote_positions[:] = [{
         "side": "Buy",
@@ -797,6 +734,7 @@ def test_position_endpoint_returns_position_and_tp_data(client, auth_headers, mo
     }]
     _mock_runtime(monkeypatch, remote_state=remote_state,
                   remote_positions=remote_positions, current_price=101.0)
+    _seed_filled_bot_entry(bot, qty=0.01, price=100.0, level=1)
 
     response = client.get(
         f"/api/bots/{bot['id']}/position", headers=auth_headers)
@@ -843,6 +781,8 @@ def test_risk_endpoint_returns_calculated_exposure(client, auth_headers, monkeyp
     }]
     _mock_runtime(monkeypatch, remote_state=remote_state,
                   remote_positions=remote_positions, current_price=100.0)
+    _seed_filled_bot_entry(bot, qty=0.01, price=100.0, level=1, suffix="owned-1")
+    _seed_filled_bot_entry(bot, qty=0.01, price=100.0, level=2, suffix="owned-2")
 
     response = client.get(f"/api/bots/{bot['id']}/risk", headers=auth_headers)
     assert response.status_code == 200, response.text
@@ -877,6 +817,7 @@ def test_close_position_creates_reduce_only_market_sell(client, auth_headers, mo
     order_log = []
     _mock_runtime(monkeypatch, remote_positions=remote_positions,
                   order_log=order_log)
+    _seed_filled_bot_entry(bot, qty=0.03, price=100.0, level=1)
 
     response = client.post(
         f"/api/bots/{bot['id']}/close-position",
@@ -896,23 +837,13 @@ def test_close_position_creates_reduce_only_market_sell(client, auth_headers, mo
 
 def test_old_per_entry_take_profit_roles_are_not_created(client, auth_headers, monkeypatch):
     bot = _create_runtime_bot(client, auth_headers)
+    remote_state = {}
     remote_positions = []
-    _mock_runtime(monkeypatch, remote_positions=remote_positions)
+    _mock_runtime(monkeypatch, remote_state=remote_state, remote_positions=remote_positions)
     client.post(f"/api/bots/{bot['id']}/start", headers=auth_headers)
     _tick_bot(bot["id"])
 
-    db = SessionLocal()
-    try:
-        entry = db.query(TradingBotOrder).filter(
-            TradingBotOrder.bot_id == bot["id"],
-            TradingBotOrder.order_role == "grid_entry_1",
-        ).first()
-        entry.status = "Filled"
-        entry.filled_qty = entry.qty
-        db.add(entry)
-        db.commit()
-    finally:
-        db.close()
+    _fill_remote_grid_entry(remote_state, bot["id"], level=1)
 
     remote_positions[:] = [{
         "side": "Buy",
@@ -1220,3 +1151,101 @@ def _mock_cancel_order(remote_state, order_link_id):
         "orderLinkId": order_link_id,
         "orderStatus": "Cancelled",
     }}
+
+
+def test_new_grid_does_not_adopt_position_left_by_previous_bot(client, auth_headers, monkeypatch):
+    """Regression: a new bot must manage only fills created by its own bot id."""
+    bot = _create_runtime_bot(client, auth_headers, {
+        "settings": {"run_interval_seconds": 0},
+    })
+    remote_state = {}
+    # Simulate 0.01 BTC left in the shared emulator account by a stopped DCA bot.
+    remote_positions = [{
+        "side": "Buy",
+        "size": "0.01",
+        "avgPrice": "90.0",
+    }]
+    _mock_runtime(
+        monkeypatch,
+        remote_state=remote_state,
+        remote_positions=remote_positions,
+        current_price=100.0,
+    )
+
+    started = client.post(f"/api/bots/{bot['id']}/start", headers=auth_headers)
+    assert started.status_code == 200, started.text
+    _tick_bot(bot["id"])
+
+    # The foreign 0.01 must not cause an immediate TP for the new grid.
+    orders = client.get(f"/api/bots/{bot['id']}/orders", headers=auth_headers).json()
+    assert not any(order["order_role"] == "position_take_profit" for order in orders)
+    assert any(order["order_role"] == "grid_entry_1" for order in orders)
+
+    position = client.get(f"/api/bots/{bot['id']}/position", headers=auth_headers).json()
+    assert position["size"] == "0"
+
+    # Now fill only this grid bot's first entry. The shared exchange position is
+    # 0.02, but the bot owns only its new 0.01 and must create TP for 0.01 only.
+    first_entry_link = next(
+        link for link in remote_state if f"bot-{bot['id']}-g1-entry-1-" in link
+    )
+    remote_state[first_entry_link]["orderStatus"] = "Filled"
+    remote_state[first_entry_link]["cumExecQty"] = "0.01"
+    remote_state[first_entry_link]["price"] = "100.0"
+    remote_positions[:] = [{
+        "side": "Buy",
+        "size": "0.02",
+        "avgPrice": "95.0",
+    }]
+
+    _tick_bot(bot["id"])
+
+    orders = client.get(f"/api/bots/{bot['id']}/orders", headers=auth_headers).json()
+    active_tps = [
+        order for order in orders
+        if order["order_role"] == "position_take_profit"
+        and order["status"] in ACTIVE_ORDER_STATUSES
+    ]
+    assert len(active_tps) == 1
+    assert active_tps[0]["qty"] == pytest.approx(0.01)
+    assert active_tps[0]["price"] == pytest.approx(101.5)
+
+    position = client.get(f"/api/bots/{bot['id']}/position", headers=auth_headers).json()
+    assert float(position["size"]) == pytest.approx(0.01)
+    assert float(position["avg_entry_price"]) == pytest.approx(100.0)
+
+
+def _seed_filled_bot_entry(bot, *, qty, price, level=1, suffix="seed"):
+    db = SessionLocal()
+    try:
+        db.add(TradingBotOrder(
+            bot_id=bot["id"],
+            user_id=bot["user_id"],
+            exchange=bot["exchange"],
+            environment=bot["environment"],
+            category=bot["category"],
+            symbol=bot["symbol"],
+            side="Buy",
+            order_type="Limit",
+            order_role=f"grid_entry_{level}",
+            order_link_id=f"bot-{bot['id']}-g1-entry-{level}-{suffix}",
+            qty=qty,
+            filled_qty=qty,
+            price=price,
+            status="Filled",
+            raw_response={"orderStatus": "Filled", "cumExecQty": str(qty), "price": str(price)},
+        ))
+        db.commit()
+    finally:
+        db.close()
+
+
+def _fill_remote_grid_entry(remote_state, bot_id, *, level=1):
+    link = next(
+        link for link in remote_state
+        if f"bot-{bot_id}-g1-entry-{level}-" in link
+    )
+    remote = remote_state[link]
+    remote["orderStatus"] = "Filled"
+    remote["cumExecQty"] = remote["qty"]
+    return remote

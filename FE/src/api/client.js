@@ -74,7 +74,7 @@ export async function refreshAccessToken() {
 }
 
 function mayRefresh(path) {
-  return !['/auth/login', '/auth/register', '/auth/refresh', '/auth/logout'].includes(path);
+  return !['/auth/login', '/auth/register', '/auth/refresh', '/auth/logout', '/privacy/delete-account'].includes(path);
 }
 
 export async function request(path, options = {}) {
@@ -111,7 +111,7 @@ export async function request(path, options = {}) {
     }
   }
 
-  if (response.status === 401) {
+  if (response.status === 401 && mayRefresh(path)) {
     setToken(null);
     if (unauthorizedHandler) {unauthorizedHandler();}
   }

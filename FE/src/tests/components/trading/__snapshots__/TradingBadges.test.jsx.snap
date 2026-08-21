@@ -1,0 +1,25 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`trading/OrderTypeBadge snapshot — market 1`] = `
+<span
+  class="badge market"
+>
+  Ринковий
+</span>
+`;
+
+exports[`trading/SideBadge snapshot — buy 1`] = `
+<span
+  class="badge sideBadge buy"
+>
+  Купівля
+</span>
+`;
+
+exports[`trading/StatusBadge snapshot — filled 1`] = `
+<span
+  class="badge filled"
+>
+  Виконано
+</span>
+`;

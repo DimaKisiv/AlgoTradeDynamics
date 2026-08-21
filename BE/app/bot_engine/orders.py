@@ -103,7 +103,9 @@ def _requires_reduce_only(order: OrderRequest) -> bool:
         order.order_role in {"position_take_profit", "position_close", "take_profit_recovered"}
         or order.order_role.startswith((
             "take_profit_", "tp_", "scalper_take_profit", "scalper_stop_loss",
-            "scalper_timeout", "scalper_manual_close",
+            "scalper_timeout", "scalper_manual_close", "momentum_take_profit",
+            "momentum_stop_loss", "momentum_trailing_stop", "momentum_signal_exit",
+            "momentum_manual_close", "momentum_emergency_close",
         ))
     )
 

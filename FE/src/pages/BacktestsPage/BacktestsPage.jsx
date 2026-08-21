@@ -9,6 +9,7 @@ import ConnectionStatus from "../../components/ui/ConnectionStatus/ConnectionSta
 import { PnlValue, StatusBadge } from "../../components/trading/TradingBadges/TradingBadges";
 import { fmtDateTime, fmtMoneySigned, fmtPctSigned } from "../../lib/format";
 import { useLanguage } from "../../context/LanguageContext";
+import { useConfirmModal } from "../../context/ConfirmModalContext";
 import { useAuthenticatedWebSocket } from "../../websocket/useAuthenticatedWebSocket";
 import styles from "./BacktestsPage.module.css";
 
@@ -24,12 +25,20 @@ const INTERVAL_LABELS = {
   uk: { "1": "1 хвилина", "3": "3 хвилини", "5": "5 хвилин", "15": "15 хвилин", "30": "30 хвилин", "60": "1 година", "120": "2 години", "240": "4 години", "360": "6 годин", "720": "12 годин", D: "1 день", W: "1 тиждень" },
 };
 
+const STRATEGY_LABELS = {
+  grid: "Grid Bot",
+  dca: "DCA Bot",
+  momentum: "Momentum Bot",
+  pattern_scalper: "Pattern Scalper",
+};
+
 function Stat({ label, value, icon }) {
   return <div className={styles.stat}><span>{icon}{label}</span><strong>{value}</strong></div>;
 }
 
 export default function BacktestsPage() {
   const { tr, language, locale } = useLanguage();
+  const { confirm } = useConfirmModal();
   const intervalLabel = (interval) => INTERVAL_LABELS[language]?.[String(interval)] || String(interval);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -170,7 +179,14 @@ export default function BacktestsPage() {
   };
 
   const remove = async (run) => {
-    if (!window.confirm(`${tr('Видалити backtest', 'Delete backtest')} “${run.name}”?`)) return;
+    const confirmed = await confirm({
+      title: tr('Видалити backtest?', 'Delete backtest?'),
+      message: `${tr('Видалити backtest', 'Delete backtest')} "${run.name}"?`,
+      confirmLabel: tr('Видалити', 'Delete'),
+      cancelLabel: tr('Скасувати', 'Cancel'),
+      isDanger: true,
+    });
+    if (!confirmed) return;
     try { await backtestsApi.remove(run.id); await load(); }
     catch (e) { setError(e.detail || e.message); }
   };
@@ -216,7 +232,7 @@ export default function BacktestsPage() {
           <div>
             <span className="eyebrow">{tr('Історична лабораторія ботів', 'Historical Bot Lab')}</span>
             <h1 className="display-2">{tr('Бектести', 'Bot')} <span className="italic-accent">{tr('ботів', 'Backtests')}</span></h1>
-            <p className="lead">{tr('Запускайте Grid Bot, DCA Bot або Pattern Scalper на конкретному ізольованому OHLCV dataset без змішування джерел і періодів.', 'Run Grid Bot, DCA Bot, or Pattern Scalper against a specific isolated OHLCV dataset without mixing sources or periods.')}</p>
+            <p className="lead">{tr('Запускайте Grid Bot, DCA Bot, Momentum Bot або Pattern Scalper на конкретному ізольованому OHLCV dataset без змішування джерел і періодів.', 'Run Grid Bot, DCA Bot, Momentum Bot, or Pattern Scalper against a specific isolated OHLCV dataset without mixing sources or periods.')}</p>
           </div>
           <div className={styles.heroActions}>
             <ConnectionStatus status={wsStatus} tr={tr} />
@@ -263,18 +279,21 @@ export default function BacktestsPage() {
               <label className={styles.wide}><span>{tr('Назва запуску (необов’язково)', 'Run name (optional)')}</span><input value={form.name} placeholder={selectedBot ? `${selectedBot.name} · ${tr('історичний тест', 'historical test')}` : tr('Назва backtest', 'Backtest name')} onChange={(e) => setForm({ ...form, name: e.target.value })} /></label>
             </div>
             {selectedBot && <div className={styles.snapshot}>
-              <span>{selectedBot.strategy_type === "pattern_scalper" ? "Pattern Scalper" : selectedBot.strategy_type === "dca" ? "DCA Bot" : "Grid Bot"}</span>
+              <span>{STRATEGY_LABELS[selectedBot.strategy_type] || selectedBot.strategy_type}</span>
               <span>{selectedBot.symbol}</span>
               <span>{selectedBot.order_qty} {tr('кількість', 'qty')}</span>
               {selectedBot.strategy_type === "grid" ? <>
                 <span>{selectedBot.grid_orders_count} {tr('рівнів сітки', 'grid levels')}</span><span>{selectedBot.grid_step_percent}% {tr('крок', 'step')}</span>
               </> : selectedBot.strategy_type === "dca" ? <>
                 <span>{selectedBot.grid_orders_count} {tr('страхувальних', 'safety orders')}</span><span>{selectedBot.grid_step_percent}% {tr('перший крок', 'first step')}</span>
+              </> : selectedBot.strategy_type === "momentum" ? <>
+                <span>{selectedBot.settings?.timeframe || selectedDataset?.interval || "15"} {tr('таймфрейм', 'timeframe')}</span>
+                <span>{String(selectedBot.settings?.position_side || 'both').toUpperCase()} {tr('режим', 'mode')}</span>
               </> : <>
                 <span>{selectedBot.settings?.timeframe || selectedDataset?.interval || "—"} {tr('таймфрейм', 'timeframe')}</span>
                 <span>{selectedBot.settings?.risk_per_trade_percent ?? 0.5}% {tr('ризик', 'risk')}</span>
               </>}
-              <span>{selectedBot.settings?.take_profit_percent ?? selectedBot.settings?.take_profit_atr ?? 1.5} TP</span>
+              <span>{selectedBot.strategy_type === 'momentum' ? `${selectedBot.settings?.atr_take_profit_multiplier ?? 3} ATR TP` : `${selectedBot.settings?.take_profit_percent ?? selectedBot.settings?.take_profit_atr ?? 1.5} TP`}</span>
             </div>}
             {selectedDataset && <div className={`${styles.datasetCard} ${selectedDataset.missing_candles ? styles.datasetBad : styles.datasetGood}`}>
               <div><strong>{selectedDataset.name}</strong><span>{selectedDataset.symbol} · {intervalLabel(selectedDataset.interval)} · {selectedDataset.exchange}</span></div>

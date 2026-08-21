@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Bell, CheckCircle2, Download, ExternalLink, LogOut, Send, ShieldCheck, Trash2, Unplug } from 'lucide-react';
 
 import { useAuth } from '../../context/AuthContext';
+import { useConfirmModal } from '../../context/ConfirmModalContext';
 import {
   createTelegramConnectLink,
   disconnectTelegram,
@@ -31,6 +32,7 @@ export default function AccountPage() {
   const { t, tr, locale } = useLanguage();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { confirm } = useConfirmModal();
   const [telegram, setTelegram] = useState(defaultTelegram);
   const [telegramLoading, setTelegramLoading] = useState(true);
   const [telegramBusy, setTelegramBusy] = useState(false);
@@ -146,28 +148,34 @@ export default function AccountPage() {
     }
   };
 
-  const handleDeleteAccount = async () => {
-    if (!deletePassword) {
-      setPrivacyError(tr('Введіть пароль для підтвердження.', 'Enter your password to confirm.'));
-      return;
-    }
-    const confirmed = window.confirm(tr(
-      'Видалити акаунт та operational дані? Regulatory audit записи можуть зберігатися до завершення retention period.',
-      'Delete the account and operational data? Regulatory audit records may be retained until their retention period ends.',
-    ));
-    if (!confirmed) return;
-    setPrivacyBusy(true);
-    setPrivacyError('');
-    try {
-      await deleteMyAccount(deletePassword);
-      logout();
-      navigate('/', { replace: true });
-    } catch (error) {
-      setPrivacyError(error.detail || error.message || tr('Не вдалося видалити акаунт', 'Failed to delete account'));
-    } finally {
-      setPrivacyBusy(false);
-    }
-  };
+   const handleDeleteAccount = async () => {
+     if (!deletePassword) {
+       setPrivacyError(tr('Введіть пароль для підтвердження.', 'Enter your password to confirm.'));
+       return;
+     }
+     const confirmed = await confirm({
+       title: tr('Видалити акаунт?', 'Delete account?'),
+       message: tr(
+         'Видалити акаунт та operational дані? Regulatory audit записи можуть зберігатися до завершення retention period.',
+         'Delete the account and operational data? Regulatory audit records may be retained until their retention period ends.',
+       ),
+       confirmLabel: tr('Видалити акаунт', 'Delete account'),
+       cancelLabel: tr('Скасувати', 'Cancel'),
+       isDanger: true,
+     });
+     if (!confirmed) return;
+     setPrivacyBusy(true);
+     setPrivacyError('');
+     try {
+       await deleteMyAccount(deletePassword);
+       await logout();
+       navigate('/', { replace: true });
+     } catch (error) {
+       setPrivacyError(error.detail || error.message || tr('Не вдалося видалити акаунт', 'Failed to delete account'));
+     } finally {
+       setPrivacyBusy(false);
+     }
+   };
 
   return (
     <main className={styles.account}>

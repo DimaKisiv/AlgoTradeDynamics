@@ -44,11 +44,13 @@ import {
   fmtPctSigned,
 } from "../../lib/format";
 import { useLanguage } from "../../context/LanguageContext";
+import { useConfirmModal } from "../../context/ConfirmModalContext";
 import { useAuthenticatedWebSocket } from "../../websocket/useAuthenticatedWebSocket";
 import styles from "./BotDetailPage.module.css";
 
 export default function BotDetailPage() {
   const { tr, locale } = useLanguage();
+  const { confirm } = useConfirmModal();
   const { botId } = useParams();
   const [bot, setBot] = useState(null);
   const [orders, setOrders] = useState([]);
@@ -118,9 +120,13 @@ export default function BotDetailPage() {
   };
 
   const handleClosePosition = async () => {
-    const confirmed = window.confirm(
-      tr('Поточну біржову позицію буде закрито reduce-only market ордером. Історія бота не буде видалена. Продовжити?', 'This will close the current exchange position with a reduce-only market order. It will not delete bot history. Continue?'),
-    );
+    const confirmed = await confirm({
+      title: tr('Закрити позицію?', 'Close position?'),
+      message: tr('Поточну біржову позицію буде закрито reduce-only market ордером. Історія бота не буде видалена. Продовжити?', 'This will close the current exchange position with a reduce-only market order. It will not delete bot history. Continue?'),
+      confirmLabel: tr('Закрити', 'Close'),
+      cancelLabel: tr('Скасувати', 'Cancel'),
+      isDanger: true,
+    });
 
     if (!confirmed) return;
 
@@ -201,9 +207,13 @@ export default function BotDetailPage() {
   };
 
   const handleClearHistory = async () => {
-    const confirmed = window.confirm(
-      tr('Це зупинить бота, скасує відкриті ордери бота та видалить локальну історію ордерів/подій. Існуючі позиції Bybit НЕ будуть закриті. Продовжити?', 'This will stop the bot, cancel open bot orders, and delete local order/event history. It will NOT close existing Bybit positions. Continue?'),
-    );
+    const confirmed = await confirm({
+      title: tr('Очистити історію?', 'Clear history?'),
+      message: tr('Це зупинить бота, скасує відкриті ордери бота та видалить локальну історію ордерів/подій. Існуючі позиції Bybit НЕ будуть закриті. Продовжити?', 'This will stop the bot, cancel open bot orders, and delete local order/event history. It will NOT close existing Bybit positions. Continue?'),
+      confirmLabel: tr('Очистити', 'Clear'),
+      cancelLabel: tr('Скасувати', 'Cancel'),
+      isDanger: true,
+    });
 
     if (!confirmed) {return;}
 
@@ -226,9 +236,20 @@ export default function BotDetailPage() {
   };
 
   const isScalper = bot?.strategy_type === "pattern_scalper";
+  const isMomentum = bot?.strategy_type === "momentum";
   const isDca = bot?.strategy_type === "dca";
   const scalperTrade = bot?.settings?.pattern_scalper_state?.current_trade || null;
-  const signalScore = toNumberOrNull(scalperTrade?.signal_score);
+  const momentumState = bot?.settings?.momentum_state || null;
+  const momentumTrade = momentumState?.current_trade || null;
+  const lastAnalysis = momentumState?.last_analysis || null;
+  const signalHistory = Array.isArray(momentumState?.signal_history)
+    ? momentumState.signal_history.slice(-5).reverse()
+    : [];
+  const signalScore = toNumberOrNull(
+    isMomentum
+      ? momentumState?.current_signal_score ?? lastAnalysis?.score
+      : scalperTrade?.signal_score,
+  );
   const openOrders = orders.filter((order) => isOpenOrderStatus(order.status));
   const filledOrders = orders.filter((order) => order.status === "Filled");
   const activePositionTakeProfitOrders = orders.filter(
@@ -261,9 +282,12 @@ export default function BotDetailPage() {
     avgEntryPrice && tpPrice
       ? Math.abs((tpPrice - avgEntryPrice) / avgEntryPrice) * 100
       : null;
-  const activeManagedTakeProfits = isScalper
+  const activeManagedTakeProfits = isScalper || isMomentum
     ? (positionSize > 0 && tpPrice != null ? 1 : 0)
     : activePositionTakeProfitOrders.length;
+  const managedStopLoss = toNumberOrNull(momentumTrade?.stop_loss);
+  const managedTrailingStop = toNumberOrNull(momentumTrade?.trailing_stop);
+  const managedMarketRegime = momentumTrade?.market_regime || momentumState?.market_regime || lastAnalysis?.market_regime || "sideways";
   const runtimeState = bot?.runtime_state || bot?.runtime_status || "stopped";
   const runtimeLabel = getRuntimeLabel(runtimeState, tr);
   const riskBlocked = Boolean(risk?.blocked);
@@ -334,6 +358,8 @@ export default function BotDetailPage() {
                 <p className="lead">
                   {isScalper
                     ? tr('Pattern Scalper аналізує лише закриті свічки, чекає breakout, а потім retest і утримання пробитого рівня перед входом. Після входу керує однією LONG або SHORT позицією через SL, TP, timeout і cooldown.', 'Pattern Scalper analyzes only closed candles, waits for a breakout, then a retest and hold of the broken level before entry. After entry it manages a single LONG or SHORT position through SL, TP, timeout, and cooldown.')
+                    : isMomentum
+                      ? tr('Momentum Bot аналізує лише закриті свічки, оцінює EMA-trend, RSI, volume та ATR, а після входу керує однією LONG або SHORT позицією через ATR stop-loss, take-profit, trailing stop і cooldown.', 'Momentum Bot analyzes only closed candles, scores EMA trend, RSI, volume, and ATR, then manages a single LONG or SHORT position with ATR stop-loss, take-profit, trailing stop, and cooldown.')
                     : tr('Поки бот має статус running, бекендовий worker синхронізує ордери, підтримує Position TP для long-позиції та відновлює рівні сітки після закриття циклів.', 'While the bot is running, the backend worker syncs orders, maintains Position TP for a long position, and restores grid levels after cycles close.')}
                 </p>
               </header>
@@ -354,11 +380,11 @@ export default function BotDetailPage() {
                   tone={filledOrders.length > 0 ? "positive" : "neutral"}
                 />
                 <SummaryCard
-                  label={isScalper ? tr('Score сигналу', 'Signal score') : tr('Активний Position TP', 'Active Position TP')}
-                  value={isScalper
-                    ? (signalScore == null ? "—" : `${Math.round(signalScore * 100)}%`)
+                  label={isScalper || isMomentum ? tr('Score сигналу', 'Signal score') : tr('Активний Position TP', 'Active Position TP')}
+                  value={isScalper || isMomentum
+                    ? formatSignalScore(signalScore, isMomentum)
                     : String(activeManagedTakeProfits)}
-                  tone={(isScalper ? signalScore != null : activeManagedTakeProfits > 0) ? "tp" : "neutral"}
+                  tone={(isScalper || isMomentum ? signalScore != null : activeManagedTakeProfits > 0) ? "tp" : "neutral"}
                 />
                 <SummaryCard
                   label={tr('Закриті цикли', 'Closed cycles')}
@@ -518,12 +544,12 @@ export default function BotDetailPage() {
                       mono
                     />
                     <ConfigItem
-                      label={isScalper ? tr('Керована ціна TP', 'Managed TP Price') : tr('Активна ціна TP', 'Active TP Price')}
+                      label={isScalper || isMomentum ? tr('Керована ціна TP', 'Managed TP Price') : tr('Активна ціна TP', 'Active TP Price')}
                       value={tpPrice == null ? "—" : fmtNumber(tpPrice, 4)}
                       mono
                     />
                     <ConfigItem
-                      label={isScalper ? tr('Керована кількість TP', 'Managed TP Qty') : tr('Активна кількість TP', 'Active TP Qty')}
+                      label={isScalper || isMomentum ? tr('Керована кількість TP', 'Managed TP Qty') : tr('Активна кількість TP', 'Active TP Qty')}
                       value={tpQty == null ? "—" : fmtNumber(tpQty, 6)}
                       mono
                     />
@@ -536,11 +562,70 @@ export default function BotDetailPage() {
                       }
                       mono
                     />
+                    {isMomentum ? (
+                      <>
+                        <ConfigItem label={tr('Керований Stop-loss', 'Managed Stop-loss')} value={managedStopLoss == null ? "—" : fmtNumber(managedStopLoss, 4)} mono />
+                        <ConfigItem label={tr('Trailing stop', 'Trailing stop')} value={managedTrailingStop == null ? "—" : fmtNumber(managedTrailingStop, 4)} mono />
+                        <ConfigItem label={tr('Режим ринку', 'Market regime')} value={managedMarketRegime} />
+                      </>
+                    ) : null}
                   </dl>
                 ) : (
                   <div className={styles.emptyOrders}>{tr('Немає відкритої позиції', 'No open position')}</div>
                 )}
               </Card>
+
+              {isMomentum ? (
+                <Card className={styles.configCard}>
+                  <CardHeader
+                    eyebrow={tr('Аналітика сигналу', 'Signal analytics')}
+                    title={tr('Momentum state', 'Momentum state')}
+                  />
+
+                  <dl className={styles.configGrid}>
+                    <ConfigItem label={tr('Поточний сигнал', 'Current signal')} value={String(momentumState?.current_signal || 'none').toUpperCase()} />
+                    <ConfigItem label={tr('Score', 'Score')} value={formatSignalScore(signalScore, true)} mono />
+                    <ConfigItem label={tr('Режим ринку', 'Market regime')} value={managedMarketRegime} />
+                    <ConfigItem label={tr('Останній аналіз', 'Last analysis')} value={fmtDateTime(momentumState?.last_analysis_at, locale)} mono />
+                    <ConfigItem label={tr('Останній вхід', 'Last entry')} value={fmtDateTime(momentumTrade?.opened_at, locale)} mono />
+                    <ConfigItem label={tr('Cooldown', 'Cooldown')} value={bot.runtime_state === 'cooldown' ? tr('Активний', 'Active') : tr('Ні', 'No')} />
+                  </dl>
+
+                  {lastAnalysis?.reasons?.length ? (
+                    <div>
+                      <strong>{tr('Причини останнього сигналу', 'Latest signal reasons')}</strong>
+                      <div className={styles.eventsList}>
+                        {lastAnalysis.reasons.map((reason, index) => (
+                          <article key={`${reason}-${index}`} className={styles.eventRow}>
+                            <div className={styles.eventBody}>
+                              <p className={styles.eventMessage}>{reason}</p>
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {signalHistory.length ? (
+                    <div>
+                      <strong>{tr('Останні сигнали', 'Recent signals')}</strong>
+                      <div className={styles.eventsList}>
+                        {signalHistory.map((entry) => (
+                          <article key={`${entry.timestamp}-${entry.type}`} className={styles.eventRow}>
+                            <div className={styles.eventBody}>
+                              <div className={styles.eventMeta}>
+                                <EventBadge type={`momentum_${entry.type}_signal`} />
+                                <time className="mono">{fmtDateTime(entry.timestamp, locale)}</time>
+                              </div>
+                              <p className={styles.eventMessage}>{String(entry.type || 'none').toUpperCase()} · {formatSignalScore(toNumberOrNull(entry.score), true)}</p>
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </Card>
+              ) : null}
 
               <Card className={styles.configCard}>
                 <CardHeader
@@ -585,8 +670,8 @@ export default function BotDetailPage() {
                     value={formatMaybeNumber(risk?.current_position_qty, 6)}
                     mono
                   />
-                  <ConfigItem
-                    label={isScalper ? tr('Кількість очікуючого входу', 'Pending Entry Qty') : tr('Кількість очікуючої купівлі', 'Pending Buy Qty')}
+                    <ConfigItem
+                      label={isScalper || isMomentum ? tr('Кількість очікуючого входу', 'Pending Entry Qty') : tr('Кількість очікуючої купівлі', 'Pending Buy Qty')}
                     value={formatMaybeNumber(risk?.pending_buy_qty, 6)}
                     mono
                   />
@@ -678,6 +763,25 @@ export default function BotDetailPage() {
                       <ConfigItem label={tr('Ризик / угода', 'Risk / Trade')} value={fmtPct(Number(bot.settings?.risk_per_trade_percent || 0.5))} mono />
                       <ConfigItem label={tr('Денний ліміт збитку', 'Daily Loss Limit')} value={fmtPct(Number(bot.settings?.max_daily_loss_percent || 2))} mono />
                       <ConfigItem label={tr('SHORT дозволено', 'SHORT Enabled')} value={bot.settings?.allow_short ? tr('Так', 'Yes') : tr('Ні', 'No')} />
+                    </>
+                  ) : isMomentum ? (
+                    <>
+                      <ConfigItem label={tr('Таймфрейм', 'Timeframe')} value={`${bot.settings?.timeframe || "15"}m`} mono />
+                      <ConfigItem label={tr('Напрямок позицій', 'Position Bias')} value={String(bot.settings?.position_side || 'both').toUpperCase()} />
+                      <ConfigItem label={tr('Fast EMA', 'Fast EMA')} value={fmtNumber(bot.settings?.fast_ema_period || 20, 0)} mono />
+                      <ConfigItem label={tr('Slow EMA', 'Slow EMA')} value={fmtNumber(bot.settings?.slow_ema_period || 50, 0)} mono />
+                      <ConfigItem label={tr('RSI період', 'RSI period')} value={fmtNumber(bot.settings?.rsi_period || 14, 0)} mono />
+                      <ConfigItem label={tr('RSI long мін.', 'RSI long min')} value={fmtNumber(bot.settings?.rsi_long_threshold || 55, 0)} mono />
+                      <ConfigItem label={tr('RSI short макс.', 'RSI short max')} value={fmtNumber(bot.settings?.rsi_short_threshold || 45, 0)} mono />
+                      <ConfigItem label={tr('Мін. сигнал', 'Minimum Signal')} value={fmtPct(Number(bot.settings?.minimum_signal_score || 70))} mono />
+                      <ConfigItem label={tr('Множник volume', 'Volume multiplier')} value={fmtNumber(bot.settings?.volume_multiplier || 1.5)} mono />
+                      <ConfigItem label={tr('Stop-loss ATR', 'Stop-loss ATR')} value={fmtNumber(bot.settings?.atr_stop_loss_multiplier || 1.5)} mono />
+                      <ConfigItem label={tr('Take-profit ATR', 'Take-profit ATR')} value={fmtNumber(bot.settings?.atr_take_profit_multiplier || 3)} mono />
+                      <ConfigItem label={tr('Trailing stop ATR', 'Trailing stop ATR')} value={fmtNumber(bot.settings?.trailing_stop_atr_multiplier || 2)} mono />
+                      <ConfigItem label={tr('Trailing stop', 'Trailing stop')} value={bot.settings?.trailing_stop_enabled ? tr('Так', 'Yes') : tr('Ні', 'No')} />
+                      <ConfigItem label={tr('Мін. ATR %', 'Min ATR %')} value={fmtPct(Number(bot.settings?.minimum_atr_percent || 0.1))} mono />
+                      <ConfigItem label={tr('Ризик / угода', 'Risk / Trade')} value={fmtPct(Number(bot.settings?.risk_per_trade_percent || 1))} mono />
+                      <ConfigItem label={tr('Cooldown', 'Cooldown')} value={`${bot.settings?.cooldown_minutes || 15} ${tr('хв', 'min')}`} mono />
                     </>
                   ) : isDca ? (
                     <>
@@ -1000,9 +1104,14 @@ function formatErrorSeverity(value, tr) {
 }
 
 function toNumberOrNull(value) {
-  if (value == null) return null;
+  if (value === null || value === undefined) return null;
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
+}
+
+function formatSignalScore(score, isMomentum = false) {
+  if (score == null) return "—";
+  return isMomentum ? `${Math.round(score)}%` : `${Math.round(score * 100)}%`;
 }
 
 function formatMaybeNumber(value, decimals = 2) {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Bot,
@@ -23,6 +23,7 @@ import {
 } from "../../api/bots";
 import { emulatorApi } from "../../api/emulator";
 import { useLanguage } from "../../context/LanguageContext";
+import { useConfirmModal } from "../../context/ConfirmModalContext";
 import styles from "./BotsPage.module.css";
 
 const INITIAL_FORM = {
@@ -42,6 +43,17 @@ const INITIAL_FORM = {
   lookback_candles: "200",
   minimum_signal_score: "0.85",
   volume_multiplier: "1.5",
+  position_side: "both",
+  fast_ema_period: "20",
+  slow_ema_period: "50",
+  rsi_period: "14",
+  rsi_long_threshold: "55",
+  rsi_short_threshold: "45",
+  atr_stop_loss_multiplier: "1.5",
+  atr_take_profit_multiplier: "3.0",
+  trailing_stop_enabled: true,
+  trailing_stop_atr_multiplier: "2.0",
+  minimum_atr_percent: "0.1",
   stop_loss_atr: "1.2",
   take_profit_atr: "1.8",
   max_holding_minutes: "30",
@@ -122,6 +134,32 @@ const DCA_SETTING_KEYS = [
   "dca_step_multiplier",
 ];
 
+const MOMENTUM_SETTING_KEYS = [
+  "timeframe",
+  "lookback_candles",
+  "minimum_signal_score",
+  "volume_multiplier",
+  "position_side",
+  "fast_ema_period",
+  "slow_ema_period",
+  "rsi_period",
+  "rsi_long_threshold",
+  "rsi_short_threshold",
+  "atr_stop_loss_multiplier",
+  "atr_take_profit_multiplier",
+  "risk_per_trade_percent",
+  "cooldown_minutes",
+  "trailing_stop_enabled",
+  "trailing_stop_atr_multiplier",
+  "minimum_atr_percent",
+  "position_sizing",
+  "max_position_qty",
+  "max_open_orders",
+  "momentum_state",
+  "stop_bot_on_error",
+  "run_interval_seconds",
+];
+
 const SELECT_OPTIONS = {
   exchange: [{ value: "bybit", label: "Bybit-compatible" }],
   environment: [
@@ -133,6 +171,7 @@ const SELECT_OPTIONS = {
   strategy_type: [
     { value: "grid", label: "Grid Bot" },
     { value: "dca", label: "DCA Bot" },
+    { value: "momentum", label: "Momentum Bot" },
     { value: "pattern_scalper", label: "Pattern Scalper" },
   ],
   category: [
@@ -143,7 +182,10 @@ const SELECT_OPTIONS = {
 };
 
 function toFormState(bot) {
-  if (!bot) {return { ...INITIAL_FORM };}
+  if (!bot) {
+    return { ...INITIAL_FORM };
+  }
+  const isMomentum = bot.strategy_type === "momentum";
   return {
     name: bot.name,
     exchange: bot.exchange,
@@ -157,10 +199,21 @@ function toFormState(bot) {
     dca_volume_multiplier: String(bot.settings?.dca_volume_multiplier ?? "1.5"),
     dca_step_multiplier: String(bot.settings?.dca_step_multiplier ?? "1.3"),
     take_profit_percent: String(bot.settings?.take_profit_percent ?? "1.5"),
-    timeframe: String(bot.settings?.timeframe ?? "1"),
+    timeframe: String(bot.settings?.timeframe ?? (isMomentum ? "15" : "1")),
     lookback_candles: String(bot.settings?.lookback_candles ?? "200"),
-    minimum_signal_score: String(bot.settings?.minimum_signal_score ?? "0.85"),
+    minimum_signal_score: String(bot.settings?.minimum_signal_score ?? (isMomentum ? "70" : "0.85")),
     volume_multiplier: String(bot.settings?.pattern_volume_multiplier ?? bot.settings?.volume_multiplier ?? "1.5"),
+    position_side: String(bot.settings?.position_side ?? "both"),
+    fast_ema_period: String(bot.settings?.fast_ema_period ?? "20"),
+    slow_ema_period: String(bot.settings?.slow_ema_period ?? "50"),
+    rsi_period: String(bot.settings?.rsi_period ?? "14"),
+    rsi_long_threshold: String(bot.settings?.rsi_long_threshold ?? "55"),
+    rsi_short_threshold: String(bot.settings?.rsi_short_threshold ?? "45"),
+    atr_stop_loss_multiplier: String(bot.settings?.atr_stop_loss_multiplier ?? "1.5"),
+    atr_take_profit_multiplier: String(bot.settings?.atr_take_profit_multiplier ?? "3.0"),
+    trailing_stop_enabled: bot.settings?.trailing_stop_enabled ?? true,
+    trailing_stop_atr_multiplier: String(bot.settings?.trailing_stop_atr_multiplier ?? "2.0"),
+    minimum_atr_percent: String(bot.settings?.minimum_atr_percent ?? "0.1"),
     stop_loss_atr: String(bot.settings?.stop_loss_atr ?? "1.2"),
     take_profit_atr: String(bot.settings?.take_profit_atr ?? "1.8"),
     max_holding_minutes: String(bot.settings?.max_holding_minutes ?? "30"),
@@ -188,6 +241,7 @@ function toPayload(form) {
   }
   SCALPER_SETTING_KEYS.forEach((key) => delete settings[key]);
   DCA_SETTING_KEYS.forEach((key) => delete settings[key]);
+  MOMENTUM_SETTING_KEYS.forEach((key) => delete settings[key]);
   if (form.strategy_type === "dca") {
     Object.assign(settings, {
       dca_volume_multiplier: Number(form.dca_volume_multiplier),
@@ -254,6 +308,32 @@ function toPayload(form) {
       minimum_confirmation_body_atr: 0.08,
     });
   }
+  if (form.strategy_type === "momentum") {
+    Object.assign(settings, {
+      timeframe: form.timeframe,
+      lookback_candles: Number(form.lookback_candles),
+      minimum_signal_score: Number(form.minimum_signal_score),
+      volume_multiplier: Number(form.volume_multiplier),
+      position_side: form.position_side,
+      fast_ema_period: Number(form.fast_ema_period),
+      slow_ema_period: Number(form.slow_ema_period),
+      rsi_period: Number(form.rsi_period),
+      rsi_long_threshold: Number(form.rsi_long_threshold),
+      rsi_short_threshold: Number(form.rsi_short_threshold),
+      atr_stop_loss_multiplier: Number(form.atr_stop_loss_multiplier),
+      atr_take_profit_multiplier: Number(form.atr_take_profit_multiplier),
+      risk_per_trade_percent: Number(form.risk_per_trade_percent),
+      cooldown_minutes: Number(form.cooldown_minutes),
+      trailing_stop_enabled: form.trailing_stop_enabled,
+      trailing_stop_atr_multiplier: Number(form.trailing_stop_atr_multiplier),
+      minimum_atr_percent: Number(form.minimum_atr_percent),
+      position_sizing: "risk_capped",
+      max_position_qty: Number(form.order_qty),
+      max_open_orders: 1,
+      stop_bot_on_error: true,
+      run_interval_seconds: 5,
+    });
+  }
   return {
     name: form.name.trim(),
     exchange: form.exchange,
@@ -271,7 +351,12 @@ function toPayload(form) {
 
 export default function BotsPage() {
   const { tr, locale } = useLanguage();
+  const { confirm } = useConfirmModal();
   const optionLabel = (label) => ({
+    'Grid Bot': tr('Grid Bot', 'Grid Bot'),
+    'DCA Bot': tr('DCA Bot', 'DCA Bot'),
+    'Momentum Bot': tr('Momentum Bot', 'Momentum Bot'),
+    'Pattern Scalper': tr('Pattern Scalper', 'Pattern Scalper'),
     'Local Emulator': tr('Локальний Emulator', 'Local Emulator'),
     'Linear': tr('Лінійний', 'Linear'),
     'Spot': tr('Спот', 'Spot'),
@@ -289,7 +374,7 @@ export default function BotsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [form, setForm] = useState({ ...INITIAL_FORM });
 
-  const loadBots = async () => {
+  const loadBots = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
@@ -300,20 +385,30 @@ export default function BotsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [tr]);
 
-  const loadEmulatorAccounts = async () => {
+  const loadEmulatorAccounts = useCallback(async () => {
     try {
       setEmulatorAccounts(await emulatorApi.accounts());
     } catch {
       setEmulatorAccounts([]);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadBots();
     loadEmulatorAccounts();
-  }, []);
+  }, [loadBots, loadEmulatorAccounts]);
+
+  const categoryOptions = useMemo(() => {
+    if (form.strategy_type === "pattern_scalper") {
+      return SELECT_OPTIONS.category.filter((option) => option.value === "linear");
+    }
+    if (form.strategy_type === "momentum") {
+      return SELECT_OPTIONS.category.filter((option) => option.value !== "inverse");
+    }
+    return SELECT_OPTIONS.category;
+  }, [form.strategy_type]);
 
   const openCreate = () => {
     const defaultKey = emulatorAccounts[0]?.api_key || "emulator-default-key";
@@ -353,6 +448,16 @@ export default function BotsPage() {
           next.volume_multiplier = "1.5";
         }
       }
+      if (name === "strategy_type" && value === "momentum") {
+        if (next.category === "inverse") {
+          next.category = "linear";
+        }
+        if (!editingBotId) {
+          next.timeframe = "15";
+          next.minimum_signal_score = "70";
+          next.position_side = "both";
+        }
+      }
       return next;
     });
   };
@@ -379,7 +484,14 @@ export default function BotsPage() {
   };
 
   const handleDelete = async (botId) => {
-    if (!window.confirm(tr('Видалити цього бота?', 'Delete this bot?'))) {return;}
+    const confirmed = await confirm({
+      title: tr('Видалити бота?', 'Delete this bot?'),
+      message: tr('Цю дію не можна скасувати.', 'This action cannot be undone.'),
+      confirmLabel: tr('Видалити', 'Delete'),
+      cancelLabel: tr('Скасувати', 'Cancel'),
+      isDanger: true,
+    });
+    if (!confirmed) return;
     try {
       setError("");
       setSuccessMessage("");
@@ -462,7 +574,7 @@ export default function BotsPage() {
               <Card className={styles.emptyState}>
                 <Bot size={28} />
                 <h3>{tr('Поки що ботів немає', 'No bots yet')}</h3>
-                <p className="text-secondary">{tr('Створіть Grid Bot, DCA Bot або Pattern Scalper для локального emulator-акаунта.', 'Create a Grid Bot, DCA Bot, or Pattern Scalper for a local emulator account.')}</p>
+                <p className="text-secondary">{tr('Створіть Grid Bot, DCA Bot, Momentum Bot або Pattern Scalper для локального emulator-акаунта.', 'Create a Grid Bot, DCA Bot, Momentum Bot, or Pattern Scalper for a local emulator account.')}</p>
                 <Button icon={<Plus size={16} />} onClick={openCreate}>{tr('Створити першого бота', 'Create first bot')}</Button>
               </Card>
             )}
@@ -482,7 +594,7 @@ export default function BotsPage() {
                     />
                     <div className={styles.botMeta}>
                       <span className="pill"><span className="dot" /> {bot.exchange}</span>
-                      <span className="pill">{bot.strategy_type}</span>
+                      <span className="pill">{formatStrategyLabel(bot.strategy_type)}</span>
                       <span className="pill">{bot.category}</span>
                       <span className="pill">{tr('Runtime', 'Runtime')}: {bot.runtime_status}</span>
                     </div>
@@ -499,6 +611,12 @@ export default function BotsPage() {
                           <div><dt>{tr('Страхувальні ордери', 'Safety Orders')}</dt><dd className="mono">{bot.grid_orders_count}</dd></div>
                           <div><dt>{tr('Перший крок %', 'First Step %')}</dt><dd className="mono">{bot.grid_step_percent}</dd></div>
                           <div><dt>{tr('Take-profit %', 'Take-profit %')}</dt><dd className="mono">{bot.settings?.take_profit_percent ?? 1.5}</dd></div>
+                        </>
+                      ) : bot.strategy_type === "momentum" ? (
+                        <>
+                          <div><dt>{tr('Таймфрейм', 'Timeframe')}</dt><dd className="mono">{bot.settings?.timeframe || "15"}m</dd></div>
+                          <div><dt>{tr('Напрямок', 'Bias')}</dt><dd className="mono">{String(bot.settings?.position_side || "both").toUpperCase()}</dd></div>
+                          <div><dt>{tr('Мін. сигнал', 'Min Signal')}</dt><dd className="mono">{Math.round(Number(bot.settings?.minimum_signal_score || 70))}%</dd></div>
                         </>
                       ) : (
                         <>
@@ -579,7 +697,7 @@ export default function BotsPage() {
                     <label className={styles.field}>
                       <span>{tr('Категорія', 'Category')}</span>
                       <select name="category" value={form.category} onChange={handleChange} disabled={form.strategy_type === "pattern_scalper"}>
-                        {SELECT_OPTIONS.category.map((option) => <option key={option.value} value={option.value}>{optionLabel(option.label)}</option>)}
+                        {categoryOptions.map((option) => <option key={option.value} value={option.value}>{optionLabel(option.label)}</option>)}
                       </select>
                     </label>
                   </div>
@@ -610,6 +728,45 @@ export default function BotsPage() {
                       <div className={styles.fieldGrid}>
                         <label className={styles.field}><span>{tr('Take-profit %', 'Take-profit %')}</span><input name="take_profit_percent" type="number" min="0.01" step="0.01" value={form.take_profit_percent} onChange={handleChange} required /></label>
                       </div>
+                    </div>
+                  ) : form.strategy_type === "momentum" ? (
+                    <div className={styles.strategyFields}>
+                      <p className={styles.strategyHint}>
+                        {tr('Momentum Bot шукає EMA-trend + RSI + volume confirmation на закритих свічках, входить ринковим ордером і керує однією позицією через ATR-based stop-loss, take-profit та trailing stop.', 'Momentum Bot looks for EMA trend + RSI + volume confirmation on closed candles, enters with a market order, and manages a single position with ATR-based stop-loss, take-profit, and trailing stop.')}
+                      </p>
+                      <div className={styles.fieldGrid}>
+                        <label className={styles.field}><span>{tr('Таймфрейм', 'Timeframe')}</span><select name="timeframe" value={form.timeframe} onChange={handleChange}><option value="1">1m</option><option value="3">3m</option><option value="5">5m</option><option value="15">15m</option><option value="30">30m</option><option value="60">1h</option></select></label>
+                        <label className={styles.field}><span>{tr('Свічок lookback', 'Lookback candles')}</span><input name="lookback_candles" type="number" min="80" max="1000" step="1" value={form.lookback_candles} onChange={handleChange} required /></label>
+                      </div>
+                      <div className={styles.fieldGrid}>
+                        <label className={styles.field}><span>{tr('Напрямок позицій', 'Position bias')}</span><select name="position_side" value={form.position_side} onChange={handleChange}><option value="both">{tr('LONG + SHORT', 'LONG + SHORT')}</option><option value="long">LONG</option><option value="short" disabled={form.category === "spot"}>SHORT</option></select></label>
+                        <label className={styles.field}><span>{tr('Мінімальний score сигналу', 'Minimum signal score')}</span><input name="minimum_signal_score" type="number" min="1" max="100" step="1" value={form.minimum_signal_score} onChange={handleChange} required /></label>
+                      </div>
+                      <div className={styles.fieldGrid}>
+                        <label className={styles.field}><span>{tr('Fast EMA', 'Fast EMA')}</span><input name="fast_ema_period" type="number" min="2" step="1" value={form.fast_ema_period} onChange={handleChange} required /></label>
+                        <label className={styles.field}><span>{tr('Slow EMA', 'Slow EMA')}</span><input name="slow_ema_period" type="number" min="3" step="1" value={form.slow_ema_period} onChange={handleChange} required /></label>
+                      </div>
+                      <div className={styles.fieldGrid}>
+                        <label className={styles.field}><span>{tr('RSI період', 'RSI period')}</span><input name="rsi_period" type="number" min="2" step="1" value={form.rsi_period} onChange={handleChange} required /></label>
+                        <label className={styles.field}><span>{tr('Множник volume', 'Volume multiplier')}</span><input name="volume_multiplier" type="number" min="0.1" step="0.1" value={form.volume_multiplier} onChange={handleChange} required /></label>
+                      </div>
+                      <div className={styles.fieldGrid}>
+                        <label className={styles.field}><span>{tr('RSI long мін.', 'RSI long min')}</span><input name="rsi_long_threshold" type="number" min="1" max="99" step="1" value={form.rsi_long_threshold} onChange={handleChange} required /></label>
+                        <label className={styles.field}><span>{tr('RSI short макс.', 'RSI short max')}</span><input name="rsi_short_threshold" type="number" min="1" max="99" step="1" value={form.rsi_short_threshold} onChange={handleChange} required /></label>
+                      </div>
+                      <div className={styles.fieldGrid}>
+                        <label className={styles.field}><span>{tr('Stop-loss, ATR', 'Stop-loss, ATR')}</span><input name="atr_stop_loss_multiplier" type="number" min="0.1" step="0.1" value={form.atr_stop_loss_multiplier} onChange={handleChange} required /></label>
+                        <label className={styles.field}><span>{tr('Take-profit, ATR', 'Take-profit, ATR')}</span><input name="atr_take_profit_multiplier" type="number" min="0.1" step="0.1" value={form.atr_take_profit_multiplier} onChange={handleChange} required /></label>
+                      </div>
+                      <div className={styles.fieldGrid}>
+                        <label className={styles.field}><span>{tr('Trailing stop, ATR', 'Trailing stop, ATR')}</span><input name="trailing_stop_atr_multiplier" type="number" min="0.1" step="0.1" value={form.trailing_stop_atr_multiplier} onChange={handleChange} required /></label>
+                        <label className={styles.field}><span>{tr('Мін. ATR %', 'Min ATR %')}</span><input name="minimum_atr_percent" type="number" min="0" step="0.01" value={form.minimum_atr_percent} onChange={handleChange} required /></label>
+                      </div>
+                      <div className={styles.fieldGrid}>
+                        <label className={styles.field}><span>{tr('Ризик на угоду %', 'Risk per trade %')}</span><input name="risk_per_trade_percent" type="number" min="0.01" max="10" step="0.01" value={form.risk_per_trade_percent} onChange={handleChange} required /></label>
+                        <label className={styles.field}><span>{tr('Cooldown, хв', 'Cooldown, min')}</span><input name="cooldown_minutes" type="number" min="0" step="1" value={form.cooldown_minutes} onChange={handleChange} required /></label>
+                      </div>
+                      <label className={styles.toggle}><input name="trailing_stop_enabled" type="checkbox" checked={form.trailing_stop_enabled} onChange={handleChange} /><span>{tr('Увімкнути trailing stop', 'Enable trailing stop')}</span></label>
                     </div>
                   ) : (
                     <div className={styles.strategyFields}>
@@ -664,3 +821,17 @@ export default function BotsPage() {
     </main>
   );
 }
+
+function formatStrategyLabel(strategyType) {
+  if (strategyType === "pattern_scalper") {
+    return "Pattern Scalper";
+  }
+  if (strategyType === "momentum") {
+    return "Momentum Bot";
+  }
+  if (strategyType === "dca") {
+    return "DCA Bot";
+  }
+  return "Grid Bot";
+}
+

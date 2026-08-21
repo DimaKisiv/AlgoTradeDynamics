@@ -1,0 +1,37 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`ui/ConnectionStatus snapshot — live 1`] = `
+<span
+  class="badge live"
+  title="Статус WebSocket-з’єднання"
+>
+  <span
+    class="dot"
+  />
+  Live
+</span>
+`;
+
+exports[`ui/ConnectionStatus snapshot — offline 1`] = `
+<span
+  class="badge offline"
+  title="Статус WebSocket-з’єднання"
+>
+  <span
+    class="dot"
+  />
+  Offline
+</span>
+`;
+
+exports[`ui/ConnectionStatus snapshot — reconnecting 1`] = `
+<span
+  class="badge reconnecting"
+  title="Статус WebSocket-з’єднання"
+>
+  <span
+    class="dot"
+  />
+  Перепідключення
+</span>
+`;

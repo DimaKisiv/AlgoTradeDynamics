@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 ExchangeLiteral = Literal["bybit"]
 EnvironmentLiteral = Literal["emulator", "demo", "testnet", "live"]
-StrategyTypeLiteral = Literal["grid", "dca", "pattern_scalper"]
+StrategyTypeLiteral = Literal["grid", "dca", "momentum", "pattern_scalper"]
 CategoryLiteral = Literal["linear", "spot", "inverse"]
 
 
@@ -20,7 +20,7 @@ class TradingBotBase(BaseModel):
     symbol: str = Field(default="BTCUSDT", min_length=2, max_length=30)
     order_qty: float = Field(default=0.001, gt=0)
     grid_orders_count: int = Field(default=2, ge=1, le=100)
-    grid_step_percent: float = Field(default=5, gt=0, le=100)
+    grid_step_percent: float = Field(default=5, ge=0, le=100)
     is_active: bool = True
     settings: dict[str, Any] = Field(default_factory=dict)
 
@@ -38,7 +38,7 @@ class TradingBotUpdate(BaseModel):
     symbol: str | None = Field(default=None, min_length=2, max_length=30)
     order_qty: float | None = Field(default=None, gt=0)
     grid_orders_count: int | None = Field(default=None, ge=1, le=100)
-    grid_step_percent: float | None = Field(default=None, gt=0, le=100)
+    grid_step_percent: float | None = Field(default=None, ge=0, le=100)
     is_active: bool | None = None
     settings: dict[str, Any] | None = None
 

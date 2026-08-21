@@ -392,6 +392,7 @@ export default function BacktestDetailPage() {
 
   const metrics = run?.metrics || {};
   const isScalper = run?.bot_snapshot?.strategy_type === "pattern_scalper";
+  const isMomentum = run?.bot_snapshot?.strategy_type === "momentum";
 
   const normalizedPoints = useMemo(() => points
     .map((point) => ({ ...point, timestamp: asMs(point.timestamp) }))
@@ -446,12 +447,14 @@ export default function BacktestDetailPage() {
     const result = [];
     executions.forEach((execution) => {
       const order = orderByExchangeId.get(String(execution.orderId));
-      const role = order?.order_role || (String(execution.side).toLowerCase() === "sell" ? "position_take_profit" : "grid_entry");
+      const role = order?.order_role || inferExecutionRole(run?.bot_snapshot?.strategy_type, execution, run?.bot_snapshot);
       const isScalperEntry = role.startsWith("scalper_entry");
       const isScalperExit = role.startsWith("scalper_") && !isScalperEntry;
+      const isMomentumEntry = role.startsWith("momentum_entry");
+      const isMomentumExit = role.startsWith("momentum_") && !isMomentumEntry;
       const isDcaEntry = role.startsWith("dca_entry");
       const isTp = role.includes("take_profit") || role.includes("tp");
-      const isExit = isTp || isScalperExit;
+      const isExit = isTp || isScalperExit || isMomentumExit || role === "position_close";
       if (isExit && !filters.tp) return;
       if (!isExit && !filters.entries) return;
       const level = String(order?.order_link_id || "").match(/entry-(\d+)/)?.[1];
@@ -472,13 +475,7 @@ export default function BacktestDetailPage() {
           execution.side,
           positionDirectionAt(cycles, execution.execTime, run?.end_time),
         ),
-        label: role.includes("stop_loss") ? tr("Stop-loss виконано", "Stop loss filled")
-          : role.includes("timeout") ? tr("Вихід за таймаутом виконано", "Timeout exit filled")
-          : role.includes("manual_close") ? tr("Вихід наприкінці тесту виконано", "End-of-test exit filled")
-          : isTp ? tr("Take-profit виконано", "Take profit filled")
-          : isScalperEntry ? (role.includes("short") ? tr("SHORT-вхід виконано", "SHORT entry filled") : tr("LONG-вхід виконано", "LONG entry filled"))
-          : isDcaEntry ? (level === "1" ? tr("DCA базовий вхід виконано", "DCA base entry filled") : tr(`DCA докуп #${level || "?"} виконано`, `DCA safety #${level || "?"} filled`))
-          : tr(`Grid #${level || "?"} виконано`, `Grid #${level || "?"} filled`),
+        label: markerLabel({ role, isScalperEntry, isMomentumEntry, isDcaEntry, isTp, level, tr }),
         status: tr("Виконано", "Filled"),
         kind: "filled",
       });
@@ -504,9 +501,7 @@ export default function BacktestDetailPage() {
             order.side,
             positionDirectionAt(cycles, order.updated_at, run?.end_time),
           ),
-          label: isTp ? tr("Take-profit скасовано", "Take profit cancelled")
-            : role.startsWith("dca_entry") ? tr(`DCA докуп #${level || "?"} скасовано`, `DCA safety #${level || "?"} cancelled`)
-            : tr(`Grid #${level || "?"} скасовано`, `Grid #${level || "?"} cancelled`),
+          label: cancelledMarkerLabel({ role, isTp, level, tr }),
           status: tr("Скасовано", "Cancelled"),
           kind: "cancelled",
         });
@@ -776,7 +771,7 @@ export default function BacktestDetailPage() {
       const price = asNumber(item.execPrice);
       const isBuy = String(item.side).toLowerCase() === "buy";
       const order = byExchangeId.get(String(item.orderId));
-      const role = order?.order_role || (isBuy ? "grid_entry" : "position_take_profit");
+      const role = order?.order_role || inferExecutionRole(run?.bot_snapshot?.strategy_type, item, run?.bot_snapshot);
       const cycleDirection = positionDirectionAt(cycles, item.execTime, run?.end_time);
       const direction = inferPositionDirection(
         role,
@@ -789,7 +784,16 @@ export default function BacktestDetailPage() {
       } else if (role === "scalper_entry_short") {
         qty = -fillQty;
         avg = price;
+      } else if (role === "momentum_entry_long") {
+        qty = fillQty;
+        avg = price;
+      } else if (role === "momentum_entry_short") {
+        qty = -fillQty;
+        avg = price;
       } else if (role.startsWith("scalper_") && !role.startsWith("scalper_entry")) {
+        qty = 0;
+        avg = 0;
+      } else if (role.startsWith("momentum_") && !role.startsWith("momentum_entry")) {
         qty = 0;
         avg = 0;
       } else if (isBuy) {
@@ -802,7 +806,7 @@ export default function BacktestDetailPage() {
       }
       return { ...item, before, after: qty, average: avg, role, direction };
     });
-  }, [orderedExecutions, orders, cycles, run?.end_time]);
+  }, [orderedExecutions, orders, cycles, run?.end_time, run?.bot_snapshot?.strategy_type, run?.bot_snapshot]);
 
   const filteredEvents = useMemo(() => events.filter((event) => {
     const type = String(event.event_type || "").toLowerCase();
@@ -871,10 +875,13 @@ export default function BacktestDetailPage() {
               <Metric label={tr("Найгірший відкритий збиток", "Worst open loss")} value={fmtMoneySigned(metrics.maximum_unrealized_loss)} tone="negative"/><Metric label={tr("Макс. кількість позиції", "Max position qty")} value={fmtNumber(metrics.maximum_position_qty,6)}/><Metric label={tr("Макс. вартість позиції", "Max position value")} value={fmtMoney(metrics.maximum_position_value)}/><Metric label={tr("Макс. використана маржа", "Max used margin")} value={fmtMoney(metrics.maximum_used_margin)}/><Metric label={tr("Мін. доступний баланс", "Lowest available")} value={fmtMoney(metrics.lowest_available_balance)}/><Metric label={tr("Макс. виконаних входів", "Max entries filled")} value={metrics.maximum_grid_levels_filled ?? 0}/><Metric label={tr("Позиція відкрита в кінці", "Open at end")} value={metrics.open_position_at_end ? tr("Так", "Yes") : tr("Ні", "No")}/><Metric label={tr("Відкриті ордери в кінці", "Open orders at end")} value={metrics.open_orders_at_end ?? "—"}/>
             </div></section>
             <section className={styles.panel}><h2>{tr("Цикли", "Cycles")}</h2><div className={styles.metricGrid}>
-              <Metric label={tr("Закриті цикли", "Closed cycles")} value={metrics.closed_cycles ?? 0}/><Metric label={tr("Прибуткові", "Winning")} value={metrics.winning_cycles ?? 0}/><Metric label={tr("Збиткові", "Losing")} value={metrics.losing_cycles ?? 0}/><Metric label={tr("Виконання", "Executions")} value={metrics.executions_count ?? 0}/>{isScalper && <Metric label={tr("LONG угоди", "LONG trades")} value={metrics.long_trades ?? 0}/>} {isScalper && <Metric label={tr("SHORT угоди", "SHORT trades")} value={metrics.short_trades ?? 0}/>}<Metric label={tr("Кінцева позиція", "Final position")} value={fmtNumber(metrics.open_position_qty,6)}/><Metric label={tr("Сер. ціна входу в кінці", "Avg entry at end")} value={metrics.open_avg_entry_price?fmtMoney(metrics.open_avg_entry_price):"—"}/>
+              <Metric label={tr("Закриті цикли", "Closed cycles")} value={metrics.closed_cycles ?? 0}/><Metric label={tr("Прибуткові", "Winning")} value={metrics.winning_cycles ?? 0}/><Metric label={tr("Збиткові", "Losing")} value={metrics.losing_cycles ?? 0}/><Metric label={tr("Виконання", "Executions")} value={metrics.executions_count ?? 0}/>{(isScalper || isMomentum) && <Metric label={tr("LONG угоди", "LONG trades")} value={metrics.long_trades ?? 0}/>} {(isScalper || isMomentum) && <Metric label={tr("SHORT угоди", "SHORT trades")} value={metrics.short_trades ?? 0}/>}<Metric label={tr("Кінцева позиція", "Final position")} value={fmtNumber(metrics.open_position_qty,6)}/><Metric label={tr("Сер. ціна входу в кінці", "Avg entry at end")} value={metrics.open_avg_entry_price?fmtMoney(metrics.open_avg_entry_price):"—"}/>
             </div></section>
             {isScalper && <section className={styles.panel}><h2>{tr("Виходи скальпера", "Scalper exits")}</h2><div className={styles.metricGrid}>
               <Metric label={tr("Take profit", "Take profit")} value={metrics.take_profit_cycles ?? 0} hint={fmtMoneySigned(metrics.take_profit_net_pnl ?? 0)}/><Metric label={tr("Stop loss", "Stop loss")} value={metrics.stop_loss_cycles ?? 0} hint={fmtMoneySigned(metrics.stop_loss_net_pnl ?? 0)}/><Metric label={tr("Таймаут", "Timeout")} value={metrics.timeout_cycles ?? 0} hint={fmtMoneySigned(metrics.timeout_net_pnl ?? 0)}/><Metric label={tr("Інші виходи", "Other exits")} value={metrics.other_exit_cycles ?? 0} hint={fmtMoneySigned(metrics.other_exit_net_pnl ?? 0)}/><Metric label={tr("Сер. комісія / цикл", "Avg fee / cycle")} value={fmtMoney(metrics.average_fee_per_cycle ?? 0)}/>
+            </div></section>}
+            {isMomentum && <section className={styles.panel}><h2>{tr("Виходи momentum", "Momentum exits")}</h2><div className={styles.metricGrid}>
+              <Metric label={tr("Take profit", "Take profit")} value={metrics.take_profit_cycles ?? 0} hint={fmtMoneySigned(metrics.take_profit_net_pnl ?? 0)}/><Metric label={tr("Stop loss", "Stop loss")} value={metrics.stop_loss_cycles ?? 0} hint={fmtMoneySigned(metrics.stop_loss_net_pnl ?? 0)}/><Metric label={tr("Trailing stop", "Trailing stop")} value={metrics.trailing_stop_cycles ?? 0} hint={fmtMoneySigned(metrics.trailing_stop_net_pnl ?? 0)}/><Metric label={tr("Вихід за сигналом", "Signal exit")} value={metrics.signal_exit_cycles ?? 0} hint={fmtMoneySigned(metrics.signal_exit_net_pnl ?? 0)}/><Metric label={tr("Інші виходи", "Other exits")} value={metrics.other_exit_cycles ?? 0} hint={fmtMoneySigned(metrics.other_exit_net_pnl ?? 0)}/><Metric label={tr("Сер. комісія / цикл", "Avg fee / cycle")} value={fmtMoney(metrics.average_fee_per_cycle ?? 0)}/>
             </div></section>}
             {isScalper && Array.isArray(metrics.pattern_performance) && metrics.pattern_performance.length > 0 && <section className={styles.panel}><h2>{tr("Ефективність патернів", "Pattern performance")}</h2><div className={styles.metricGrid}>
               {metrics.pattern_performance.map((item) => <Metric key={item.pattern} label={String(item.pattern || "unknown").replaceAll("_", " ")} value={`${item.trades ?? 0} ${tr("угод", "trades")}`} hint={`${fmtMoneySigned(item.net_pnl ?? 0)} · ${fmtNumber(item.win_rate_percent ?? 0, 1)}% ${tr("перемог", "wins")}`}/>)}
@@ -886,7 +893,7 @@ export default function BacktestDetailPage() {
           <div className={styles.chartToolbar}>
             <div className={styles.checks}>
               <ChartToggle checked={filters.entries} onChange={(e) => setFilters({ ...filters, entries: e.target.checked })} label={tr("Виконання входів", "Entry fills")} color="#25c78b"/>
-              <ChartToggle checked={filters.tp} onChange={(e) => setFilters({ ...filters, tp: e.target.checked })} label={isScalper ? tr("Виконання виходів", "Exit fills") : tr("Виконання take-profit", "Take-profit fills")} color="#b98cff"/>
+              <ChartToggle checked={filters.tp} onChange={(e) => setFilters({ ...filters, tp: e.target.checked })} label={isScalper || isMomentum ? tr("Виконання виходів", "Exit fills") : tr("Виконання take-profit", "Take-profit fills")} color="#b98cff"/>
               <ChartToggle checked={filters.cancelled} onChange={(e) => setFilters({ ...filters, cancelled: e.target.checked })} label={tr("Скасовані ордери", "Cancelled orders")} color="#929bb0"/>
               <ChartToggle checked={filters.position} onChange={(e) => setFilters({ ...filters, position: e.target.checked })} label={tr("Позиція відкрита", "Position open")} color="#4d9dff" type="band"/>
               <ChartToggle checked={filters.loss} onChange={(e) => setFilters({ ...filters, loss: e.target.checked })} label={tr("Відкритий збиток", "Open loss")} color="#f05b63" type="band"/>
@@ -957,7 +964,7 @@ export default function BacktestDetailPage() {
                     shape={(props) => <OrderMarker {...props} payload={marker} onSelect={(selected) => { setSelectedMarker(selected); setFocusTime(selected.timestamp); }}/>} 
                   />)}
                   {selectedCycle && selectedCycle !== openCycle && <ReferenceLine x={asMs(selectedCycle.started_at_ms)} stroke="#25c78b" strokeDasharray="3 4" label={{ value: `${tr(`Цикл #${selectedCycle.cycle_number}: вхід`, `Cycle #${selectedCycle.cycle_number} entry`)}${positionDirectionFromCycle(selectedCycle) ? ` · ${positionDirectionFromCycle(selectedCycle).toUpperCase()}` : ""}`, position: "insideTopLeft", fill: "#25c78b", fontSize: 10 }}/>} 
-                  {selectedCycle?.closed_at_ms && <ReferenceLine x={asMs(selectedCycle.closed_at_ms)} stroke="#b98cff" strokeDasharray="3 4" label={{ value: isScalper ? tr("Закриття виходу", "Exit close") : tr("Закриття TP", "TP close"), position: "insideTopRight", fill: "#b98cff", fontSize: 10 }}/>} 
+                  {selectedCycle?.closed_at_ms && <ReferenceLine x={asMs(selectedCycle.closed_at_ms)} stroke="#b98cff" strokeDasharray="3 4" label={{ value: isScalper || isMomentum ? tr("Закриття виходу", "Exit close") : tr("Закриття TP", "TP close"), position: "insideTopRight", fill: "#b98cff", fontSize: 10 }}/>} 
                   {showOpenCycleStart && <ReferenceLine x={openCycleStart} stroke="#ffc24b" strokeDasharray="5 4" label={{ value: tr(`Відкритий цикл #${openCycle.cycle_number}`, `Open cycle #${openCycle.cycle_number}`), position: "insideTopRight", fill: "#ffc24b", fontSize: 10 }}/>} 
                   {focusTime && focusTime >= periodStart && focusTime <= periodEnd && <ReferenceLine x={focusTime} stroke="#4d9dff" strokeDasharray="4 4"/>}
                 </ComposedChart>
@@ -1011,3 +1018,78 @@ export default function BacktestDetailPage() {
 
 function TableWrap({ children }) { return <section className={styles.tableWrap}>{children}</section>; }
 function Config({ data }) { return <dl className={styles.config}>{Object.entries(data||{}).map(([key,value])=><div key={key}><dt>{key.replaceAll("_"," ")}</dt><dd>{typeof value==="object"?<pre>{JSON.stringify(value,null,2)}</pre>:String(value??"—")}</dd></div>)}</dl>; }
+
+function inferExecutionRole(strategyType, execution, botSnapshot) {
+  const normalizedStrategy = String(strategyType || "").toLowerCase();
+  const normalizedSide = String(execution?.side ?? (execution || "")).toLowerCase();
+  const normalizedPositionSide = String(botSnapshot?.settings?.position_side || "both").toLowerCase();
+  const closedPnl = Number(execution?.closedPnl);
+  const hasClosedPnl = Number.isFinite(closedPnl) && Math.abs(closedPnl) > 1e-9;
+  if (normalizedStrategy === "momentum") {
+    if (normalizedPositionSide === "long") {
+      return normalizedSide === "buy" ? "momentum_entry_long" : "momentum_exit";
+    }
+    if (normalizedPositionSide === "short") {
+      return normalizedSide === "sell" ? "momentum_entry_short" : "momentum_exit";
+    }
+    if (hasClosedPnl) {
+      return "momentum_exit";
+    }
+    return normalizedSide === "sell" ? "momentum_entry_short" : "momentum_entry_long";
+  }
+  if (normalizedStrategy === "pattern_scalper") {
+    return normalizedSide === "sell" ? "scalper_take_profit" : "scalper_entry_long";
+  }
+  return normalizedSide === "sell" ? "position_take_profit" : "grid_entry";
+}
+
+function markerLabel({ role, isScalperEntry, isMomentumEntry, isDcaEntry, isTp, level, tr }) {
+  if (role.includes("stop_loss")) {
+    return tr("Stop-loss виконано", "Stop loss filled");
+  }
+  if (role.includes("trailing_stop")) {
+    return tr("Trailing stop виконано", "Trailing stop filled");
+  }
+  if (role.includes("signal_exit")) {
+    return tr("Вихід за сигналом виконано", "Signal exit filled");
+  }
+  if (role.includes("timeout")) {
+    return tr("Вихід за таймаутом виконано", "Timeout exit filled");
+  }
+  if (role.includes("manual_close")) {
+    return tr("Вихід наприкінці тесту виконано", "End-of-test exit filled");
+  }
+  if (role === "momentum_exit") {
+    return tr("Вихід momentum виконано", "Momentum exit filled");
+  }
+  if (isTp) {
+    return tr("Take-profit виконано", "Take profit filled");
+  }
+  if (isMomentumEntry) {
+    return role.includes("short")
+      ? tr("Momentum SHORT-вхід виконано", "Momentum SHORT entry filled")
+      : tr("Momentum LONG-вхід виконано", "Momentum LONG entry filled");
+  }
+  if (isScalperEntry) {
+    return role.includes("short")
+      ? tr("SHORT-вхід виконано", "SHORT entry filled")
+      : tr("LONG-вхід виконано", "LONG entry filled");
+  }
+  if (isDcaEntry) {
+    return level === "1"
+      ? tr("DCA базовий вхід виконано", "DCA base entry filled")
+      : tr(`DCA докуп #${level || "?"} виконано`, `DCA safety #${level || "?"} filled`);
+  }
+  return tr(`Grid #${level || "?"} виконано`, `Grid #${level || "?"} filled`);
+}
+
+function cancelledMarkerLabel({ role, isTp, level, tr }) {
+  if (isTp || role.startsWith("momentum_")) {
+    return tr("Керований вихід скасовано", "Managed exit cancelled");
+  }
+  if (role.startsWith("dca_entry")) {
+    return tr(`DCA докуп #${level || "?"} скасовано`, `DCA safety #${level || "?"} cancelled`);
+  }
+  return tr(`Grid #${level || "?"} скасовано`, `Grid #${level || "?"} cancelled`);
+}
+

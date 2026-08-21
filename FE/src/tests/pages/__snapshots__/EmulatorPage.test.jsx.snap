@@ -1,0 +1,2025 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`pages/EmulatorPage renders main element 1`] = `
+<div>
+  <main
+    class="page"
+  >
+    <div
+      class="container"
+    >
+      <header
+        class="hero"
+      >
+        <div>
+          <span
+            class="eyebrow"
+          >
+            Локальна біржова лабораторія
+          </span>
+          <h1
+            class="display-2"
+          >
+            Біржовий
+             
+            <span
+              class="italic-accent"
+            >
+              Emulator
+            </span>
+          </h1>
+          <p
+            class="lead"
+          >
+            Керуйте тестовим ринком, запускайте сценарії та програвайте реальні історичні свічки.
+          </p>
+        </div>
+        <div
+          class="selectorGroup"
+        >
+          <label>
+            <span>
+              Акаунт
+            </span>
+            <select />
+          </label>
+          <label>
+            <span>
+              Символ
+            </span>
+            <select />
+          </label>
+          <span
+            class="badge offline"
+            title="Статус WebSocket-з’єднання"
+          >
+            <span
+              class="dot"
+            />
+            Offline
+          </span>
+          <button
+            class="btn btnGhost btnMd"
+            type="button"
+          >
+            <span
+              class="btnIcon"
+            >
+              <svg
+                class="lucide lucide-refresh-cw"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="16"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"
+                />
+                <path
+                  d="M21 3v5h-5"
+                />
+                <path
+                  d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"
+                />
+                <path
+                  d="M8 16H3v5"
+                />
+              </svg>
+            </span>
+            <span
+              class="btnLabel"
+            >
+              Оновити
+            </span>
+          </button>
+        </div>
+      </header>
+      <div
+        class="notice error"
+      >
+        _emulator.emulatorApi.dashboard is not a function
+      </div>
+      <section
+        class="metrics"
+      >
+        <div
+          class="metric metricNeutral"
+        >
+          <span>
+            Ціна ринку
+          </span>
+          <strong>
+            $0
+          </strong>
+        </div>
+        <div
+          class="metric metricNeutral"
+        >
+          <span>
+            Баланс гаманця
+          </span>
+          <strong>
+            $0
+          </strong>
+        </div>
+        <div
+          class="metric metricNeutral"
+        >
+          <span>
+            Equity
+          </span>
+          <strong>
+            $0
+          </strong>
+        </div>
+        <div
+          class="metric metricNeutral"
+        >
+          <span>
+            Відкритий PnL
+          </span>
+          <strong>
+            $0
+          </strong>
+        </div>
+        <div
+          class="metric metricNeutral"
+        >
+          <span>
+            Відкриті ордери
+          </span>
+          <strong>
+            0
+          </strong>
+        </div>
+        <div
+          class="metric metricNeutral"
+        >
+          <span>
+            Режим
+          </span>
+          <strong>
+            — / —
+          </strong>
+        </div>
+      </section>
+      <div
+        class="card glass-strong chartCard"
+      >
+        <div
+          class="cardHeader "
+        >
+          <div>
+            <p
+              class="eyebrow"
+            >
+              BTCUSDT
+            </p>
+            <h3
+              class="cardHeaderTitle"
+            >
+              Рух ринку
+            </h3>
+          </div>
+          <div
+            class="cardHeaderAction"
+          >
+            <span
+              class="pill"
+            >
+              <span
+                class="dot"
+              />
+               
+              manual
+            </span>
+          </div>
+        </div>
+        <div
+          class="chart"
+        >
+          <div
+            class="chartEmpty"
+          >
+            Змініть ціну або запустіть replay — тут з’явиться рух ринку.
+          </div>
+        </div>
+      </div>
+      <div
+        class="tabs"
+      >
+        <button
+          class="activeTab"
+          type="button"
+        >
+          Ручний
+        </button>
+        <button
+          class=""
+          type="button"
+        >
+          Сценарій
+        </button>
+        <button
+          class=""
+          type="button"
+        >
+          Історичний
+        </button>
+        <button
+          class=""
+          type="button"
+        >
+          Акаунти
+        </button>
+        <button
+          class=""
+          type="button"
+        >
+          Активність
+        </button>
+      </div>
+      <section
+        class="twoColumns"
+      >
+        <div
+          class="card glass-strong "
+        >
+          <div
+            class="cardHeader "
+          >
+            <div>
+              <p
+                class="eyebrow"
+              >
+                Негайно
+              </p>
+              <h3
+                class="cardHeaderTitle"
+              >
+                Встановити ціну
+              </h3>
+            </div>
+          </div>
+          <div
+            class="formStack"
+          >
+            <label>
+              <span>
+                Нова ціна
+              </span>
+              <input
+                min="0.01"
+                step="0.01"
+                type="number"
+                value="65000"
+              />
+            </label>
+            <button
+              class="btn btnPrimary btnMd"
+              type="button"
+            >
+              <span
+                class="btnIcon"
+              >
+                <svg
+                  class="lucide lucide-gauge"
+                  fill="none"
+                  height="16"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="m12 14 4-4"
+                  />
+                  <path
+                    d="M3.34 19a10 10 0 1 1 17.32 0"
+                  />
+                </svg>
+              </span>
+              <span
+                class="btnLabel"
+              >
+                Встановити ціну
+              </span>
+            </button>
+            <div
+              class="quickButtons"
+            >
+              <button
+                type="button"
+              >
+                -5
+                %
+              </button>
+              <button
+                type="button"
+              >
+                -1
+                %
+              </button>
+              <button
+                type="button"
+              >
+                +
+                1
+                %
+              </button>
+              <button
+                type="button"
+              >
+                +
+                5
+                %
+              </button>
+            </div>
+          </div>
+        </div>
+        <div
+          class="card glass-strong "
+        >
+          <div
+            class="cardHeader "
+          >
+            <div>
+              <p
+                class="eyebrow"
+              >
+                Плавний рух
+              </p>
+              <h3
+                class="cardHeaderTitle"
+              >
+                Плавний рух
+              </h3>
+            </div>
+          </div>
+          <div
+            class="formStack"
+          >
+            <label>
+              <span>
+                Цільова ціна
+              </span>
+              <input
+                min="0.01"
+                step="0.01"
+                type="number"
+                value="62000"
+              />
+            </label>
+            <label>
+              <span>
+                Тривалість, секунди
+              </span>
+              <input
+                min="0"
+                step="1"
+                type="number"
+                value="10"
+              />
+            </label>
+            <div
+              class="actionRow"
+            >
+              <button
+                class="btn btnPrimary btnMd"
+                type="button"
+              >
+                <span
+                  class="btnIcon"
+                >
+                  <svg
+                    class="lucide lucide-play"
+                    fill="none"
+                    height="16"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="16"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <polygon
+                      points="6 3 20 12 6 21 6 3"
+                    />
+                  </svg>
+                </span>
+                <span
+                  class="btnLabel"
+                >
+                  Рух
+                </span>
+              </button>
+              <button
+                class="btn btnGhost btnMd"
+                type="button"
+              >
+                <span
+                  class="btnIcon"
+                >
+                  <svg
+                    class="lucide lucide-pause"
+                    fill="none"
+                    height="16"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="16"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <rect
+                      height="16"
+                      rx="1"
+                      width="4"
+                      x="14"
+                      y="4"
+                    />
+                    <rect
+                      height="16"
+                      rx="1"
+                      width="4"
+                      x="6"
+                      y="4"
+                    />
+                  </svg>
+                </span>
+                <span
+                  class="btnLabel"
+                >
+                  Пауза
+                </span>
+              </button>
+              <button
+                class="btn btnGhost btnMd"
+                type="button"
+              >
+                <span
+                  class="btnIcon"
+                >
+                  <svg
+                    class="lucide lucide-square"
+                    fill="none"
+                    height="16"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="16"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <rect
+                      height="18"
+                      rx="2"
+                      width="18"
+                      x="3"
+                      y="3"
+                    />
+                  </svg>
+                </span>
+                <span
+                  class="btnLabel"
+                >
+                  Стоп
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+`;
+
+exports[`pages/EmulatorPage renders without throwing 1`] = `
+<div>
+  <main
+    class="page"
+  >
+    <div
+      class="container"
+    >
+      <header
+        class="hero"
+      >
+        <div>
+          <span
+            class="eyebrow"
+          >
+            Локальна біржова лабораторія
+          </span>
+          <h1
+            class="display-2"
+          >
+            Біржовий
+             
+            <span
+              class="italic-accent"
+            >
+              Emulator
+            </span>
+          </h1>
+          <p
+            class="lead"
+          >
+            Керуйте тестовим ринком, запускайте сценарії та програвайте реальні історичні свічки.
+          </p>
+        </div>
+        <div
+          class="selectorGroup"
+        >
+          <label>
+            <span>
+              Акаунт
+            </span>
+            <select />
+          </label>
+          <label>
+            <span>
+              Символ
+            </span>
+            <select />
+          </label>
+          <span
+            class="badge offline"
+            title="Статус WebSocket-з’єднання"
+          >
+            <span
+              class="dot"
+            />
+            Offline
+          </span>
+          <button
+            class="btn btnGhost btnMd"
+            type="button"
+          >
+            <span
+              class="btnIcon"
+            >
+              <svg
+                class="lucide lucide-refresh-cw"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="16"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"
+                />
+                <path
+                  d="M21 3v5h-5"
+                />
+                <path
+                  d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"
+                />
+                <path
+                  d="M8 16H3v5"
+                />
+              </svg>
+            </span>
+            <span
+              class="btnLabel"
+            >
+              Оновити
+            </span>
+          </button>
+        </div>
+      </header>
+      <div
+        class="notice error"
+      >
+        _emulator.emulatorApi.dashboard is not a function
+      </div>
+      <section
+        class="metrics"
+      >
+        <div
+          class="metric metricNeutral"
+        >
+          <span>
+            Ціна ринку
+          </span>
+          <strong>
+            $0
+          </strong>
+        </div>
+        <div
+          class="metric metricNeutral"
+        >
+          <span>
+            Баланс гаманця
+          </span>
+          <strong>
+            $0
+          </strong>
+        </div>
+        <div
+          class="metric metricNeutral"
+        >
+          <span>
+            Equity
+          </span>
+          <strong>
+            $0
+          </strong>
+        </div>
+        <div
+          class="metric metricNeutral"
+        >
+          <span>
+            Відкритий PnL
+          </span>
+          <strong>
+            $0
+          </strong>
+        </div>
+        <div
+          class="metric metricNeutral"
+        >
+          <span>
+            Відкриті ордери
+          </span>
+          <strong>
+            0
+          </strong>
+        </div>
+        <div
+          class="metric metricNeutral"
+        >
+          <span>
+            Режим
+          </span>
+          <strong>
+            — / —
+          </strong>
+        </div>
+      </section>
+      <div
+        class="card glass-strong chartCard"
+      >
+        <div
+          class="cardHeader "
+        >
+          <div>
+            <p
+              class="eyebrow"
+            >
+              BTCUSDT
+            </p>
+            <h3
+              class="cardHeaderTitle"
+            >
+              Рух ринку
+            </h3>
+          </div>
+          <div
+            class="cardHeaderAction"
+          >
+            <span
+              class="pill"
+            >
+              <span
+                class="dot"
+              />
+               
+              manual
+            </span>
+          </div>
+        </div>
+        <div
+          class="chart"
+        >
+          <div
+            class="chartEmpty"
+          >
+            Змініть ціну або запустіть replay — тут з’явиться рух ринку.
+          </div>
+        </div>
+      </div>
+      <div
+        class="tabs"
+      >
+        <button
+          class="activeTab"
+          type="button"
+        >
+          Ручний
+        </button>
+        <button
+          class=""
+          type="button"
+        >
+          Сценарій
+        </button>
+        <button
+          class=""
+          type="button"
+        >
+          Історичний
+        </button>
+        <button
+          class=""
+          type="button"
+        >
+          Акаунти
+        </button>
+        <button
+          class=""
+          type="button"
+        >
+          Активність
+        </button>
+      </div>
+      <section
+        class="twoColumns"
+      >
+        <div
+          class="card glass-strong "
+        >
+          <div
+            class="cardHeader "
+          >
+            <div>
+              <p
+                class="eyebrow"
+              >
+                Негайно
+              </p>
+              <h3
+                class="cardHeaderTitle"
+              >
+                Встановити ціну
+              </h3>
+            </div>
+          </div>
+          <div
+            class="formStack"
+          >
+            <label>
+              <span>
+                Нова ціна
+              </span>
+              <input
+                min="0.01"
+                step="0.01"
+                type="number"
+                value="65000"
+              />
+            </label>
+            <button
+              class="btn btnPrimary btnMd"
+              type="button"
+            >
+              <span
+                class="btnIcon"
+              >
+                <svg
+                  class="lucide lucide-gauge"
+                  fill="none"
+                  height="16"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="m12 14 4-4"
+                  />
+                  <path
+                    d="M3.34 19a10 10 0 1 1 17.32 0"
+                  />
+                </svg>
+              </span>
+              <span
+                class="btnLabel"
+              >
+                Встановити ціну
+              </span>
+            </button>
+            <div
+              class="quickButtons"
+            >
+              <button
+                type="button"
+              >
+                -5
+                %
+              </button>
+              <button
+                type="button"
+              >
+                -1
+                %
+              </button>
+              <button
+                type="button"
+              >
+                +
+                1
+                %
+              </button>
+              <button
+                type="button"
+              >
+                +
+                5
+                %
+              </button>
+            </div>
+          </div>
+        </div>
+        <div
+          class="card glass-strong "
+        >
+          <div
+            class="cardHeader "
+          >
+            <div>
+              <p
+                class="eyebrow"
+              >
+                Плавний рух
+              </p>
+              <h3
+                class="cardHeaderTitle"
+              >
+                Плавний рух
+              </h3>
+            </div>
+          </div>
+          <div
+            class="formStack"
+          >
+            <label>
+              <span>
+                Цільова ціна
+              </span>
+              <input
+                min="0.01"
+                step="0.01"
+                type="number"
+                value="62000"
+              />
+            </label>
+            <label>
+              <span>
+                Тривалість, секунди
+              </span>
+              <input
+                min="0"
+                step="1"
+                type="number"
+                value="10"
+              />
+            </label>
+            <div
+              class="actionRow"
+            >
+              <button
+                class="btn btnPrimary btnMd"
+                type="button"
+              >
+                <span
+                  class="btnIcon"
+                >
+                  <svg
+                    class="lucide lucide-play"
+                    fill="none"
+                    height="16"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="16"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <polygon
+                      points="6 3 20 12 6 21 6 3"
+                    />
+                  </svg>
+                </span>
+                <span
+                  class="btnLabel"
+                >
+                  Рух
+                </span>
+              </button>
+              <button
+                class="btn btnGhost btnMd"
+                type="button"
+              >
+                <span
+                  class="btnIcon"
+                >
+                  <svg
+                    class="lucide lucide-pause"
+                    fill="none"
+                    height="16"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="16"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <rect
+                      height="16"
+                      rx="1"
+                      width="4"
+                      x="14"
+                      y="4"
+                    />
+                    <rect
+                      height="16"
+                      rx="1"
+                      width="4"
+                      x="6"
+                      y="4"
+                    />
+                  </svg>
+                </span>
+                <span
+                  class="btnLabel"
+                >
+                  Пауза
+                </span>
+              </button>
+              <button
+                class="btn btnGhost btnMd"
+                type="button"
+              >
+                <span
+                  class="btnIcon"
+                >
+                  <svg
+                    class="lucide lucide-square"
+                    fill="none"
+                    height="16"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="16"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <rect
+                      height="18"
+                      rx="2"
+                      width="18"
+                      x="3"
+                      y="3"
+                    />
+                  </svg>
+                </span>
+                <span
+                  class="btnLabel"
+                >
+                  Стоп
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+`;
+
+exports[`pages/EmulatorPage shows connection status badge 1`] = `
+<div>
+  <main
+    class="page"
+  >
+    <div
+      class="container"
+    >
+      <header
+        class="hero"
+      >
+        <div>
+          <span
+            class="eyebrow"
+          >
+            Локальна біржова лабораторія
+          </span>
+          <h1
+            class="display-2"
+          >
+            Біржовий
+             
+            <span
+              class="italic-accent"
+            >
+              Emulator
+            </span>
+          </h1>
+          <p
+            class="lead"
+          >
+            Керуйте тестовим ринком, запускайте сценарії та програвайте реальні історичні свічки.
+          </p>
+        </div>
+        <div
+          class="selectorGroup"
+        >
+          <label>
+            <span>
+              Акаунт
+            </span>
+            <select />
+          </label>
+          <label>
+            <span>
+              Символ
+            </span>
+            <select />
+          </label>
+          <span
+            class="badge offline"
+            title="Статус WebSocket-з’єднання"
+          >
+            <span
+              class="dot"
+            />
+            Offline
+          </span>
+          <button
+            class="btn btnGhost btnMd"
+            type="button"
+          >
+            <span
+              class="btnIcon"
+            >
+              <svg
+                class="lucide lucide-refresh-cw"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="16"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"
+                />
+                <path
+                  d="M21 3v5h-5"
+                />
+                <path
+                  d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"
+                />
+                <path
+                  d="M8 16H3v5"
+                />
+              </svg>
+            </span>
+            <span
+              class="btnLabel"
+            >
+              Оновити
+            </span>
+          </button>
+        </div>
+      </header>
+      <div
+        class="notice error"
+      >
+        _emulator.emulatorApi.dashboard is not a function
+      </div>
+      <section
+        class="metrics"
+      >
+        <div
+          class="metric metricNeutral"
+        >
+          <span>
+            Ціна ринку
+          </span>
+          <strong>
+            $0
+          </strong>
+        </div>
+        <div
+          class="metric metricNeutral"
+        >
+          <span>
+            Баланс гаманця
+          </span>
+          <strong>
+            $0
+          </strong>
+        </div>
+        <div
+          class="metric metricNeutral"
+        >
+          <span>
+            Equity
+          </span>
+          <strong>
+            $0
+          </strong>
+        </div>
+        <div
+          class="metric metricNeutral"
+        >
+          <span>
+            Відкритий PnL
+          </span>
+          <strong>
+            $0
+          </strong>
+        </div>
+        <div
+          class="metric metricNeutral"
+        >
+          <span>
+            Відкриті ордери
+          </span>
+          <strong>
+            0
+          </strong>
+        </div>
+        <div
+          class="metric metricNeutral"
+        >
+          <span>
+            Режим
+          </span>
+          <strong>
+            — / —
+          </strong>
+        </div>
+      </section>
+      <div
+        class="card glass-strong chartCard"
+      >
+        <div
+          class="cardHeader "
+        >
+          <div>
+            <p
+              class="eyebrow"
+            >
+              BTCUSDT
+            </p>
+            <h3
+              class="cardHeaderTitle"
+            >
+              Рух ринку
+            </h3>
+          </div>
+          <div
+            class="cardHeaderAction"
+          >
+            <span
+              class="pill"
+            >
+              <span
+                class="dot"
+              />
+               
+              manual
+            </span>
+          </div>
+        </div>
+        <div
+          class="chart"
+        >
+          <div
+            class="chartEmpty"
+          >
+            Змініть ціну або запустіть replay — тут з’явиться рух ринку.
+          </div>
+        </div>
+      </div>
+      <div
+        class="tabs"
+      >
+        <button
+          class="activeTab"
+          type="button"
+        >
+          Ручний
+        </button>
+        <button
+          class=""
+          type="button"
+        >
+          Сценарій
+        </button>
+        <button
+          class=""
+          type="button"
+        >
+          Історичний
+        </button>
+        <button
+          class=""
+          type="button"
+        >
+          Акаунти
+        </button>
+        <button
+          class=""
+          type="button"
+        >
+          Активність
+        </button>
+      </div>
+      <section
+        class="twoColumns"
+      >
+        <div
+          class="card glass-strong "
+        >
+          <div
+            class="cardHeader "
+          >
+            <div>
+              <p
+                class="eyebrow"
+              >
+                Негайно
+              </p>
+              <h3
+                class="cardHeaderTitle"
+              >
+                Встановити ціну
+              </h3>
+            </div>
+          </div>
+          <div
+            class="formStack"
+          >
+            <label>
+              <span>
+                Нова ціна
+              </span>
+              <input
+                min="0.01"
+                step="0.01"
+                type="number"
+                value="65000"
+              />
+            </label>
+            <button
+              class="btn btnPrimary btnMd"
+              type="button"
+            >
+              <span
+                class="btnIcon"
+              >
+                <svg
+                  class="lucide lucide-gauge"
+                  fill="none"
+                  height="16"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="m12 14 4-4"
+                  />
+                  <path
+                    d="M3.34 19a10 10 0 1 1 17.32 0"
+                  />
+                </svg>
+              </span>
+              <span
+                class="btnLabel"
+              >
+                Встановити ціну
+              </span>
+            </button>
+            <div
+              class="quickButtons"
+            >
+              <button
+                type="button"
+              >
+                -5
+                %
+              </button>
+              <button
+                type="button"
+              >
+                -1
+                %
+              </button>
+              <button
+                type="button"
+              >
+                +
+                1
+                %
+              </button>
+              <button
+                type="button"
+              >
+                +
+                5
+                %
+              </button>
+            </div>
+          </div>
+        </div>
+        <div
+          class="card glass-strong "
+        >
+          <div
+            class="cardHeader "
+          >
+            <div>
+              <p
+                class="eyebrow"
+              >
+                Плавний рух
+              </p>
+              <h3
+                class="cardHeaderTitle"
+              >
+                Плавний рух
+              </h3>
+            </div>
+          </div>
+          <div
+            class="formStack"
+          >
+            <label>
+              <span>
+                Цільова ціна
+              </span>
+              <input
+                min="0.01"
+                step="0.01"
+                type="number"
+                value="62000"
+              />
+            </label>
+            <label>
+              <span>
+                Тривалість, секунди
+              </span>
+              <input
+                min="0"
+                step="1"
+                type="number"
+                value="10"
+              />
+            </label>
+            <div
+              class="actionRow"
+            >
+              <button
+                class="btn btnPrimary btnMd"
+                type="button"
+              >
+                <span
+                  class="btnIcon"
+                >
+                  <svg
+                    class="lucide lucide-play"
+                    fill="none"
+                    height="16"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="16"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <polygon
+                      points="6 3 20 12 6 21 6 3"
+                    />
+                  </svg>
+                </span>
+                <span
+                  class="btnLabel"
+                >
+                  Рух
+                </span>
+              </button>
+              <button
+                class="btn btnGhost btnMd"
+                type="button"
+              >
+                <span
+                  class="btnIcon"
+                >
+                  <svg
+                    class="lucide lucide-pause"
+                    fill="none"
+                    height="16"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="16"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <rect
+                      height="16"
+                      rx="1"
+                      width="4"
+                      x="14"
+                      y="4"
+                    />
+                    <rect
+                      height="16"
+                      rx="1"
+                      width="4"
+                      x="6"
+                      y="4"
+                    />
+                  </svg>
+                </span>
+                <span
+                  class="btnLabel"
+                >
+                  Пауза
+                </span>
+              </button>
+              <button
+                class="btn btnGhost btnMd"
+                type="button"
+              >
+                <span
+                  class="btnIcon"
+                >
+                  <svg
+                    class="lucide lucide-square"
+                    fill="none"
+                    height="16"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="16"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <rect
+                      height="18"
+                      rx="2"
+                      width="18"
+                      x="3"
+                      y="3"
+                    />
+                  </svg>
+                </span>
+                <span
+                  class="btnLabel"
+                >
+                  Стоп
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+`;
+
+exports[`pages/EmulatorPage snapshot — initial render 1`] = `
+<div>
+  <main
+    class="page"
+  >
+    <div
+      class="container"
+    >
+      <header
+        class="hero"
+      >
+        <div>
+          <span
+            class="eyebrow"
+          >
+            Локальна біржова лабораторія
+          </span>
+          <h1
+            class="display-2"
+          >
+            Біржовий
+             
+            <span
+              class="italic-accent"
+            >
+              Emulator
+            </span>
+          </h1>
+          <p
+            class="lead"
+          >
+            Керуйте тестовим ринком, запускайте сценарії та програвайте реальні історичні свічки.
+          </p>
+        </div>
+        <div
+          class="selectorGroup"
+        >
+          <label>
+            <span>
+              Акаунт
+            </span>
+            <select />
+          </label>
+          <label>
+            <span>
+              Символ
+            </span>
+            <select />
+          </label>
+          <span
+            class="badge offline"
+            title="Статус WebSocket-з’єднання"
+          >
+            <span
+              class="dot"
+            />
+            Offline
+          </span>
+          <button
+            class="btn btnGhost btnMd"
+            type="button"
+          >
+            <span
+              class="btnIcon"
+            >
+              <svg
+                class="lucide lucide-refresh-cw"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="16"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"
+                />
+                <path
+                  d="M21 3v5h-5"
+                />
+                <path
+                  d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"
+                />
+                <path
+                  d="M8 16H3v5"
+                />
+              </svg>
+            </span>
+            <span
+              class="btnLabel"
+            >
+              Оновити
+            </span>
+          </button>
+        </div>
+      </header>
+      <div
+        class="notice error"
+      >
+        _emulator.emulatorApi.dashboard is not a function
+      </div>
+      <section
+        class="metrics"
+      >
+        <div
+          class="metric metricNeutral"
+        >
+          <span>
+            Ціна ринку
+          </span>
+          <strong>
+            $0
+          </strong>
+        </div>
+        <div
+          class="metric metricNeutral"
+        >
+          <span>
+            Баланс гаманця
+          </span>
+          <strong>
+            $0
+          </strong>
+        </div>
+        <div
+          class="metric metricNeutral"
+        >
+          <span>
+            Equity
+          </span>
+          <strong>
+            $0
+          </strong>
+        </div>
+        <div
+          class="metric metricNeutral"
+        >
+          <span>
+            Відкритий PnL
+          </span>
+          <strong>
+            $0
+          </strong>
+        </div>
+        <div
+          class="metric metricNeutral"
+        >
+          <span>
+            Відкриті ордери
+          </span>
+          <strong>
+            0
+          </strong>
+        </div>
+        <div
+          class="metric metricNeutral"
+        >
+          <span>
+            Режим
+          </span>
+          <strong>
+            — / —
+          </strong>
+        </div>
+      </section>
+      <div
+        class="card glass-strong chartCard"
+      >
+        <div
+          class="cardHeader "
+        >
+          <div>
+            <p
+              class="eyebrow"
+            >
+              BTCUSDT
+            </p>
+            <h3
+              class="cardHeaderTitle"
+            >
+              Рух ринку
+            </h3>
+          </div>
+          <div
+            class="cardHeaderAction"
+          >
+            <span
+              class="pill"
+            >
+              <span
+                class="dot"
+              />
+               
+              manual
+            </span>
+          </div>
+        </div>
+        <div
+          class="chart"
+        >
+          <div
+            class="chartEmpty"
+          >
+            Змініть ціну або запустіть replay — тут з’явиться рух ринку.
+          </div>
+        </div>
+      </div>
+      <div
+        class="tabs"
+      >
+        <button
+          class="activeTab"
+          type="button"
+        >
+          Ручний
+        </button>
+        <button
+          class=""
+          type="button"
+        >
+          Сценарій
+        </button>
+        <button
+          class=""
+          type="button"
+        >
+          Історичний
+        </button>
+        <button
+          class=""
+          type="button"
+        >
+          Акаунти
+        </button>
+        <button
+          class=""
+          type="button"
+        >
+          Активність
+        </button>
+      </div>
+      <section
+        class="twoColumns"
+      >
+        <div
+          class="card glass-strong "
+        >
+          <div
+            class="cardHeader "
+          >
+            <div>
+              <p
+                class="eyebrow"
+              >
+                Негайно
+              </p>
+              <h3
+                class="cardHeaderTitle"
+              >
+                Встановити ціну
+              </h3>
+            </div>
+          </div>
+          <div
+            class="formStack"
+          >
+            <label>
+              <span>
+                Нова ціна
+              </span>
+              <input
+                min="0.01"
+                step="0.01"
+                type="number"
+                value="65000"
+              />
+            </label>
+            <button
+              class="btn btnPrimary btnMd"
+              type="button"
+            >
+              <span
+                class="btnIcon"
+              >
+                <svg
+                  class="lucide lucide-gauge"
+                  fill="none"
+                  height="16"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="m12 14 4-4"
+                  />
+                  <path
+                    d="M3.34 19a10 10 0 1 1 17.32 0"
+                  />
+                </svg>
+              </span>
+              <span
+                class="btnLabel"
+              >
+                Встановити ціну
+              </span>
+            </button>
+            <div
+              class="quickButtons"
+            >
+              <button
+                type="button"
+              >
+                -5
+                %
+              </button>
+              <button
+                type="button"
+              >
+                -1
+                %
+              </button>
+              <button
+                type="button"
+              >
+                +
+                1
+                %
+              </button>
+              <button
+                type="button"
+              >
+                +
+                5
+                %
+              </button>
+            </div>
+          </div>
+        </div>
+        <div
+          class="card glass-strong "
+        >
+          <div
+            class="cardHeader "
+          >
+            <div>
+              <p
+                class="eyebrow"
+              >
+                Плавний рух
+              </p>
+              <h3
+                class="cardHeaderTitle"
+              >
+                Плавний рух
+              </h3>
+            </div>
+          </div>
+          <div
+            class="formStack"
+          >
+            <label>
+              <span>
+                Цільова ціна
+              </span>
+              <input
+                min="0.01"
+                step="0.01"
+                type="number"
+                value="62000"
+              />
+            </label>
+            <label>
+              <span>
+                Тривалість, секунди
+              </span>
+              <input
+                min="0"
+                step="1"
+                type="number"
+                value="10"
+              />
+            </label>
+            <div
+              class="actionRow"
+            >
+              <button
+                class="btn btnPrimary btnMd"
+                type="button"
+              >
+                <span
+                  class="btnIcon"
+                >
+                  <svg
+                    class="lucide lucide-play"
+                    fill="none"
+                    height="16"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="16"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <polygon
+                      points="6 3 20 12 6 21 6 3"
+                    />
+                  </svg>
+                </span>
+                <span
+                  class="btnLabel"
+                >
+                  Рух
+                </span>
+              </button>
+              <button
+                class="btn btnGhost btnMd"
+                type="button"
+              >
+                <span
+                  class="btnIcon"
+                >
+                  <svg
+                    class="lucide lucide-pause"
+                    fill="none"
+                    height="16"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="16"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <rect
+                      height="16"
+                      rx="1"
+                      width="4"
+                      x="14"
+                      y="4"
+                    />
+                    <rect
+                      height="16"
+                      rx="1"
+                      width="4"
+                      x="6"
+                      y="4"
+                    />
+                  </svg>
+                </span>
+                <span
+                  class="btnLabel"
+                >
+                  Пауза
+                </span>
+              </button>
+              <button
+                class="btn btnGhost btnMd"
+                type="button"
+              >
+                <span
+                  class="btnIcon"
+                >
+                  <svg
+                    class="lucide lucide-square"
+                    fill="none"
+                    height="16"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="16"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <rect
+                      height="18"
+                      rx="2"
+                      width="18"
+                      x="3"
+                      y="3"
+                    />
+                  </svg>
+                </span>
+                <span
+                  class="btnLabel"
+                >
+                  Стоп
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+`;

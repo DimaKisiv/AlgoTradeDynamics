@@ -20,6 +20,7 @@ MVP version · 2026 · [English version](user-guide.en.md)
 - [10. The bot is doing nothing — what to check](#10-the-bot-is-doing-nothing--what-to-check)
 - [11. Limits of the platform, and safety](#11-limits-of-the-platform-and-safety)
 - [12. Where to go next](#12-where-to-go-next)
+- [13. Mini-glossary: terms you meet along the way](#13-mini-glossary-terms-you-meet-along-the-way)
 
 ---
 
@@ -310,6 +311,39 @@ The order that causes the least confusion:
 6. **The same test with slippage added** — see what execution actually costs.
 
 The point of the platform is not to promise easy money, but to show what automated trading looks like from the inside, what risks hide in it, and how to test a bot while mistakes are still free.
+
+## 13. Mini-glossary: terms you meet along the way
+
+These appear in the interface, in bot settings and in reports, but had no explanation of their own until now.
+
+| Term | What it means |
+|---|---|
+| **Candle** | Price over a time slice compressed into four numbers: open, high, low, close — plus traded volume. The order of moves inside a candle is not stored, which is exactly why `Execution path` exists. |
+| **Timeframe** | The length of one candle: `5m` is five minutes, `1d` is a day. A smaller timeframe means more signals and more noise. |
+| **Long** | You bought and expect the price to rise. Everything Grid and DCA Bot do is long-only. |
+| **Short** | You sold what you do not own and profit if the price falls. Available in Pattern Scalper only, via the `Allow SHORT` switch. |
+| **Perpetual contract (linear)** | The default market type. You trade a contract on the price rather than the coins themselves — which is what makes shorts and leverage possible. |
+| **Leverage** | Trading with more than your own funds. It multiplies both profit and loss. For learning, leave it low. |
+| **Maker / taker** | Two fee types. *Maker*: your limit order sat in the book, lower fee. *Taker*: your market order took someone else's, higher fee. Grid is mostly maker, Pattern Scalper is taker. |
+| **Spread** | The gap between the best buy and best sell price. The emulator has none; a real exchange takes part of your result through it. |
+| **Liquidity** | How easily you can buy or sell without moving the price. High on BTC, low on small coins — where slippage will be far worse. |
+| **Cycle** | One full turn of a strategy, from opening a position to closing it. Win Rate and Worst Cycle are counted in cycles. |
+| **EMA** | A moving average that weighs recent candles more heavily. Pattern Scalper compares a fast and a slow EMA to read trend direction. |
+| **RSI** | A 0-100 number showing the strength of a move and whether it is overheated. Used as a confirming entry condition. |
+| **ATR** | The average candle range over a recent period — a measure of current volatility. The scalper's stop and target are counted in ATR rather than fixed percentages, so they tighten on a calm market and widen on a violent one. |
+| **Martingale** | The "increase the stake after a loss" principle. The DCA ladder with growing volume is a mild form of it. It works while the deposit lasts, which is why the default position limit equals the volume of the entire ladder. |
+
+---
+
+### Three traps that make a test look better than it is
+
+**Fitting to history.** The most tempting path: keep changing parameters until the equity curve looks good. You can always find a combination that describes the *past* perfectly and is worth nothing ahead. The tell is simple — the result collapses on a small parameter change. A strategy that only works at `Grid Step 4.7 %` and loses money at `5 %` is not working; it guessed.
+
+**Peeking into the future.** A strategy that sees an unfinished candle knows in the test what it could never know in live trading. That is why bots only act on **closed** candles. For the same reason, a result with zero slippage and no fees is an unreachable upper bound, not an expectation.
+
+**One lucky period.** A test over three months of a rising market will show almost any long-only strategy as profitable. Run the same configuration over at least three different stretches: an uptrend, a downtrend and a sideways range. A strategy that survives all three is worth something. One that is profitable in a single stretch is a description of that stretch.
+
+---
 
 ## Compliance / GDPR / Operations
 

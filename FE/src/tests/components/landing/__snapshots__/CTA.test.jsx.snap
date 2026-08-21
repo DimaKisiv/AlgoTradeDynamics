@@ -1,0 +1,73 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`landing/CTA snapshot 1`] = `
+<section
+  class="cta"
+>
+  <div
+    class="container"
+  >
+    <div
+      class="ctaCard glass-strong reveal is-visible"
+    >
+      <div
+        aria-hidden="true"
+        class="ctaGlow"
+      />
+      <div
+        class="ctaContent"
+      >
+        <span
+          class="eyebrow"
+        >
+          Готові спробувати?
+        </span>
+        <h2
+          class="display-2"
+        >
+          Запустіть перший backtest
+           
+          <br />
+          <span
+            class="italic-accent"
+          >
+            за 30 секунд.
+          </span>
+        </h2>
+        <p
+          class="lead"
+        >
+          Оберіть одного зі своїх ботів, dataset і період. Backtest створить ізольований акаунт та збере повний звіт.
+        </p>
+        <a
+          class="ctaBtn"
+          href="/backtests"
+        >
+          <span>
+            Відкрити Bot Backtests
+          </span>
+          <svg
+            class="lucide lucide-arrow-right"
+            fill="none"
+            height="18"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="18"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M5 12h14"
+            />
+            <path
+              d="m12 5 7 7-7 7"
+            />
+          </svg>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+`;

@@ -1,0 +1,235 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`landing/Strategies snapshot 1`] = `
+<section
+  class="strats"
+  id="strategies"
+>
+  <div
+    class="container"
+  >
+    <div
+      class="section-header reveal is-visible"
+    >
+      <span
+        class="eyebrow"
+      >
+        Режими тестування
+      </span>
+      <h2
+        class="display-2"
+      >
+        Один бот.
+         
+        <span
+          class="italic-accent"
+        >
+          Три рівні перевірки.
+        </span>
+      </h2>
+      <p
+        class="lead"
+      >
+        Від ручного edge-case до багатомісячного історичного прогону без окремої спрощеної торгової логіки.
+      </p>
+    </div>
+    <div
+      class="stratsGrid reveal is-visible"
+    >
+      <article
+        class="strat glass-strong"
+        style="--bg: linear-gradient(135deg,rgba(0,224,143,.18),rgba(0,224,143,.04));"
+      >
+        <div
+          class="stratIcon"
+        >
+          <svg
+            class="lucide lucide-hand"
+            fill="none"
+            height="22"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="22"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"
+            />
+            <path
+              d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"
+            />
+            <path
+              d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"
+            />
+            <path
+              d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"
+            />
+          </svg>
+        </div>
+        <span
+          class="stratTag"
+        >
+          Інтерактивний
+        </span>
+        <h3
+          class="stratName"
+        >
+          Ручне тестування
+        </h3>
+        <p
+          class="stratDesc"
+        >
+          Рухайте ціну руками, перевіряйте конкретні edge cases і дивіться, як реальний bot worker створює ордери, позицію та TP.
+        </p>
+        <ul
+          class="stratParams"
+        >
+          <li>
+            <span
+              class="stratBullet"
+            />
+            Точний контроль ціни
+          </li>
+          <li>
+            <span
+              class="stratBullet"
+            />
+            Live ордери та події
+          </li>
+        </ul>
+      </article>
+      <article
+        class="strat glass-strong"
+        style="--bg: linear-gradient(135deg,rgba(102,166,255,.15),rgba(102,166,255,.03));"
+      >
+        <div
+          class="stratIcon"
+        >
+          <svg
+            class="lucide lucide-route"
+            fill="none"
+            height="22"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="22"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <circle
+              cx="6"
+              cy="19"
+              r="3"
+            />
+            <path
+              d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"
+            />
+            <circle
+              cx="18"
+              cy="5"
+              r="3"
+            />
+          </svg>
+        </div>
+        <span
+          class="stratTag"
+        >
+          Повторюваний
+        </span>
+        <h3
+          class="stratName"
+        >
+          Сценарне тестування
+        </h3>
+        <p
+          class="stratDesc"
+        >
+          Зберігайте послідовності руху ціни та повторюйте той самий сценарій після змін алгоритму.
+        </p>
+        <ul
+          class="stratParams"
+        >
+          <li>
+            <span
+              class="stratBullet"
+            />
+            Збережені шляхи ціни
+          </li>
+          <li>
+            <span
+              class="stratBullet"
+            />
+            Пауза та покроковий режим
+          </li>
+        </ul>
+      </article>
+      <article
+        class="strat glass-strong"
+        style="--bg: linear-gradient(135deg,rgba(185,140,255,.15),rgba(185,140,255,.03));"
+      >
+        <div
+          class="stratIcon"
+        >
+          <svg
+            class="lucide lucide-history"
+            fill="none"
+            height="22"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="22"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"
+            />
+            <path
+              d="M3 3v5h5"
+            />
+            <path
+              d="M12 7v5l4 2"
+            />
+          </svg>
+        </div>
+        <span
+          class="stratTag"
+        >
+          Історичний
+        </span>
+        <h3
+          class="stratName"
+        >
+          Backtesting бота
+        </h3>
+        <p
+          class="stratDesc"
+        >
+          Оберіть існуючого бота й програйте реальні історичні свічки через той самий Bybit-compatible emulator.
+        </p>
+        <ul
+          class="stratParams"
+        >
+          <li>
+            <span
+              class="stratBullet"
+            />
+            Ордери на графіку ціни
+          </li>
+          <li>
+            <span
+              class="stratBullet"
+            />
+            Equity, drawdown та exposure
+          </li>
+        </ul>
+      </article>
+    </div>
+  </div>
+</section>
+`;

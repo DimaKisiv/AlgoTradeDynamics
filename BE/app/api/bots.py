@@ -73,7 +73,10 @@ def create_bot(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    result = create_trading_bot(db, payload, current_user.id)
+    try:
+        result = create_trading_bot(db, payload, current_user.id)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     bot = get_trading_bot(db, result["id"], current_user.id)
     if bot is not None:
         _audit_bot_action(db, request, current_user, bot, "BOT_CREATED", "Trading bot created")
@@ -235,7 +238,10 @@ def update_bot(
         raise HTTPException(status_code=404, detail="Trading bot not found")
     changed_fields = sorted(payload.model_dump(exclude_unset=True).keys())
     before_config, before_config_hash, _ = bot_config_snapshot(bot)
-    result = update_trading_bot(db, bot, payload)
+    try:
+        result = update_trading_bot(db, bot, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     _audit_bot_action(
         db, request, current_user, bot, "BOT_CONFIG_CHANGED", "Trading bot configuration changed",
         {

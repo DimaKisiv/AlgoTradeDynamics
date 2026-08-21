@@ -1,0 +1,363 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`landing/Hero snapshot 1`] = `
+<section
+  class="hero"
+>
+  <div
+    class="container heroInner"
+  >
+    <div
+      class="heroContent"
+    >
+      <div
+        class="pill"
+      >
+        <span
+          class="dot"
+        />
+        <span>
+          Реальний bot worker · Exchange emulator · Historical replay
+        </span>
+      </div>
+      <h1
+        class="display-1 heroTitle"
+      >
+        Тестуйте торгового бота
+         
+        <span
+          class="italic-accent"
+        >
+          без ризику
+        </span>
+         
+        для капіталу.
+      </h1>
+      <p
+        class="lead"
+      >
+        Оберіть Grid Bot або Pattern Scalper і проганяйте ту саму runtime-логіку через Bybit-compatible emulator: ордери, LONG/SHORT, SL/TP, комісії, equity та drawdown.
+      </p>
+      <div
+        class="heroActions"
+      >
+        <a
+          class="heroPrimary"
+          href="/backtests"
+        >
+          <span>
+            Запустити Backtest
+          </span>
+          <svg
+            class="lucide lucide-arrow-right"
+            fill="none"
+            height="18"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="18"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M5 12h14"
+            />
+            <path
+              d="m12 5 7 7-7 7"
+            />
+          </svg>
+        </a>
+        <a
+          class="heroSecondary"
+          href="#how-it-works"
+        >
+          Як це працює
+        </a>
+      </div>
+      <div
+        class="heroBadges"
+      >
+        <span>
+          <svg
+            class="lucide lucide-sparkles"
+            fill="none"
+            height="14"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="14"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"
+            />
+            <path
+              d="M20 3v4"
+            />
+            <path
+              d="M22 5h-4"
+            />
+            <path
+              d="M4 17v2"
+            />
+            <path
+              d="M5 18H3"
+            />
+          </svg>
+           
+          Real bot logic
+        </span>
+        <span>
+          <svg
+            class="lucide lucide-shield-check"
+            fill="none"
+            height="14"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="14"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"
+            />
+            <path
+              d="m9 12 2 2 4-4"
+            />
+          </svg>
+           
+          Risk-controlled
+        </span>
+        <span>
+          <svg
+            class="lucide lucide-trending-up"
+            fill="none"
+            height="14"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="14"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <polyline
+              points="22 7 13.5 15.5 8.5 10.5 2 17"
+            />
+            <polyline
+              points="16 7 22 7 22 13"
+            />
+          </svg>
+           
+          Historical datasets
+        </span>
+      </div>
+    </div>
+    <div
+      class="heroVisual"
+    >
+      <div
+        class="heroWindow glass-strong"
+      >
+        <div
+          class="heroWindowBar"
+        >
+          <span />
+          <span />
+          <span />
+          <p>
+            BTCUSDT · Grid Bot · 
+            Історичний
+          </p>
+        </div>
+        <div
+          class="heroWindowBody"
+        >
+          <div
+            class="heroWindowStat"
+          >
+            <p
+              class="eyebrow"
+            >
+              P&L
+            </p>
+            <h3
+              class="display-3"
+            >
+              +18.4%
+            </h3>
+            <p
+              class="text-tertiary"
+            >
+              за 366 днів
+            </p>
+          </div>
+          <div
+            class="heroWindowStat heroWindowStatRight"
+          >
+            <p
+              class="eyebrow"
+            >
+              Відсоток перемог
+            </p>
+            <h3
+              class="display-3"
+            >
+              58.6%
+            </h3>
+            <p
+              class="text-tertiary"
+            >
+              time in position
+            </p>
+          </div>
+          <svg
+            class="heroSparkline"
+            preserveAspectRatio="none"
+            viewBox="0 0 540 200"
+          >
+            <defs>
+              <lineargradient
+                id="sparkFill"
+                x1="0"
+                x2="0"
+                y1="0"
+                y2="1"
+              >
+                <stop
+                  offset="0%"
+                  stop-color="rgba(0,224,143,0.5)"
+                />
+                <stop
+                  offset="100%"
+                  stop-color="rgba(0,224,143,0)"
+                />
+              </lineargradient>
+              <lineargradient
+                id="sparkStroke"
+                x1="0"
+                x2="1"
+                y1="0"
+                y2="0"
+              >
+                <stop
+                  offset="0%"
+                  stop-color="#00e08f"
+                />
+                <stop
+                  offset="100%"
+                  stop-color="#66f0c4"
+                />
+              </lineargradient>
+            </defs>
+            <path
+              d="M0,160 C40,150 80,170 120,155 C160,140 200,130 240,115 C280,100 320,95 360,80 C400,65 440,75 480,55 C520,35 540,40 540,40 L540,200 L0,200 Z"
+              fill="url(#sparkFill)"
+            />
+            <path
+              d="M0,160 C40,150 80,170 120,155 C160,140 200,130 240,115 C280,100 320,95 360,80 C400,65 440,75 480,55 C520,35 540,40 540,40"
+              fill="none"
+              stroke="url(#sparkStroke)"
+              stroke-width="2.5"
+            />
+            <circle
+              cx="540"
+              cy="40"
+              fill="#00e08f"
+              r="5"
+            >
+              <animate
+                attributeName="r"
+                dur="2.4s"
+                repeatCount="indefinite"
+                values="5;10;5"
+              />
+              <animate
+                attributeName="opacity"
+                dur="2.4s"
+                repeatCount="indefinite"
+                values="1;0.4;1"
+              />
+            </circle>
+          </svg>
+        </div>
+      </div>
+      <div
+        class="heroChip heroChip1 glass"
+      >
+        <svg
+          class="lucide lucide-shield-check"
+          fill="none"
+          height="14"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="14"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"
+          />
+          <path
+            d="m9 12 2 2 4-4"
+          />
+        </svg>
+        <div>
+          <p
+            class="heroChipLabel"
+          >
+            Grid levels
+          </p>
+          <p
+            class="heroChipValue"
+          >
+            2
+          </p>
+        </div>
+      </div>
+      <div
+        class="heroChip heroChip2 glass"
+      >
+        <svg
+          class="lucide lucide-trending-up"
+          fill="none"
+          height="14"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="14"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <polyline
+            points="22 7 13.5 15.5 8.5 10.5 2 17"
+          />
+          <polyline
+            points="16 7 22 7 22 13"
+          />
+        </svg>
+        <div>
+          <p
+            class="heroChipLabel"
+          >
+            Max DD
+          </p>
+          <p
+            class="heroChipValue"
+          >
+            20%
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+`;

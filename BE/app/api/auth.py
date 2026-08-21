@@ -90,11 +90,20 @@ def register(payload: UserCreate, request: Request, db: Session = Depends(get_db
 
 @router.post("/login", response_model=Token)
 def login(payload: UserLogin, request: Request, response: Response, db: Session = Depends(get_db)):
+    # Check if user exists
+    user_exists = get_user_by_email(db, payload.email)
+    if user_exists is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Користувача не знайдено",
+        )
+    
+    # Authenticate with password
     user = authenticate(db, payload.email, payload.password)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Невірний email або пароль",
+            detail="Невірний пароль",
         )
 
     refresh_token = create_refresh_session(db, user.id)

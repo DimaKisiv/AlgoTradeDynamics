@@ -37,22 +37,14 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  --logo-size: 32px;
+  --logo-radius: 10px;
   font-weight: 700;
   font-size: 16px;
   letter-spacing: -0.025em;
   color: var(--text-primary);
 }
 
-.navLogo {
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  border-radius: 10px;
-  background: var(--gradient-accent);
-  color: #062017;
-  box-shadow: 0 4px 16px var(--accent-glow);
-}
 
 .navBrandText { font-family: var(--font-body); }
 

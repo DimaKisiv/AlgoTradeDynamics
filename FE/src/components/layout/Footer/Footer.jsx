@@ -1,5 +1,6 @@
 import { Github } from 'lucide-react';
 import { useLanguage } from '../../../context/LanguageContext';
+import logo from '../../../assets/logo.png';
 import styles from './Footer.module.css';
 
 export default function Footer() {
@@ -9,7 +10,7 @@ export default function Footer() {
     <footer className={styles.footer}>
       <div className={`container ${styles.footerInner}`}>
         <div className={styles.footerBrand}>
-          <span className={styles.footerLogo}>A</span>
+          <img className="logo" src={logo} alt="" aria-hidden="true" />
           <div>
             <p className={styles.footerName}>AlgoTradeDynamics</p>
             <p className={styles.footerCaption}>
@@ -42,7 +43,7 @@ export default function Footer() {
         <p className={styles.footerLegal}>
           {t('footer.legal')}
         </p>
-        <a className={styles.footerGithub} href="#" aria-label={t('footer.githubAria')}>
+        <a className={styles.footerGithub} href="https://github.com/DimaKisiv/AlgoTradeDynamics" target={"_blank"} aria-label={t('footer.githubAria')}>
           <Github size={16} />
         </a>
       </div>

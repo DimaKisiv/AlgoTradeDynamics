@@ -1,0 +1,37 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`ui/Card snapshot — default Card 1`] = `
+<div
+  class="card glass-strong "
+>
+  <span>
+    Snap
+  </span>
+</div>
+`;
+
+exports[`ui/CardHeader snapshot — CardHeader with eyebrow + action 1`] = `
+<div
+  class="cardHeader "
+>
+  <div>
+    <p
+      class="eyebrow"
+    >
+      TAG
+    </p>
+    <h3
+      class="cardHeaderTitle"
+    >
+      Title
+    </h3>
+  </div>
+  <div
+    class="cardHeaderAction"
+  >
+    <button>
+      Act
+    </button>
+  </div>
+</div>
+`;

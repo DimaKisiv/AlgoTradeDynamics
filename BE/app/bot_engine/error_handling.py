@@ -8,9 +8,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import timedelta
-from enum import StrEnum
+from enum import Enum
 import re
 from typing import Any
+
+try:
+    from enum import StrEnum
+except ImportError:  # pragma: no cover - Python < 3.11 fallback
+    class StrEnum(str, Enum):
+        pass
 
 from app.bot_engine.events import log_bot_event
 from app.core.clock import utcnow

@@ -35,6 +35,39 @@ const EVENT_FILTER_LABELS = {
   en: { important: "important", all: "all", risk: "risk", errors: "errors" },
 };
 const asNumber = (value) => Number(value || 0);
+
+function positionDirectionFromCycle(cycle) {
+  const side = String(cycle?.details?.side || "").trim().toLowerCase();
+  if (side === "buy" || side === "long") return "long";
+  if (side === "sell" || side === "short") return "short";
+  return null;
+}
+
+function positionDirectionAt(cycles, timestamp, fallbackEnd) {
+  const target = asMs(timestamp);
+  if (!Number.isFinite(target)) return null;
+  const cycle = cycles.find((item) => {
+    const startedAt = asMs(item.started_at_ms);
+    const closedAt = item.closed_at_ms ? asMs(item.closed_at_ms) : asMs(fallbackEnd);
+    return Number.isFinite(startedAt) && Number.isFinite(closedAt) && target >= startedAt && target <= closedAt;
+  });
+  return positionDirectionFromCycle(cycle);
+}
+
+function inferPositionDirection(role, side, cycleDirection = null) {
+  const normalizedRole = String(role || "").toLowerCase();
+  if (normalizedRole.includes("entry_long")) return "long";
+  if (normalizedRole.includes("entry_short")) return "short";
+  if (cycleDirection) return cycleDirection;
+  if (normalizedRole.startsWith("grid_") || normalizedRole.startsWith("dca_") || normalizedRole.includes("position_take_profit")) return "long";
+  if (normalizedRole.includes("entry")) {
+    const normalizedSide = String(side || "").toLowerCase();
+    if (normalizedSide === "buy") return "long";
+    if (normalizedSide === "sell") return "short";
+  }
+  return null;
+}
+
 const asMs = (value) => {
   if (typeof value === "number") return value;
   const numeric = Number(value);
@@ -434,6 +467,11 @@ export default function BacktestDetailPage() {
         closedPnl: asNumber(execution.closedPnl),
         side: execution.side,
         role,
+        direction: inferPositionDirection(
+          role,
+          execution.side,
+          positionDirectionAt(cycles, execution.execTime, run?.end_time),
+        ),
         label: role.includes("stop_loss") ? tr("Stop-loss виконано", "Stop loss filled")
           : role.includes("timeout") ? tr("Вихід за таймаутом виконано", "Timeout exit filled")
           : role.includes("manual_close") ? tr("Вихід наприкінці тесту виконано", "End-of-test exit filled")
@@ -461,6 +499,11 @@ export default function BacktestDetailPage() {
           qty: asNumber(order.qty),
           side: order.side,
           role,
+          direction: inferPositionDirection(
+            role,
+            order.side,
+            positionDirectionAt(cycles, order.updated_at, run?.end_time),
+          ),
           label: isTp ? tr("Take-profit скасовано", "Take profit cancelled")
             : role.startsWith("dca_entry") ? tr(`DCA докуп #${level || "?"} скасовано`, `DCA safety #${level || "?"} cancelled`)
             : tr(`Grid #${level || "?"} скасовано`, `Grid #${level || "?"} cancelled`),
@@ -472,7 +515,7 @@ export default function BacktestDetailPage() {
     return result
       .filter((marker) => Number.isFinite(marker.timestamp) && marker.price > 0)
       .sort((a, b) => (a.timestamp - b.timestamp) || (a.sequence - b.sequence));
-  }, [executions, orderByExchangeId, orders, filters.entries, filters.tp, filters.cancelled, tr]);
+  }, [executions, orderByExchangeId, orders, cycles, run?.end_time, filters.entries, filters.tp, filters.cancelled, tr]);
 
   const chartSpanMs = Number.isFinite(effectiveRange[0]) && Number.isFinite(effectiveRange[1])
     ? Math.max(effectiveRange[1] - effectiveRange[0], 0)
@@ -509,8 +552,10 @@ export default function BacktestDetailPage() {
         ? group.reduce((sum, item) => sum + (item.price * item.qty), 0) / totalQty
         : group.reduce((sum, item) => sum + item.price, 0) / group.length;
       const isTp = first.role?.includes("take_profit") || first.role?.includes("tp");
+      const directions = [...new Set(group.map((item) => item.direction).filter(Boolean))];
       return {
         ...first,
+        direction: directions.length === 1 ? directions[0] : null,
         id: `cluster-${first.id}`,
         timestamp: Math.round(group.reduce((sum, item) => sum + item.timestamp, 0) / group.length),
         price: weightedPrice,
@@ -732,6 +777,12 @@ export default function BacktestDetailPage() {
       const isBuy = String(item.side).toLowerCase() === "buy";
       const order = byExchangeId.get(String(item.orderId));
       const role = order?.order_role || (isBuy ? "grid_entry" : "position_take_profit");
+      const cycleDirection = positionDirectionAt(cycles, item.execTime, run?.end_time);
+      const direction = inferPositionDirection(
+        role,
+        item.side,
+        cycleDirection || (before < 0 ? "short" : before > 0 ? "long" : null),
+      );
       if (role === "scalper_entry_long") {
         qty = fillQty;
         avg = price;
@@ -749,9 +800,9 @@ export default function BacktestDetailPage() {
         qty = Math.max(qty - fillQty, 0);
         if (qty === 0) avg = 0;
       }
-      return { ...item, before, after: qty, average: avg, role };
+      return { ...item, before, after: qty, average: avg, role, direction };
     });
-  }, [orderedExecutions, orders]);
+  }, [orderedExecutions, orders, cycles, run?.end_time]);
 
   const filteredEvents = useMemo(() => events.filter((event) => {
     const type = String(event.event_type || "").toLowerCase();
@@ -871,7 +922,8 @@ export default function BacktestDetailPage() {
                 <div><span>{tr("Час", "Time")}</span><strong>{new Date(selectedMarker.timestamp).toLocaleString(locale)}</strong></div>
                 <div><span>{tr("Ціна", "Price")}</span><strong>{fmtMoney(selectedMarker.price)}</strong></div>
                 <div><span>{tr("Кількість", "Quantity")}</span><strong>{fmtNumber(selectedMarker.qty, 6)}</strong></div>
-                <div><span>{tr("Сторона", "Side")}</span><strong>{selectedMarker.side ? tr(String(selectedMarker.side).toLowerCase() === "sell" ? "Продаж" : "Купівля", selectedMarker.side) : (selectedMarker.role?.includes("take_profit") ? tr("Продаж", "Sell") : tr("Купівля", "Buy"))}</strong></div>
+                <div><span>{tr("Сторона ордера", "Order side")}</span><strong>{selectedMarker.side ? tr(String(selectedMarker.side).toLowerCase() === "sell" ? "Продаж" : "Купівля", selectedMarker.side) : (selectedMarker.role?.includes("take_profit") ? tr("Продаж", "Sell") : tr("Купівля", "Buy"))}</strong></div>
+                <div><span>{tr("Позиція", "Position")}</span><strong>{selectedMarker.count > 1 && !selectedMarker.direction ? tr("Кілька", "Multiple") : <SideBadge side={selectedMarker.direction || positionDirectionFromCycle(selectedMarkerCycle)}/>}</strong></div>
                 <div><span>{tr("Цикл", "Cycle")}</span><strong>{selectedMarker.count > 1 ? tr("Кілька", "Multiple") : selectedMarkerCycle ? `#${selectedMarkerCycle.cycle_number}` : "—"}</strong></div>
                 {selectedMarker.kind === "filled" && <><div><span>{tr("Комісія", "Fee")}</span><strong>{fmtMoney(selectedMarker.fee)}</strong></div><div><span>{tr("Закритий PnL", "Closed PnL")}</span><strong>{fmtMoneySigned(selectedMarker.closedPnl)}</strong></div></>}
               </div>
@@ -904,7 +956,7 @@ export default function BacktestDetailPage() {
                     ifOverflow="discard"
                     shape={(props) => <OrderMarker {...props} payload={marker} onSelect={(selected) => { setSelectedMarker(selected); setFocusTime(selected.timestamp); }}/>} 
                   />)}
-                  {selectedCycle && selectedCycle !== openCycle && <ReferenceLine x={asMs(selectedCycle.started_at_ms)} stroke="#25c78b" strokeDasharray="3 4" label={{ value: tr(`Цикл #${selectedCycle.cycle_number}: вхід`, `Cycle #${selectedCycle.cycle_number} entry`), position: "insideTopLeft", fill: "#25c78b", fontSize: 10 }}/>} 
+                  {selectedCycle && selectedCycle !== openCycle && <ReferenceLine x={asMs(selectedCycle.started_at_ms)} stroke="#25c78b" strokeDasharray="3 4" label={{ value: `${tr(`Цикл #${selectedCycle.cycle_number}: вхід`, `Cycle #${selectedCycle.cycle_number} entry`)}${positionDirectionFromCycle(selectedCycle) ? ` · ${positionDirectionFromCycle(selectedCycle).toUpperCase()}` : ""}`, position: "insideTopLeft", fill: "#25c78b", fontSize: 10 }}/>} 
                   {selectedCycle?.closed_at_ms && <ReferenceLine x={asMs(selectedCycle.closed_at_ms)} stroke="#b98cff" strokeDasharray="3 4" label={{ value: isScalper ? tr("Закриття виходу", "Exit close") : tr("Закриття TP", "TP close"), position: "insideTopRight", fill: "#b98cff", fontSize: 10 }}/>} 
                   {showOpenCycleStart && <ReferenceLine x={openCycleStart} stroke="#ffc24b" strokeDasharray="5 4" label={{ value: tr(`Відкритий цикл #${openCycle.cycle_number}`, `Open cycle #${openCycle.cycle_number}`), position: "insideTopRight", fill: "#ffc24b", fontSize: 10 }}/>} 
                   {focusTime && focusTime >= periodStart && focusTime <= periodEnd && <ReferenceLine x={focusTime} stroke="#4d9dff" strokeDasharray="4 4"/>}
@@ -941,13 +993,13 @@ export default function BacktestDetailPage() {
           </> : <Empty>{tr("Графік з’явиться після перших оброблених свічок.", "The chart will appear after the first candles are processed.")}</Empty>}
         </section>}
 
-        {tab === "Cycles" && <TableWrap><table className={styles.table}><thead><tr><th>{tr("Цикл", "Cycle")}</th><th>{tr("Початок", "Started")}</th><th>{tr("Закриття", "Closed")}</th><th>{tr("Тривалість", "Duration")}</th><th>{tr("Час у збитку", "Time in loss")}</th><th>{tr("Входи", "Entries")}</th><th>{tr("Макс. позиція", "Max position")}</th><th>{tr("Найгірший відкритий PnL", "Worst open PnL")}</th><th>{tr("Чистий PnL", "Net PnL")}</th><th></th></tr></thead><tbody>{cycles.map((cycle)=><tr key={cycle.id}><td><strong>#{cycle.cycle_number}</strong><StatusBadge status={cycle.status}/></td><td>{new Date(cycle.started_at_ms).toLocaleString(locale)}</td><td>{cycle.closed_at_ms?new Date(cycle.closed_at_ms).toLocaleString(locale):tr("Відкрито", "Open")}</td><td>{duration(cycle.duration_seconds, tr)}</td><td>{duration(cycle.time_in_loss_seconds, tr)}</td><td>{cycle.entries_filled}</td><td>{fmtNumber(cycle.max_position_qty,6)}<small>{fmtMoney(cycle.max_position_value)}</small></td><td><PnlValue value={cycle.max_unrealized_loss}>{fmtMoneySigned(cycle.max_unrealized_loss)}</PnlValue></td><td><PnlValue value={cycle.net_pnl}>{fmtMoneySigned(cycle.net_pnl)}</PnlValue></td><td><button className={styles.jump} onClick={()=>{setCycleFilter(String(cycle.cycle_number));setTab("Chart")}}><Crosshair size={14}/> {tr("Графік", "Chart")}</button></td></tr>)}</tbody></table>{!cycles.length&&<Empty/>}</TableWrap>}
+        {tab === "Cycles" && <TableWrap><table className={styles.table}><thead><tr><th>{tr("Цикл", "Cycle")}</th><th>{tr("Позиція", "Position")}</th><th>{tr("Початок", "Started")}</th><th>{tr("Закриття", "Closed")}</th><th>{tr("Тривалість", "Duration")}</th><th>{tr("Час у збитку", "Time in loss")}</th><th>{tr("Входи", "Entries")}</th><th>{tr("Макс. позиція", "Max position")}</th><th>{tr("Найгірший відкритий PnL", "Worst open PnL")}</th><th>{tr("Чистий PnL", "Net PnL")}</th><th></th></tr></thead><tbody>{cycles.map((cycle)=><tr key={cycle.id}><td><strong>#{cycle.cycle_number}</strong><StatusBadge status={cycle.status}/></td><td><SideBadge side={positionDirectionFromCycle(cycle)}/></td><td>{new Date(cycle.started_at_ms).toLocaleString(locale)}</td><td>{cycle.closed_at_ms?new Date(cycle.closed_at_ms).toLocaleString(locale):tr("Відкрито", "Open")}</td><td>{duration(cycle.duration_seconds, tr)}</td><td>{duration(cycle.time_in_loss_seconds, tr)}</td><td>{cycle.entries_filled}</td><td>{fmtNumber(cycle.max_position_qty,6)}<small>{fmtMoney(cycle.max_position_value)}</small></td><td><PnlValue value={cycle.max_unrealized_loss}>{fmtMoneySigned(cycle.max_unrealized_loss)}</PnlValue></td><td><PnlValue value={cycle.net_pnl}>{fmtMoneySigned(cycle.net_pnl)}</PnlValue></td><td><button className={styles.jump} onClick={()=>{setCycleFilter(String(cycle.cycle_number));setTab("Chart")}}><Crosshair size={14}/> {tr("Графік", "Chart")}</button></td></tr>)}</tbody></table>{!cycles.length&&<Empty/>}</TableWrap>}
 
-        {tab === "Orders" && <TableWrap><div className={styles.tableFilters}>{["all","open","filled","cancelled","rejected"].map((item)=><button key={item} className={orderFilter===item?styles.activeFilter:""} onClick={()=>setOrderFilter(item)}>{ORDER_FILTER_LABELS[language]?.[item] || item}</button>)}</div><table className={styles.table}><thead><tr><th>{tr("Час", "Time")}</th><th>{tr("Сторона", "Side")}</th><th>{tr("Тип", "Type")}</th><th>{tr("Роль", "Role")}</th><th>{tr("Кількість", "Qty")}</th><th>{tr("Ціна", "Price")}</th><th>{tr("Статус", "Status")}</th><th>{tr("ID біржі", "Exchange ID")}</th><th></th></tr></thead><tbody>{filteredOrders.map((order)=><tr key={order.id}><td>{fmtDateTime(order.created_at, locale)}</td><td><SideBadge side={order.side}/></td><td><OrderTypeBadge type={order.order_type} reduceOnly={order.raw_response?.reduceOnly}/></td><td><RoleBadge role={order.order_role} linkId={order.order_link_id}/></td><td>{fmtNumber(order.qty,6)}</td><td>{order.price ? fmtMoney(order.price) : tr("Ринкова", "Market")}</td><td><StatusBadge status={order.status}/></td><td className={styles.mono} title={order.exchange_order_id}>{order.exchange_order_id?.slice(0,10)||"—"}</td><td><button className={styles.jump} onClick={()=>jumpToChart(order.updated_at)}><Crosshair size={14}/></button></td></tr>)}</tbody></table>{!filteredOrders.length&&<Empty/>}</TableWrap>}
+        {tab === "Orders" && <TableWrap><div className={styles.tableFilters}>{["all","open","filled","cancelled","rejected"].map((item)=><button key={item} className={orderFilter===item?styles.activeFilter:""} onClick={()=>setOrderFilter(item)}>{ORDER_FILTER_LABELS[language]?.[item] || item}</button>)}</div><table className={styles.table}><thead><tr><th>{tr("Час", "Time")}</th><th>{tr("Позиція", "Position")}</th><th>{tr("Сторона ордера", "Order side")}</th><th>{tr("Тип", "Type")}</th><th>{tr("Роль", "Role")}</th><th>{tr("Кількість", "Qty")}</th><th>{tr("Ціна", "Price")}</th><th>{tr("Статус", "Status")}</th><th>{tr("ID біржі", "Exchange ID")}</th><th></th></tr></thead><tbody>{filteredOrders.map((order)=>{const direction=inferPositionDirection(order.order_role,order.side,positionDirectionAt(cycles,order.updated_at||order.created_at,run?.end_time));return <tr key={order.id}><td>{fmtDateTime(order.created_at, locale)}</td><td><SideBadge side={direction}/></td><td><SideBadge side={order.side}/></td><td><OrderTypeBadge type={order.order_type} reduceOnly={order.raw_response?.reduceOnly}/></td><td><RoleBadge role={order.order_role} linkId={order.order_link_id}/></td><td>{fmtNumber(order.qty,6)}</td><td>{order.price ? fmtMoney(order.price) : tr("Ринкова", "Market")}</td><td><StatusBadge status={order.status}/></td><td className={styles.mono} title={order.exchange_order_id}>{order.exchange_order_id?.slice(0,10)||"—"}</td><td><button className={styles.jump} onClick={()=>jumpToChart(order.updated_at)}><Crosshair size={14}/></button></td></tr>})}</tbody></table>{!filteredOrders.length&&<Empty/>}</TableWrap>}
 
-        {tab === "Executions" && <TableWrap><table className={styles.table}><thead><tr><th>{tr("Час", "Time")}</th><th>{tr("Сторона", "Side")}</th><th>{tr("Ціна", "Price")}</th><th>{tr("Кількість", "Qty")}</th><th>{tr("Комісія", "Fee")}</th><th>{tr("Закритий PnL", "Closed PnL")}</th><th>{tr("ID виконання", "Execution ID")}</th><th></th></tr></thead><tbody>{orderedExecutions.map((item)=><tr key={item.execId}><td>{new Date(asMs(item.execTime)).toLocaleString(locale)}</td><td><SideBadge side={item.side}/></td><td>{fmtMoney(asNumber(item.execPrice))}</td><td>{fmtNumber(asNumber(item.execQty),6)}</td><td>{fmtMoney(asNumber(item.execFee))}</td><td><PnlValue value={item.closedPnl}>{fmtMoneySigned(asNumber(item.closedPnl))}</PnlValue></td><td className={styles.mono}>{item.execId.slice(0,10)}</td><td><button className={styles.jump} onClick={()=>jumpToChart(item.execTime)}><Crosshair size={14}/></button></td></tr>)}</tbody></table>{!orderedExecutions.length&&<Empty/>}</TableWrap>}
+        {tab === "Executions" && <TableWrap><table className={styles.table}><thead><tr><th>{tr("Час", "Time")}</th><th>{tr("Позиція", "Position")}</th><th>{tr("Сторона виконання", "Execution side")}</th><th>{tr("Ціна", "Price")}</th><th>{tr("Кількість", "Qty")}</th><th>{tr("Комісія", "Fee")}</th><th>{tr("Закритий PnL", "Closed PnL")}</th><th>{tr("ID виконання", "Execution ID")}</th><th></th></tr></thead><tbody>{positionTimeline.map((item)=><tr key={item.execId}><td>{new Date(asMs(item.execTime)).toLocaleString(locale)}</td><td><SideBadge side={item.direction}/></td><td><SideBadge side={item.side}/></td><td>{fmtMoney(asNumber(item.execPrice))}</td><td>{fmtNumber(asNumber(item.execQty),6)}</td><td>{fmtMoney(asNumber(item.execFee))}</td><td><PnlValue value={item.closedPnl}>{fmtMoneySigned(asNumber(item.closedPnl))}</PnlValue></td><td className={styles.mono}>{item.execId.slice(0,10)}</td><td><button className={styles.jump} onClick={()=>jumpToChart(item.execTime)}><Crosshair size={14}/></button></td></tr>)}</tbody></table>{!positionTimeline.length&&<Empty/>}</TableWrap>}
 
-        {tab === "Positions" && <TableWrap><table className={styles.table}><thead><tr><th>{tr("Час", "Time")}</th><th>{tr("Дія", "Action")}</th><th>{tr("Кількість до", "Qty before")}</th><th>{tr("Кількість після", "Qty after")}</th><th>{tr("Ціна виконання", "Fill price")}</th><th>{tr("Сер. ціна входу після", "Average entry after")}</th><th>{tr("Закритий PnL", "Closed PnL")}</th><th></th></tr></thead><tbody>{positionTimeline.map((item)=><tr key={`position-${item.execId}`}><td>{new Date(asMs(item.execTime)).toLocaleString(locale)}</td><td><SideBadge side={item.side}/><RoleBadge role={item.role}/></td><td>{fmtNumber(item.before,6)}</td><td>{fmtNumber(item.after,6)}</td><td>{fmtMoney(asNumber(item.execPrice))}</td><td>{item.average?fmtMoney(item.average):"—"}</td><td><PnlValue value={item.closedPnl}>{fmtMoneySigned(asNumber(item.closedPnl))}</PnlValue></td><td><button className={styles.jump} onClick={()=>jumpToChart(item.execTime)}><Crosshair size={14}/></button></td></tr>)}</tbody></table>{!positionTimeline.length&&<Empty/>}</TableWrap>}
+        {tab === "Positions" && <TableWrap><table className={styles.table}><thead><tr><th>{tr("Час", "Time")}</th><th>{tr("Позиція", "Position")}</th><th>{tr("Дія", "Action")}</th><th>{tr("Кількість до", "Qty before")}</th><th>{tr("Кількість після", "Qty after")}</th><th>{tr("Ціна виконання", "Fill price")}</th><th>{tr("Сер. ціна входу після", "Average entry after")}</th><th>{tr("Закритий PnL", "Closed PnL")}</th><th></th></tr></thead><tbody>{positionTimeline.map((item)=><tr key={`position-${item.execId}`}><td>{new Date(asMs(item.execTime)).toLocaleString(locale)}</td><td><SideBadge side={item.direction}/></td><td><SideBadge side={item.side}/><RoleBadge role={item.role}/></td><td>{fmtNumber(item.before,6)}</td><td>{fmtNumber(item.after,6)}</td><td>{fmtMoney(asNumber(item.execPrice))}</td><td>{item.average?fmtMoney(item.average):"—"}</td><td><PnlValue value={item.closedPnl}>{fmtMoneySigned(asNumber(item.closedPnl))}</PnlValue></td><td><button className={styles.jump} onClick={()=>jumpToChart(item.execTime)}><Crosshair size={14}/></button></td></tr>)}</tbody></table>{!positionTimeline.length&&<Empty/>}</TableWrap>}
 
         {tab === "Events" && <div><div className={styles.tableFilters}>{["important","all","risk","errors"].map((item)=><button key={item} className={eventFilter===item?styles.activeFilter:""} onClick={()=>setEventFilter(item)}>{EVENT_FILTER_LABELS[language]?.[item] || item}</button>)}</div><div className={styles.eventList}>{filteredEvents.map((event)=><article key={event.id}><div><EventBadge type={event.event_type}/><strong>{event.message}</strong></div><time>{fmtDateTime(event.created_at, locale)}</time>{event.payload&&<pre>{JSON.stringify(event.payload,null,2)}</pre>}</article>)}{!filteredEvents.length&&<Empty/>}</div></div>}
 

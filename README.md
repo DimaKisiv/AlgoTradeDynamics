@@ -9,7 +9,7 @@
 - `frontend` — React/Vite, `http://localhost:5173`
 - `backend` — FastAPI, `http://localhost:8000`
 - `exchange-emulator` — Bybit-compatible API та admin API, `http://localhost:8001`
-- `db` — PostgreSQL 16
+- `db` — PostgreSQL 18
 
 Swagger:
 
@@ -40,6 +40,11 @@ docker compose down
 ```bash
 docker compose down -v
 ```
+
+> **Оновлення з PostgreSQL 16 до 18:** старий `pgdata` volume не можна просто
+> підключити до PostgreSQL 18. Якщо дані потрібні, спочатку зробіть `pg_dump`
+> старої бази й відновіть його в новій. Якщо це лише локальні тестові дані,
+> виконайте `docker compose down -v` перед першим запуском PostgreSQL 18.
 
 ## Важливо при оновленні
 

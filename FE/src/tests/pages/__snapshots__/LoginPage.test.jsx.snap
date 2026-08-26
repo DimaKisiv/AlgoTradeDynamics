@@ -67,6 +67,7 @@ exports[`pages/LoginPage calls login with email and password on submit 1`] = `
         Немає акаунта?
          
         <a
+          data-discover="true"
           href="/register"
         >
           Зареєструватися
@@ -150,6 +151,7 @@ exports[`pages/LoginPage renders demo credentials hint 1`] = `
         Немає акаунта?
          
         <a
+          data-discover="true"
           href="/register"
         >
           Зареєструватися
@@ -233,6 +235,7 @@ exports[`pages/LoginPage renders email and password inputs 1`] = `
         Немає акаунта?
          
         <a
+          data-discover="true"
           href="/register"
         >
           Зареєструватися
@@ -323,6 +326,7 @@ exports[`pages/LoginPage shows error message when login fails 1`] = `
         Немає акаунта?
          
         <a
+          data-discover="true"
           href="/register"
         >
           Зареєструватися
@@ -406,6 +410,7 @@ exports[`pages/LoginPage snapshot — empty form 1`] = `
         Немає акаунта?
          
         <a
+          data-discover="true"
           href="/register"
         >
           Зареєструватися

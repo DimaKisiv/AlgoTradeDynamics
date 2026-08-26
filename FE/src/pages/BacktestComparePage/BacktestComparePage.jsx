@@ -29,9 +29,9 @@ const METRICS = [
 ];
 
 function strategyLabel(strategyType, tr) {
-  if (strategyType === "momentum") return tr("Конфігурація Momentum", "Momentum configuration");
-  if (strategyType === "dca") return tr("Конфігурація DCA", "DCA configuration");
-  if (strategyType === "pattern_scalper") return tr("Конфігурація Scalper", "Scalper configuration");
+  if (strategyType === "momentum") {return tr("Конфігурація Momentum", "Momentum configuration");}
+  if (strategyType === "dca") {return tr("Конфігурація DCA", "DCA configuration");}
+  if (strategyType === "pattern_scalper") {return tr("Конфігурація Scalper", "Scalper configuration");}
   return tr("Конфігурація Grid", "Grid configuration");
 }
 
@@ -74,7 +74,7 @@ export default function BacktestComparePage() {
     const days = Math.floor(value / 86400);
     const hours = Math.floor((value % 86400) / 3600);
     const minutes = Math.floor((value % 3600) / 60);
-    if (language === 'uk') return days ? `${days}д ${hours}г` : hours ? `${hours}г ${minutes}хв` : `${minutes}хв`;
+    if (language === 'uk') {return days ? `${days}д ${hours}г` : hours ? `${hours}г ${minutes}хв` : `${minutes}хв`;}
     return days ? `${days}d ${hours}h` : hours ? `${hours}h ${minutes}m` : `${minutes}m`;
   };
   const [searchParams] = useSearchParams();
@@ -92,7 +92,7 @@ export default function BacktestComparePage() {
       const [run, points] = await Promise.all([backtestsApi.get(id), backtestsApi.points(id)]);
       return { run, points };
     })).then((items) => {
-      if (!active) return;
+      if (!active) {return;}
       setRuns(items.map((item) => item.run));
       setSeries(items);
     }).catch((e) => active && setError(e.detail || e.message));

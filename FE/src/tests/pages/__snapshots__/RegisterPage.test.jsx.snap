@@ -73,6 +73,7 @@ exports[`pages/RegisterPage calls register with valid data 1`] = `
         Вже маєте акаунт?
          
         <a
+          data-discover="true"
           href="/login"
         >
           Увійти
@@ -156,6 +157,7 @@ exports[`pages/RegisterPage renders email input 1`] = `
         Вже маєте акаунт?
          
         <a
+          data-discover="true"
           href="/login"
         >
           Увійти
@@ -246,6 +248,7 @@ exports[`pages/RegisterPage shows error when password is too short 1`] = `
         Вже маєте акаунт?
          
         <a
+          data-discover="true"
           href="/login"
         >
           Увійти
@@ -329,6 +332,7 @@ exports[`pages/RegisterPage snapshot — empty form 1`] = `
         Вже маєте акаунт?
          
         <a
+          data-discover="true"
           href="/login"
         >
           Увійти

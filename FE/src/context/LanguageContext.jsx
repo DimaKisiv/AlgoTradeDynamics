@@ -37,11 +37,11 @@ export function LanguageProvider({ children }) {
     const locale = language === 'uk' ? 'uk-UA' : 'en-US';
     const tr = (ukrainian, english) => (language === 'uk' ? ukrainian : english);
     const formatDate = (value, options) => {
-      if (!value) return '—';
+      if (!value) {return '—';}
       return new Date(value).toLocaleDateString(locale, options);
     };
     const formatDateTime = (value, options) => {
-      if (!value) return '—';
+      if (!value) {return '—';}
       return new Date(value).toLocaleString(locale, options);
     };
     const formatNumber = (value, options) => Number(value).toLocaleString(locale, options);

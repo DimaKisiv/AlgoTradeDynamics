@@ -27,7 +27,7 @@ describe('hooks/useScrollReveal', () => {
     });
 
     document.body.removeChild(div);
-    if (original) global.IntersectionObserver = original;
+    if (original) {global.IntersectionObserver = original;}
   });
 
   it('accepts custom options without throwing', () => {

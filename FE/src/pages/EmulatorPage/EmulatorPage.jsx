@@ -222,7 +222,7 @@ export default function EmulatorPage() {
           setError(event.message || tr('WebSocket emulator недоступний.', 'Emulator WebSocket is unavailable.'));
           return;
         }
-        if (event.type !== "emulator.event" || !event.data) return;
+        if (event.type !== "emulator.event" || !event.data) {return;}
 
         const streamEvent = event.data;
         if (streamEvent.topic === `tickers.${symbol}` && streamEvent.data) {
@@ -265,7 +265,7 @@ export default function EmulatorPage() {
     setStreamSources({ public: "reconnecting", private: "reconnecting" });
   }, [selectedAccountId, symbol]);
   useEffect(() => () => {
-    if (liveRefreshTimerRef.current) window.clearTimeout(liveRefreshTimerRef.current);
+    if (liveRefreshTimerRef.current) {window.clearTimeout(liveRefreshTimerRef.current);}
   }, []);
 
   const chartData = useMemo(() => {
@@ -324,7 +324,7 @@ export default function EmulatorPage() {
   };
 
   const importHistory = async () => {
-    if (!csvFile) return;
+    if (!csvFile) {return;}
     const result = await runAction(
       () => emulatorApi.importHistorical(historySymbol.trim().toUpperCase(), historyInterval, csvFile, historyName),
       (value) => `CSV dataset “${value?.dataset?.name || csvFile.name}” ${tr('імпортовано', 'imported')}: ${value?.inserted || 0} ${tr('свічок', 'candles')}.`,
@@ -356,12 +356,12 @@ export default function EmulatorPage() {
   const selectedDataset = filteredDatasets.find((item) => item.id === Number(selectedDatasetId)) || null;
 
   useEffect(() => {
-    if (filteredDatasets.some((item) => item.id === Number(selectedDatasetId))) return;
+    if (filteredDatasets.some((item) => item.id === Number(selectedDatasetId))) {return;}
     const first = filteredDatasets[0];
     setSelectedDatasetId(first ? String(first.id) : "");
   }, [filteredDatasets, selectedDatasetId]);
 
-  const useDataset = (item) => {
+  const selectDataset = (item) => {
     setSelectedDatasetId(String(item.id));
     setHistorySymbol(item.symbol);
     setSymbol(item.symbol);
@@ -553,7 +553,7 @@ export default function EmulatorPage() {
                         </small>
                       </div>
                       <div className={styles.datasetActions}>
-                        <button type="button" onClick={() => useDataset(item)}>{tr('Використати', 'Use')}</button>
+                        <button type="button" onClick={() => selectDataset(item)}>{tr('Використати', 'Use')}</button>
                         <button type="button" className={styles.iconDanger} onClick={async () => {
                           const confirmed = await confirm({
                             title: tr('Видалити dataset?', 'Delete dataset?'),
@@ -577,7 +577,7 @@ export default function EmulatorPage() {
               <div className={styles.formStack}>
                 <label><span>{tr('Dataset', 'Dataset')}</span><select value={selectedDatasetId} onChange={(e) => {
                   const item = filteredDatasets.find((dataset) => dataset.id === Number(e.target.value));
-                  if (item) useDataset(item);
+                  if (item) {selectDataset(item);}
                 }}>
                   {filteredDatasets.map((item) => <option key={item.id} value={item.id}>{item.name} · {intervalLabel(item.interval)}</option>)}
                 </select></label>
@@ -765,7 +765,6 @@ export default function EmulatorPage() {
   );
 }
 
-
 function isOpenOrderStatus(status) {
   return ["new", "created", "partiallyfilled", "pendingnew", "untriggered"].includes(
     String(status || "").toLowerCase(),
@@ -778,7 +777,7 @@ function numberValue(value) {
 }
 
 function shortId(value) {
-  if (!value) return "—";
+  if (!value) {return "—";}
   const text = String(value);
   return text.length > 16 ? `${text.slice(0, 8)}…${text.slice(-5)}` : text;
 }

@@ -3,7 +3,7 @@ import { request, requestFile } from "./client";
 function queryString(filters = {}) {
   const params = new URLSearchParams();
   Object.entries(filters).forEach(([key, value]) => {
-    if (value !== "" && value !== null && value !== undefined) params.set(key, value);
+    if (value !== "" && value !== null && value !== undefined) {params.set(key, value);}
   });
   const value = params.toString();
   return value ? `?${value}` : "";

@@ -54,6 +54,7 @@ exports[`pages/BacktestsPage renders main element 1`] = `
               class="btnIcon"
             >
               <svg
+                aria-hidden="true"
                 class="lucide lucide-circle-play"
                 fill="none"
                 height="17"
@@ -65,13 +66,13 @@ exports[`pages/BacktestsPage renders main element 1`] = `
                 width="17"
                 xmlns="http://www.w3.org/2000/svg"
               >
+                <path
+                  d="M9 9.003a1 1 0 0 1 1.517-.859l4.997 2.997a1 1 0 0 1 0 1.718l-4.997 2.997A1 1 0 0 1 9 14.996z"
+                />
                 <circle
                   cx="12"
                   cy="12"
                   r="10"
-                />
-                <polygon
-                  points="10 8 16 12 10 16 10 8"
                 />
               </svg>
             </span>
@@ -91,6 +92,7 @@ exports[`pages/BacktestsPage renders main element 1`] = `
         >
           <span>
             <svg
+              aria-hidden="true"
               class="lucide lucide-chart-column"
               fill="none"
               height="14"
@@ -126,6 +128,7 @@ exports[`pages/BacktestsPage renders main element 1`] = `
         >
           <span>
             <svg
+              aria-hidden="true"
               class="lucide lucide-circle-play"
               fill="none"
               height="14"
@@ -137,13 +140,13 @@ exports[`pages/BacktestsPage renders main element 1`] = `
               width="14"
               xmlns="http://www.w3.org/2000/svg"
             >
+              <path
+                d="M9 9.003a1 1 0 0 1 1.517-.859l4.997 2.997a1 1 0 0 1 0 1.718l-4.997 2.997A1 1 0 0 1 9 14.996z"
+              />
               <circle
                 cx="12"
                 cy="12"
                 r="10"
-              />
-              <polygon
-                points="10 8 16 12 10 16 10 8"
               />
             </svg>
             Запущено
@@ -157,6 +160,7 @@ exports[`pages/BacktestsPage renders main element 1`] = `
         >
           <span>
             <svg
+              aria-hidden="true"
               class="lucide lucide-database"
               fill="none"
               height="14"
@@ -192,6 +196,7 @@ exports[`pages/BacktestsPage renders main element 1`] = `
         >
           <span>
             <svg
+              aria-hidden="true"
               class="lucide lucide-bot"
               fill="none"
               height="14"
@@ -254,6 +259,7 @@ exports[`pages/BacktestsPage renders main element 1`] = `
           class="loading"
         >
           <svg
+            aria-hidden="true"
             class="lucide lucide-loader-circle spin"
             fill="none"
             height="24"
@@ -332,6 +338,7 @@ exports[`pages/BacktestsPage shows connection status badge 1`] = `
               class="btnIcon"
             >
               <svg
+                aria-hidden="true"
                 class="lucide lucide-circle-play"
                 fill="none"
                 height="17"
@@ -343,13 +350,13 @@ exports[`pages/BacktestsPage shows connection status badge 1`] = `
                 width="17"
                 xmlns="http://www.w3.org/2000/svg"
               >
+                <path
+                  d="M9 9.003a1 1 0 0 1 1.517-.859l4.997 2.997a1 1 0 0 1 0 1.718l-4.997 2.997A1 1 0 0 1 9 14.996z"
+                />
                 <circle
                   cx="12"
                   cy="12"
                   r="10"
-                />
-                <polygon
-                  points="10 8 16 12 10 16 10 8"
                 />
               </svg>
             </span>
@@ -369,6 +376,7 @@ exports[`pages/BacktestsPage shows connection status badge 1`] = `
         >
           <span>
             <svg
+              aria-hidden="true"
               class="lucide lucide-chart-column"
               fill="none"
               height="14"
@@ -404,6 +412,7 @@ exports[`pages/BacktestsPage shows connection status badge 1`] = `
         >
           <span>
             <svg
+              aria-hidden="true"
               class="lucide lucide-circle-play"
               fill="none"
               height="14"
@@ -415,13 +424,13 @@ exports[`pages/BacktestsPage shows connection status badge 1`] = `
               width="14"
               xmlns="http://www.w3.org/2000/svg"
             >
+              <path
+                d="M9 9.003a1 1 0 0 1 1.517-.859l4.997 2.997a1 1 0 0 1 0 1.718l-4.997 2.997A1 1 0 0 1 9 14.996z"
+              />
               <circle
                 cx="12"
                 cy="12"
                 r="10"
-              />
-              <polygon
-                points="10 8 16 12 10 16 10 8"
               />
             </svg>
             Запущено
@@ -435,6 +444,7 @@ exports[`pages/BacktestsPage shows connection status badge 1`] = `
         >
           <span>
             <svg
+              aria-hidden="true"
               class="lucide lucide-database"
               fill="none"
               height="14"
@@ -470,6 +480,7 @@ exports[`pages/BacktestsPage shows connection status badge 1`] = `
         >
           <span>
             <svg
+              aria-hidden="true"
               class="lucide lucide-bot"
               fill="none"
               height="14"
@@ -532,6 +543,7 @@ exports[`pages/BacktestsPage shows connection status badge 1`] = `
           class="loading"
         >
           <svg
+            aria-hidden="true"
             class="lucide lucide-loader-circle spin"
             fill="none"
             height="24"
@@ -610,6 +622,7 @@ exports[`pages/BacktestsPage snapshot — initial render 1`] = `
               class="btnIcon"
             >
               <svg
+                aria-hidden="true"
                 class="lucide lucide-circle-play"
                 fill="none"
                 height="17"
@@ -621,13 +634,13 @@ exports[`pages/BacktestsPage snapshot — initial render 1`] = `
                 width="17"
                 xmlns="http://www.w3.org/2000/svg"
               >
+                <path
+                  d="M9 9.003a1 1 0 0 1 1.517-.859l4.997 2.997a1 1 0 0 1 0 1.718l-4.997 2.997A1 1 0 0 1 9 14.996z"
+                />
                 <circle
                   cx="12"
                   cy="12"
                   r="10"
-                />
-                <polygon
-                  points="10 8 16 12 10 16 10 8"
                 />
               </svg>
             </span>
@@ -647,6 +660,7 @@ exports[`pages/BacktestsPage snapshot — initial render 1`] = `
         >
           <span>
             <svg
+              aria-hidden="true"
               class="lucide lucide-chart-column"
               fill="none"
               height="14"
@@ -682,6 +696,7 @@ exports[`pages/BacktestsPage snapshot — initial render 1`] = `
         >
           <span>
             <svg
+              aria-hidden="true"
               class="lucide lucide-circle-play"
               fill="none"
               height="14"
@@ -693,13 +708,13 @@ exports[`pages/BacktestsPage snapshot — initial render 1`] = `
               width="14"
               xmlns="http://www.w3.org/2000/svg"
             >
+              <path
+                d="M9 9.003a1 1 0 0 1 1.517-.859l4.997 2.997a1 1 0 0 1 0 1.718l-4.997 2.997A1 1 0 0 1 9 14.996z"
+              />
               <circle
                 cx="12"
                 cy="12"
                 r="10"
-              />
-              <polygon
-                points="10 8 16 12 10 16 10 8"
               />
             </svg>
             Запущено
@@ -713,6 +728,7 @@ exports[`pages/BacktestsPage snapshot — initial render 1`] = `
         >
           <span>
             <svg
+              aria-hidden="true"
               class="lucide lucide-database"
               fill="none"
               height="14"
@@ -748,6 +764,7 @@ exports[`pages/BacktestsPage snapshot — initial render 1`] = `
         >
           <span>
             <svg
+              aria-hidden="true"
               class="lucide lucide-bot"
               fill="none"
               height="14"
@@ -810,6 +827,7 @@ exports[`pages/BacktestsPage snapshot — initial render 1`] = `
           class="loading"
         >
           <svg
+            aria-hidden="true"
             class="lucide lucide-loader-circle spin"
             fill="none"
             height="24"

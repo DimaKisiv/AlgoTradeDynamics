@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any
 
-import httpx
+import httpx2 as httpx
 from fastapi import Depends, FastAPI, File, Header, HTTPException, Query, Response, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -40,6 +40,7 @@ from app.engine import (
     start_manual_move,
     start_replay,
     start_scenario,
+    timestamp_ms,
 )
 from app.models import Account, AccountMarket, Candle, Event, Execution, HistoricalDataset, Market, Order, Position, Scenario
 from app.websocket_bus import websocket_bus
@@ -272,7 +273,7 @@ def seed_bundled_history(db: Session) -> None:
             for row in reader:
                 parsed = datetime.fromisoformat(row["date"]).replace(tzinfo=timezone.utc)
                 rows.append({
-                    "open_time": int(parsed.timestamp() * 1000),
+                    "open_time": timestamp_ms(parsed),
                     "open": float(row["open"]),
                     "high": float(row["high"]),
                     "low": float(row["low"]),
@@ -1037,7 +1038,7 @@ async def import_historical_csv(
                 parsed = datetime.fromisoformat(str(open_time).replace("Z", "+00:00"))
                 if parsed.tzinfo is None:
                     parsed = parsed.replace(tzinfo=timezone.utc)
-                numeric_time = int(parsed.timestamp() * 1000)
+                numeric_time = timestamp_ms(parsed)
             open_price = float(row["open"])
             high = float(row["high"])
             low = float(row["low"])
@@ -1271,7 +1272,7 @@ def admin_executions(
             "execQty": format_number(item.qty),
             "execFee": format_number(item.fee),
             "closedPnl": format_number(item.closed_pnl),
-            "execTime": int(item.created_at.timestamp() * 1000),
+            "execTime": timestamp_ms(item.created_at),
             "execSeq": item.sequence_no,
         }
         for item in items
@@ -1621,7 +1622,7 @@ def bybit_execution_list(
             "execQty": format_number(item.qty),
             "execFee": format_number(item.fee),
             "closedPnl": format_number(item.closed_pnl),
-            "execTime": str(int(item.created_at.timestamp() * 1000)),
+            "execTime": str(timestamp_ms(item.created_at)),
             "execSeq": item.sequence_no,
             "execType": "Trade",
         }

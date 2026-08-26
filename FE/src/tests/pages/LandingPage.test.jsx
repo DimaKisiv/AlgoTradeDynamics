@@ -9,7 +9,16 @@ jest.mock('framer-motion', () => {
     get: (_, prop) => {
       const Tag = prop;
       return ({ children, ...rest }) => {
-        const { initial, animate, variants, transition, custom, whileHover, whileTap, ...domProps } = rest;
+        const {
+          initial: _initial,
+          animate: _animate,
+          variants: _variants,
+          transition: _transition,
+          custom: _custom,
+          whileHover: _whileHover,
+          whileTap: _whileTap,
+          ...domProps
+        } = rest;
         return React.createElement(Tag, domProps, children);
       };
     },

@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { ConfirmModalProvider } from '../../context/ConfirmModalContext';
 import { LanguageProvider } from '../../context/LanguageContext';
 
 jest.mock('../../context/AuthContext', () => ({ useAuth: jest.fn() }));
@@ -28,7 +29,11 @@ import { useAuth } from '../../context/AuthContext';
 import EmulatorPage from '../../pages/EmulatorPage/EmulatorPage';
 
 const Wrapper = ({ children }) => (
-  <MemoryRouter><LanguageProvider>{children}</LanguageProvider></MemoryRouter>
+  <MemoryRouter>
+    <LanguageProvider>
+      <ConfirmModalProvider>{children}</ConfirmModalProvider>
+    </LanguageProvider>
+  </MemoryRouter>
 );
 
 describe('pages/EmulatorPage', () => {

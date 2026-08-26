@@ -13,6 +13,7 @@ exports[`layout/Navbar snapshot — authenticated 1`] = `
       <a
         aria-label="Головна AlgoTradeDynamics"
         class="navBrand"
+        data-discover="true"
         href="/"
       >
         <img
@@ -38,30 +39,35 @@ exports[`layout/Navbar snapshot — authenticated 1`] = `
         <a
           aria-current="page"
           class="navLink isActive"
+          data-discover="true"
           href="/"
         >
           Огляд
         </a>
         <a
           class="navLink "
+          data-discover="true"
           href="/bots"
         >
           Боти
         </a>
         <a
           class="navLink "
+          data-discover="true"
           href="/backtests"
         >
           Бектести
         </a>
         <a
           class="navLink "
+          data-discover="true"
           href="/emulator"
         >
           Емулятор
         </a>
         <a
           class="navLink "
+          data-discover="true"
           href="/compliance"
         >
           Комплаєнс
@@ -91,10 +97,12 @@ exports[`layout/Navbar snapshot — authenticated 1`] = `
         <a
           aria-label="Профіль"
           class="navAccount"
+          data-discover="true"
           href="/account"
           title="test@example.com"
         >
           <svg
+            aria-hidden="true"
             class="lucide lucide-circle-user"
             fill="none"
             height="16"
@@ -132,6 +140,7 @@ exports[`layout/Navbar snapshot — authenticated 1`] = `
           type="button"
         >
           <svg
+            aria-hidden="true"
             class="lucide lucide-log-out"
             fill="none"
             height="16"
@@ -144,16 +153,13 @@ exports[`layout/Navbar snapshot — authenticated 1`] = `
             xmlns="http://www.w3.org/2000/svg"
           >
             <path
+              d="m16 17 5-5-5-5"
+            />
+            <path
+              d="M21 12H9"
+            />
+            <path
               d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"
-            />
-            <polyline
-              points="16 17 21 12 16 7"
-            />
-            <line
-              x1="21"
-              x2="9"
-              y1="12"
-              y2="12"
             />
           </svg>
         </button>
@@ -176,6 +182,7 @@ exports[`layout/Navbar snapshot — guest 1`] = `
       <a
         aria-label="Головна AlgoTradeDynamics"
         class="navBrand"
+        data-discover="true"
         href="/"
       >
         <img
@@ -201,6 +208,7 @@ exports[`layout/Navbar snapshot — guest 1`] = `
         <a
           aria-current="page"
           class="navLink isActive"
+          data-discover="true"
           href="/"
         >
           Огляд
@@ -229,12 +237,14 @@ exports[`layout/Navbar snapshot — guest 1`] = `
         </div>
         <a
           class="navLogin"
+          data-discover="true"
           href="/login"
         >
           Увійти
         </a>
         <a
           class="navCtaBtn"
+          data-discover="true"
           href="/register"
         >
           Реєстрація

@@ -38,14 +38,14 @@ const asNumber = (value) => Number(value || 0);
 
 function positionDirectionFromCycle(cycle) {
   const side = String(cycle?.details?.side || "").trim().toLowerCase();
-  if (side === "buy" || side === "long") return "long";
-  if (side === "sell" || side === "short") return "short";
+  if (side === "buy" || side === "long") {return "long";}
+  if (side === "sell" || side === "short") {return "short";}
   return null;
 }
 
 function positionDirectionAt(cycles, timestamp, fallbackEnd) {
   const target = asMs(timestamp);
-  if (!Number.isFinite(target)) return null;
+  if (!Number.isFinite(target)) {return null;}
   const cycle = cycles.find((item) => {
     const startedAt = asMs(item.started_at_ms);
     const closedAt = item.closed_at_ms ? asMs(item.closed_at_ms) : asMs(fallbackEnd);
@@ -56,22 +56,22 @@ function positionDirectionAt(cycles, timestamp, fallbackEnd) {
 
 function inferPositionDirection(role, side, cycleDirection = null) {
   const normalizedRole = String(role || "").toLowerCase();
-  if (normalizedRole.includes("entry_long")) return "long";
-  if (normalizedRole.includes("entry_short")) return "short";
-  if (cycleDirection) return cycleDirection;
-  if (normalizedRole.startsWith("grid_") || normalizedRole.startsWith("dca_") || normalizedRole.includes("position_take_profit")) return "long";
+  if (normalizedRole.includes("entry_long")) {return "long";}
+  if (normalizedRole.includes("entry_short")) {return "short";}
+  if (cycleDirection) {return cycleDirection;}
+  if (normalizedRole.startsWith("grid_") || normalizedRole.startsWith("dca_") || normalizedRole.includes("position_take_profit")) {return "long";}
   if (normalizedRole.includes("entry")) {
     const normalizedSide = String(side || "").toLowerCase();
-    if (normalizedSide === "buy") return "long";
-    if (normalizedSide === "sell") return "short";
+    if (normalizedSide === "buy") {return "long";}
+    if (normalizedSide === "sell") {return "short";}
   }
   return null;
 }
 
 const asMs = (value) => {
-  if (typeof value === "number") return value;
+  if (typeof value === "number") {return value;}
   const numeric = Number(value);
-  if (String(value ?? "").trim() && Number.isFinite(numeric)) return numeric;
+  if (String(value ?? "").trim() && Number.isFinite(numeric)) {return numeric;}
   return new Date(value).getTime();
 };
 
@@ -87,25 +87,25 @@ const WINDOW_MS = {
 const CHART_SYNC_ID = "backtest-detail";
 
 function chartSpan(data) {
-  if (!data?.length) return 0;
+  if (!data?.length) {return 0;}
   return Math.max(asMs(data[data.length - 1].timestamp) - asMs(data[0].timestamp), 0);
 }
 
 function formatChartTime(value, spanMs, locale = "uk-UA") {
   const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return "";
+  if (!Number.isFinite(date.getTime())) {return "";}
   if (spanMs <= 2 * DAY_MS) {
     return date.toLocaleString(locale, { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
   }
-  if (spanMs <= 45 * DAY_MS) return date.toLocaleDateString(locale, { day: "2-digit", month: "short" });
-  if (spanMs <= 370 * DAY_MS) return date.toLocaleDateString(locale, { day: "2-digit", month: "short" });
+  if (spanMs <= 45 * DAY_MS) {return date.toLocaleDateString(locale, { day: "2-digit", month: "short" });}
+  if (spanMs <= 370 * DAY_MS) {return date.toLocaleDateString(locale, { day: "2-digit", month: "short" });}
   return date.toLocaleDateString(locale, { month: "short", year: "numeric" });
 }
 
 function buildTimeTicks(start, end, targetCount = 7) {
   const min = Number(start);
   const max = Number(end);
-  if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min) return [];
+  if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min) {return [];}
 
   const span = max - min;
   const count = Math.max(2, targetCount);
@@ -132,7 +132,7 @@ function buildTimeTicks(start, end, targetCount = 7) {
 }
 
 function clampRange(start, end, minimum, maximum) {
-  if (![start, end, minimum, maximum].every(Number.isFinite) || maximum <= minimum) return [minimum, maximum];
+  if (![start, end, minimum, maximum].every(Number.isFinite) || maximum <= minimum) {return [minimum, maximum];}
   const fullSpan = maximum - minimum;
   const requestedSpan = Math.min(Math.max(end - start, 1), fullSpan);
   let nextStart = start;
@@ -149,25 +149,25 @@ function clampRange(start, end, minimum, maximum) {
 }
 
 function closestIndex(data, timestamp, direction = "start") {
-  if (!data.length) return 0;
+  if (!data.length) {return 0;}
   let low = 0;
   let high = data.length - 1;
   while (low < high) {
     const middle = Math.floor((low + high) / 2);
-    if (data[middle].timestamp < timestamp) low = middle + 1;
-    else high = middle;
+    if (data[middle].timestamp < timestamp) {low = middle + 1;}
+    else {high = middle;}
   }
-  if (direction === "end" && data[low]?.timestamp > timestamp) return Math.max(0, low - 1);
+  if (direction === "end" && data[low]?.timestamp > timestamp) {return Math.max(0, low - 1);}
   return low;
 }
 
 function medianSpacing(data) {
-  if (data.length < 2) return HOUR_MS;
+  if (data.length < 2) {return HOUR_MS;}
   const spacings = [];
   const step = Math.max(1, Math.floor((data.length - 1) / 250));
   for (let index = step; index < data.length; index += step) {
     const spacing = data[index].timestamp - data[index - step].timestamp;
-    if (spacing > 0) spacings.push(spacing / step);
+    if (spacing > 0) {spacings.push(spacing / step);}
   }
   spacings.sort((a, b) => a - b);
   return spacings[Math.floor(spacings.length / 2)] || HOUR_MS;
@@ -175,7 +175,7 @@ function medianSpacing(data) {
 
 function formatPeriodTime(value, spanMs, locale = "uk-UA") {
   const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return "";
+  if (!Number.isFinite(date.getTime())) {return "";}
   return spanMs <= 2 * DAY_MS
     ? date.toLocaleString(locale, { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
     : date.toLocaleDateString(locale, { day: "2-digit", month: "short", year: "numeric" });
@@ -183,30 +183,30 @@ function formatPeriodTime(value, spanMs, locale = "uk-UA") {
 
 function paddedDomain(values, paddingRatio = 0.08) {
   const finite = values.map(Number).filter(Number.isFinite);
-  if (!finite.length) return [0, 1];
-  let min = Math.min(...finite);
-  let max = Math.max(...finite);
+  if (!finite.length) {return [0, 1];}
+  const min = Math.min(...finite);
+  const max = Math.max(...finite);
   const spread = Math.max(max - min, Math.max(Math.abs(max), Math.abs(min), 1) * 0.01);
   return [min - spread * paddingRatio, max + spread * paddingRatio];
 }
 
 function formatAxisMoney(value, locale = "en-US") {
   const number = Number(value);
-  if (!Number.isFinite(number)) return "—";
+  if (!Number.isFinite(number)) {return "—";}
   const compact = Math.abs(number).toLocaleString(locale, { notation: "compact", maximumFractionDigits: 1 });
   return `${number < 0 ? "-" : ""}$${compact}`;
 }
 
 function formatAxisPercent(value) {
   const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return "—";
+  if (!Number.isFinite(numeric)) {return "—";}
   const number = Math.abs(numeric) < 0.005 ? 0 : numeric;
   return `${number.toFixed(Math.abs(number) < 1 ? 2 : 1)}%`;
 }
 
 function formatAxisQty(value, locale = "en-US") {
   const number = Number(value);
-  if (!Number.isFinite(number)) return "—";
+  if (!Number.isFinite(number)) {return "—";}
   return number.toLocaleString(locale, { maximumFractionDigits: 6 });
 }
 
@@ -215,8 +215,8 @@ function duration(seconds, tr) {
   const days = Math.floor(value / 86400);
   const hours = Math.floor((value % 86400) / 3600);
   const minutes = Math.floor((value % 3600) / 60);
-  if (days) return tr(`${days}д ${hours}г ${minutes}хв`, `${days}d ${hours}h ${minutes}m`);
-  if (hours) return tr(`${hours}г ${minutes}хв`, `${hours}h ${minutes}m`);
+  if (days) {return tr(`${days}д ${hours}г ${minutes}хв`, `${days}d ${hours}h ${minutes}m`);}
+  if (hours) {return tr(`${hours}г ${minutes}хв`, `${hours}h ${minutes}m`);}
   return tr(`${minutes}хв`, `${minutes}m`);
 }
 
@@ -231,7 +231,7 @@ function Empty({ children }) {
 
 function PriceTooltip({ active, payload }) {
   const { tr, locale } = useLanguage();
-  if (!active || !payload?.length) return null;
+  if (!active || !payload?.length) {return null;}
   const candlePayload = payload.find((item) => item.dataKey === "close")?.payload;
   const markerPayload = payload.find((item) => item.dataKey === "price")?.payload;
   const row = candlePayload || markerPayload || payload[0]?.payload || {};
@@ -254,7 +254,7 @@ function PriceTooltip({ active, payload }) {
 
 function MetricTooltip({ active, payload, label, formatter }) {
   const { locale } = useLanguage();
-  if (!active || !payload?.length) return null;
+  if (!active || !payload?.length) {return null;}
   const value = payload[0]?.value;
   return <div className={styles.tooltip}>
     <strong>{new Date(asMs(label)).toLocaleString(locale)}</strong>
@@ -264,7 +264,7 @@ function MetricTooltip({ active, payload, label, formatter }) {
 
 function OrderMarker({ cx, cy, payload, onSelect }) {
   const { locale } = useLanguage();
-  if (!Number.isFinite(cx) || !Number.isFinite(cy)) return null;
+  if (!Number.isFinite(cx) || !Number.isFinite(cy)) {return null;}
   const isTp = payload.role?.includes("take_profit") || payload.role?.includes("tp");
   const compact = Boolean(payload.compact);
   const clustered = Number(payload.count || 1) > 1;
@@ -315,7 +315,6 @@ function MiniChart({ title, value, data, dataKey, stroke, fill, domain, timeDoma
   </div>;
 }
 
-
 export default function BacktestDetailPage() {
   const { id } = useParams();
   const { tr, language, locale } = useLanguage();
@@ -361,12 +360,12 @@ export default function BacktestDetailPage() {
 
   const wsStatus = useAuthenticatedWebSocket(`/ws/backtests?run_id=${id}`, {
     onMessage: (event) => {
-      if (event.type !== "backtest.updated" || Number(event.run_id) !== Number(id) || !event.data) return;
+      if (event.type !== "backtest.updated" || Number(event.run_id) !== Number(id) || !event.data) {return;}
       setRun(event.data);
 
       const terminal = !ACTIVE.has(event.data.status);
       if (terminal) {
-        if (wsDetailRefreshRef.current) window.clearTimeout(wsDetailRefreshRef.current);
+        if (wsDetailRefreshRef.current) {window.clearTimeout(wsDetailRefreshRef.current);}
         wsDetailRefreshRef.current = null;
         loadDetails();
       } else if (!wsDetailRefreshRef.current) {
@@ -381,7 +380,7 @@ export default function BacktestDetailPage() {
   useEffect(() => { loadRun(); loadDetails(); }, [loadRun, loadDetails]);
 
   useEffect(() => () => {
-    if (wsDetailRefreshRef.current) window.clearTimeout(wsDetailRefreshRef.current);
+    if (wsDetailRefreshRef.current) {window.clearTimeout(wsDetailRefreshRef.current);}
   }, []);
 
   const control = async (action) => {
@@ -400,9 +399,9 @@ export default function BacktestDetailPage() {
     .sort((a, b) => a.timestamp - b.timestamp), [points]);
 
   const cycleBasePoints = useMemo(() => {
-    if (cycleFilter === "all") return normalizedPoints;
+    if (cycleFilter === "all") {return normalizedPoints;}
     const cycle = cycles.find((item) => String(item.cycle_number) === cycleFilter);
-    if (!cycle || !normalizedPoints.length) return normalizedPoints;
+    if (!cycle || !normalizedPoints.length) {return normalizedPoints;}
     const startedAt = asMs(cycle.started_at_ms);
     const closedAt = cycle.closed_at_ms ? asMs(cycle.closed_at_ms) : asMs(run?.end_time);
     const cycleSpan = Math.max(closedAt - startedAt, DAY_MS);
@@ -414,7 +413,7 @@ export default function BacktestDetailPage() {
   const baseEnd = cycleBasePoints[cycleBasePoints.length - 1]?.timestamp;
 
   useEffect(() => {
-    if (!Number.isFinite(baseStart) || !Number.isFinite(baseEnd)) return;
+    if (!Number.isFinite(baseStart) || !Number.isFinite(baseEnd)) {return;}
     const cycleChanged = previousCycleFilterRef.current !== cycleFilter;
     previousCycleFilterRef.current = cycleFilter;
     setViewRange((current) => {
@@ -423,11 +422,11 @@ export default function BacktestDetailPage() {
         pendingRangeRef.current = null;
         return clampRange(pending[0], pending[1], baseStart, baseEnd);
       }
-      if (!current || cycleChanged) return [baseStart, baseEnd];
+      if (!current || cycleChanged) {return [baseStart, baseEnd];}
       return clampRange(current[0], current[1], baseStart, baseEnd);
     });
     if (cycleChanged) {
-      if (!focusTime) setWindowSize("all");
+      if (!focusTime) {setWindowSize("all");}
       setSelectedMarker(null);
     }
   }, [baseStart, baseEnd, cycleFilter, focusTime]);
@@ -435,11 +434,13 @@ export default function BacktestDetailPage() {
   const effectiveRange = viewRange && Number.isFinite(baseStart) && Number.isFinite(baseEnd)
     ? clampRange(viewRange[0], viewRange[1], baseStart, baseEnd)
     : [baseStart, baseEnd];
+  const effectiveStart = effectiveRange[0];
+  const effectiveEnd = effectiveRange[1];
 
   const filteredPoints = useMemo(() => {
-    if (!cycleBasePoints.length || !effectiveRange.every(Number.isFinite)) return [];
-    return cycleBasePoints.filter((point) => point.timestamp >= effectiveRange[0] && point.timestamp <= effectiveRange[1]);
-  }, [cycleBasePoints, effectiveRange[0], effectiveRange[1]]);
+    if (!cycleBasePoints.length || !Number.isFinite(effectiveStart) || !Number.isFinite(effectiveEnd)) {return [];}
+    return cycleBasePoints.filter((point) => point.timestamp >= effectiveStart && point.timestamp <= effectiveEnd);
+  }, [cycleBasePoints, effectiveStart, effectiveEnd]);
 
   const orderByExchangeId = useMemo(() => new Map(orders.map((order) => [String(order.exchange_order_id), order])), [orders]);
 
@@ -455,8 +456,8 @@ export default function BacktestDetailPage() {
       const isDcaEntry = role.startsWith("dca_entry");
       const isTp = role.includes("take_profit") || role.includes("tp");
       const isExit = isTp || isScalperExit || isMomentumExit || role === "position_close";
-      if (isExit && !filters.tp) return;
-      if (!isExit && !filters.entries) return;
+      if (isExit && !filters.tp) {return;}
+      if (!isExit && !filters.entries) {return;}
       const level = String(order?.order_link_id || "").match(/entry-(\d+)/)?.[1];
       result.push({
         id: `execution-${execution.execId || `${execution.execTime}-${execution.execSeq}`}`,
@@ -483,7 +484,7 @@ export default function BacktestDetailPage() {
     if (filters.cancelled) {
       orders.forEach((order) => {
         const status = String(order.status || "");
-        if (!status.toLowerCase().includes("cancel")) return;
+        if (!status.toLowerCase().includes("cancel")) {return;}
         const role = order.order_role || "";
         const isTp = role.includes("take_profit") || role.includes("tp");
         const level = String(order.order_link_id || "").match(/entry-(\d+)/)?.[1];
@@ -510,7 +511,7 @@ export default function BacktestDetailPage() {
     return result
       .filter((marker) => Number.isFinite(marker.timestamp) && marker.price > 0)
       .sort((a, b) => (a.timestamp - b.timestamp) || (a.sequence - b.sequence));
-  }, [executions, orderByExchangeId, orders, cycles, run?.end_time, filters.entries, filters.tp, filters.cancelled, tr]);
+  }, [executions, orderByExchangeId, orders, cycles, run?.end_time, run?.bot_snapshot, filters.entries, filters.tp, filters.cancelled, tr]);
 
   const chartSpanMs = Number.isFinite(effectiveRange[0]) && Number.isFinite(effectiveRange[1])
     ? Math.max(effectiveRange[1] - effectiveRange[0], 0)
@@ -518,7 +519,7 @@ export default function BacktestDetailPage() {
   const compactMarkers = chartSpanMs > 90 * DAY_MS || filteredPoints.length > 700;
 
   const visibleMarkers = useMemo(() => {
-    if (!filteredPoints.length) return [];
+    if (!filteredPoints.length) {return [];}
     const min = filteredPoints[0].timestamp;
     const max = filteredPoints[filteredPoints.length - 1].timestamp;
     return markers
@@ -527,7 +528,7 @@ export default function BacktestDetailPage() {
   }, [markers, filteredPoints, compactMarkers]);
 
   const displayMarkers = useMemo(() => {
-    if (chartSpanMs <= 120 * DAY_MS || visibleMarkers.length <= 55) return visibleMarkers;
+    if (chartSpanMs <= 120 * DAY_MS || visibleMarkers.length <= 55) {return visibleMarkers;}
     const start = filteredPoints[0]?.timestamp || 0;
     const bucketSize = Math.max(chartSpanMs / 110, DAY_MS / 2);
     const groups = new Map();
@@ -540,7 +541,7 @@ export default function BacktestDetailPage() {
       groups.set(key, group);
     });
     return [...groups.values()].map((group) => {
-      if (group.length === 1) return group[0];
+      if (group.length === 1) {return group[0];}
       const first = group[0];
       const totalQty = group.reduce((sum, item) => sum + item.qty, 0);
       const weightedPrice = totalQty > 0
@@ -610,7 +611,7 @@ export default function BacktestDetailPage() {
     : Math.max(cycleBasePoints.length - 1, 0);
 
   const setClampedViewRange = useCallback((start, end, mode = "custom") => {
-    if (![baseStart, baseEnd, start, end].every(Number.isFinite)) return;
+    if (![baseStart, baseEnd, start, end].every(Number.isFinite)) {return;}
     let nextStart = start;
     let nextEnd = end;
     if (nextEnd - nextStart < minimumViewSpan) {
@@ -623,7 +624,7 @@ export default function BacktestDetailPage() {
   }, [baseStart, baseEnd, minimumViewSpan]);
 
   const resetChartView = useCallback(() => {
-    if (![baseStart, baseEnd].every(Number.isFinite)) return;
+    if (![baseStart, baseEnd].every(Number.isFinite)) {return;}
     setViewRange([baseStart, baseEnd]);
     setWindowSize("all");
     setFocusTime(null);
@@ -631,7 +632,7 @@ export default function BacktestDetailPage() {
   }, [baseStart, baseEnd]);
 
   const applyWindowPreset = useCallback((preset) => {
-    if (![baseStart, baseEnd].every(Number.isFinite)) return;
+    if (![baseStart, baseEnd].every(Number.isFinite)) {return;}
     if (preset === "all") {
       resetChartView();
       return;
@@ -644,7 +645,7 @@ export default function BacktestDetailPage() {
   }, [baseStart, baseEnd, focusTime, fullRangeSpan, resetChartView, setClampedViewRange]);
 
   const zoomChart = useCallback((factor, anchorRatio = 0.5) => {
-    if (![periodStart, periodEnd, baseStart, baseEnd].every(Number.isFinite)) return;
+    if (![periodStart, periodEnd, baseStart, baseEnd].every(Number.isFinite)) {return;}
     const span = periodEnd - periodStart;
     const nextSpan = Math.min(Math.max(span * factor, minimumViewSpan), fullRangeSpan);
     const anchor = periodStart + (span * Math.min(Math.max(anchorRatio, 0), 1));
@@ -654,12 +655,12 @@ export default function BacktestDetailPage() {
   }, [periodStart, periodEnd, baseStart, baseEnd, minimumViewSpan, fullRangeSpan, setClampedViewRange]);
 
   const panChart = useCallback((shiftMs) => {
-    if (![periodStart, periodEnd].every(Number.isFinite)) return;
+    if (![periodStart, periodEnd].every(Number.isFinite)) {return;}
     setClampedViewRange(periodStart + shiftMs, periodEnd + shiftMs, "custom");
   }, [periodStart, periodEnd, setClampedViewRange]);
 
   const handleChartWheel = useCallback((event) => {
-    if (!chartInteractionRef.current || !currentRangeSpan) return;
+    if (!chartInteractionRef.current || !currentRangeSpan) {return;}
     event.preventDefault();
     if (event.shiftKey) {
       panChart(event.deltaY * currentRangeSpan * 0.0015);
@@ -671,9 +672,9 @@ export default function BacktestDetailPage() {
   }, [currentRangeSpan, panChart, zoomChart]);
 
   const handleChartPointerDown = useCallback((event) => {
-    if (event.button !== 0 || event.target.closest?.("[data-order-marker]")) return;
+    if (event.button !== 0 || event.target.closest?.("[data-order-marker]")) {return;}
     const bounds = chartInteractionRef.current?.getBoundingClientRect();
-    if (!bounds?.width) return;
+    if (!bounds?.width) {return;}
     dragRef.current = {
       pointerId: event.pointerId,
       startX: event.clientX,
@@ -686,44 +687,44 @@ export default function BacktestDetailPage() {
 
   const handleChartPointerMove = useCallback((event) => {
     const drag = dragRef.current;
-    if (!drag || drag.pointerId !== event.pointerId) return;
+    if (!drag || drag.pointerId !== event.pointerId) {return;}
     const span = drag.startRange[1] - drag.startRange[0];
     const shift = -((event.clientX - drag.startX) / drag.width) * span;
-    if (Math.abs(event.clientX - drag.startX) > 2) setFocusTime(null);
+    if (Math.abs(event.clientX - drag.startX) > 2) {setFocusTime(null);}
     setClampedViewRange(drag.startRange[0] + shift, drag.startRange[1] + shift, "custom");
   }, [setClampedViewRange]);
 
   const finishChartPan = useCallback((event) => {
-    if (!dragRef.current) return;
+    if (!dragRef.current) {return;}
     event.currentTarget.releasePointerCapture?.(dragRef.current.pointerId);
     dragRef.current = null;
     setIsPanning(false);
   }, []);
 
   const handleBrushChange = useCallback((range) => {
-    if (!range || !cycleBasePoints.length) return;
+    if (!range || !cycleBasePoints.length) {return;}
     const startPoint = cycleBasePoints[range.startIndex];
     const endPoint = cycleBasePoints[range.endIndex];
-    if (!startPoint || !endPoint) return;
+    if (!startPoint || !endPoint) {return;}
     setClampedViewRange(startPoint.timestamp, endPoint.timestamp, "custom");
     setFocusTime(null);
   }, [cycleBasePoints, setClampedViewRange]);
 
   useEffect(() => {
-    if (tab !== "Chart") return undefined;
+    if (tab !== "Chart") {return undefined;}
     const element = chartInteractionRef.current;
-    if (!element) return undefined;
+    if (!element) {return undefined;}
     const listener = (event) => handleChartWheel(event);
     element.addEventListener("wheel", listener, { passive: false });
     return () => element.removeEventListener("wheel", listener);
   }, [tab, handleChartWheel]);
 
   const positionRanges = useMemo(() => {
-    if (!filters.position || !filteredPoints.length) return [];
+    if (!filters.position || !filteredPoints.length) {return [];}
     const ranges = [];
     let start = null;
     filteredPoints.forEach((point, index) => {
-      if (point.position_qty > 0 && start == null) start = point.timestamp;
+      if (point.position_qty > 0 && start == null) {start = point.timestamp;}
       const ends = point.position_qty <= 0 || index === filteredPoints.length - 1;
       if (start != null && ends) { ranges.push([start, point.timestamp]); start = null; }
     });
@@ -731,12 +732,12 @@ export default function BacktestDetailPage() {
   }, [filteredPoints, filters.position]);
 
   const lossRanges = useMemo(() => {
-    if (!filters.loss || !filteredPoints.length) return [];
+    if (!filters.loss || !filteredPoints.length) {return [];}
     const ranges = [];
     let start = null;
     filteredPoints.forEach((point, index) => {
       const inLoss = point.position_qty > 0 && point.unrealized_pnl < 0;
-      if (inLoss && start == null) start = point.timestamp;
+      if (inLoss && start == null) {start = point.timestamp;}
       if (start != null && (!inLoss || index === filteredPoints.length - 1)) {
         ranges.push([start, point.timestamp]); start = null;
       }
@@ -746,18 +747,18 @@ export default function BacktestDetailPage() {
 
   const filteredOrders = useMemo(() => orders.filter((order) => {
     const status = String(order.status || "").toLowerCase();
-    if (orderFilter === "open") return ["new", "partiallyfilled", "partially filled"].includes(status);
-    if (orderFilter === "filled") return status === "filled";
-    if (orderFilter === "cancelled") return status.includes("cancel");
-    if (orderFilter === "rejected") return status.includes("reject") || status.includes("error");
+    if (orderFilter === "open") {return ["new", "partiallyfilled", "partially filled"].includes(status);}
+    if (orderFilter === "filled") {return status === "filled";}
+    if (orderFilter === "cancelled") {return status.includes("cancel");}
+    if (orderFilter === "rejected") {return status.includes("reject") || status.includes("error");}
     return true;
   }), [orders, orderFilter]);
 
   const orderedExecutions = useMemo(() => [...executions].sort((a, b) => {
     const timeDifference = asMs(a.execTime) - asMs(b.execTime);
-    if (timeDifference !== 0) return timeDifference;
+    if (timeDifference !== 0) {return timeDifference;}
     const sequenceDifference = asNumber(a.execSeq) - asNumber(b.execSeq);
-    if (sequenceDifference !== 0) return sequenceDifference;
+    if (sequenceDifference !== 0) {return sequenceDifference;}
     return String(a.execId || "").localeCompare(String(b.execId || ""));
   }), [executions]);
 
@@ -802,22 +803,22 @@ export default function BacktestDetailPage() {
         avg = qty > 0 ? ((absoluteBefore * avg) + (fillQty * price)) / qty : 0;
       } else {
         qty = Math.max(qty - fillQty, 0);
-        if (qty === 0) avg = 0;
+        if (qty === 0) {avg = 0;}
       }
       return { ...item, before, after: qty, average: avg, role, direction };
     });
-  }, [orderedExecutions, orders, cycles, run?.end_time, run?.bot_snapshot?.strategy_type, run?.bot_snapshot]);
+  }, [orderedExecutions, orders, cycles, run?.end_time, run?.bot_snapshot]);
 
   const filteredEvents = useMemo(() => events.filter((event) => {
     const type = String(event.event_type || "").toLowerCase();
-    if (eventFilter === "all") return true;
-    if (eventFilter === "errors") return /error|failed|reject/.test(type);
-    if (eventFilter === "risk") return /risk|blocked|limit|warning/.test(type);
+    if (eventFilter === "all") {return true;}
+    if (eventFilter === "errors") {return /error|failed|reject/.test(type);}
+    if (eventFilter === "risk") {return /risk|blocked|limit|warning/.test(type);}
     return /filled|created|entered|signal|cancel|completed|started|stopped|risk|error|failed/.test(type);
   }), [events, eventFilter]);
 
   const selectedMarkerCycle = useMemo(() => {
-    if (!selectedMarker) return null;
+    if (!selectedMarker) {return null;}
     return cycles.find((cycle) => {
       const startedAt = asMs(cycle.started_at_ms);
       const closedAt = cycle.closed_at_ms ? asMs(cycle.closed_at_ms) : asMs(run?.end_time);
@@ -827,7 +828,7 @@ export default function BacktestDetailPage() {
 
   const jumpToChart = (timestamp) => {
     const target = asMs(timestamp);
-    if (!Number.isFinite(target)) return;
+    if (!Number.isFinite(target)) {return;}
     pendingRangeRef.current = [target - (DAY_MS / 2), target + (DAY_MS / 2)];
     setCycleFilter("all");
     setFocusTime(target);
@@ -835,7 +836,7 @@ export default function BacktestDetailPage() {
     setTab("Chart");
   };
 
-  if (!run) return <main className={styles.page}><div className="container">{error ? <div className={styles.error}>{error}</div> : <div className={styles.loading}><LoaderCircle /> {tr("Завантаження…", "Loading…")}</div>}</div></main>;
+  if (!run) {return <main className={styles.page}><div className="container">{error ? <div className={styles.error}>{error}</div> : <div className={styles.loading}><LoaderCircle /> {tr("Завантаження…", "Loading…")}</div>}</div></main>;}
 
   return (
     <main className={styles.page}>
@@ -951,7 +952,7 @@ export default function BacktestDetailPage() {
                   <XAxis dataKey="timestamp" type="number" scale="time" domain={timeDomain} ticks={mainTimeTicks} allowDataOverflow height={38} tickMargin={10} tickFormatter={(v) => formatChartTime(v, chartSpanMs, locale)} stroke="#68718a" tick={{ fontSize: 11 }}/>
                   <YAxis domain={priceDomain} width={82} tickFormatter={(value) => formatAxisMoney(value, locale)} stroke="#68718a" tick={{ fontSize: 11 }}/>
                   <Tooltip content={<PriceTooltip/>} cursor={{ stroke: "rgba(255,255,255,.22)", strokeDasharray: "3 3" }}/>
-                  {openCycleStart != null && openCycleStart < periodEnd && <ReferenceArea x1={Math.max(openCycleStart, periodStart)} x2={periodEnd} y1={priceDomain[0]} y2={priceDomain[1]} fill="#ffc24b" fillOpacity={0.035} strokeOpacity={0}/>} 
+                  {openCycleStart != null && openCycleStart < periodEnd && <ReferenceArea x1={Math.max(openCycleStart, periodStart)} x2={periodEnd} y1={priceDomain[0]} y2={priceDomain[1]} fill="#ffc24b" fillOpacity={0.035} strokeOpacity={0}/>}
                   {positionRanges.map(([x1, x2], index) => <ReferenceArea key={`position-${index}`} x1={x1} x2={x2} y1={priceDomain[0]} y2={priceDomain[0] + priceBandSize} fill="#4d9dff" fillOpacity={0.75} strokeOpacity={0}/>) }
                   {lossRanges.map(([x1, x2], index) => <ReferenceArea key={`loss-${index}`} x1={x1} x2={x2} y1={priceDomain[0] + priceBandSize} y2={priceDomain[0] + (priceBandSize * 2)} fill="#f05b63" fillOpacity={0.75} strokeOpacity={0}/>) }
                   <Line type="monotone" dataKey="close" name={tr("Закриття", "Close")} stroke="#d8dde9" strokeWidth={1.7} dot={false} activeDot={{ r: 3 }} isAnimationActive={false}/>
@@ -961,11 +962,11 @@ export default function BacktestDetailPage() {
                     y={marker.price}
                     r={0}
                     ifOverflow="discard"
-                    shape={(props) => <OrderMarker {...props} payload={marker} onSelect={(selected) => { setSelectedMarker(selected); setFocusTime(selected.timestamp); }}/>} 
+                    shape={(props) => <OrderMarker {...props} payload={marker} onSelect={(selected) => { setSelectedMarker(selected); setFocusTime(selected.timestamp); }}/>}
                   />)}
-                  {selectedCycle && selectedCycle !== openCycle && <ReferenceLine x={asMs(selectedCycle.started_at_ms)} stroke="#25c78b" strokeDasharray="3 4" label={{ value: `${tr(`Цикл #${selectedCycle.cycle_number}: вхід`, `Cycle #${selectedCycle.cycle_number} entry`)}${positionDirectionFromCycle(selectedCycle) ? ` · ${positionDirectionFromCycle(selectedCycle).toUpperCase()}` : ""}`, position: "insideTopLeft", fill: "#25c78b", fontSize: 10 }}/>} 
-                  {selectedCycle?.closed_at_ms && <ReferenceLine x={asMs(selectedCycle.closed_at_ms)} stroke="#b98cff" strokeDasharray="3 4" label={{ value: isScalper || isMomentum ? tr("Закриття виходу", "Exit close") : tr("Закриття TP", "TP close"), position: "insideTopRight", fill: "#b98cff", fontSize: 10 }}/>} 
-                  {showOpenCycleStart && <ReferenceLine x={openCycleStart} stroke="#ffc24b" strokeDasharray="5 4" label={{ value: tr(`Відкритий цикл #${openCycle.cycle_number}`, `Open cycle #${openCycle.cycle_number}`), position: "insideTopRight", fill: "#ffc24b", fontSize: 10 }}/>} 
+                  {selectedCycle && selectedCycle !== openCycle && <ReferenceLine x={asMs(selectedCycle.started_at_ms)} stroke="#25c78b" strokeDasharray="3 4" label={{ value: `${tr(`Цикл #${selectedCycle.cycle_number}: вхід`, `Cycle #${selectedCycle.cycle_number} entry`)}${positionDirectionFromCycle(selectedCycle) ? ` · ${positionDirectionFromCycle(selectedCycle).toUpperCase()}` : ""}`, position: "insideTopLeft", fill: "#25c78b", fontSize: 10 }}/>}
+                  {selectedCycle?.closed_at_ms && <ReferenceLine x={asMs(selectedCycle.closed_at_ms)} stroke="#b98cff" strokeDasharray="3 4" label={{ value: isScalper || isMomentum ? tr("Закриття виходу", "Exit close") : tr("Закриття TP", "TP close"), position: "insideTopRight", fill: "#b98cff", fontSize: 10 }}/>}
+                  {showOpenCycleStart && <ReferenceLine x={openCycleStart} stroke="#ffc24b" strokeDasharray="5 4" label={{ value: tr(`Відкритий цикл #${openCycle.cycle_number}`, `Open cycle #${openCycle.cycle_number}`), position: "insideTopRight", fill: "#ffc24b", fontSize: 10 }}/>}
                   {focusTime && focusTime >= periodStart && focusTime <= periodEnd && <ReferenceLine x={focusTime} stroke="#4d9dff" strokeDasharray="4 4"/>}
                 </ComposedChart>
               </ResponsiveContainer>
@@ -1092,4 +1093,3 @@ function cancelledMarkerLabel({ role, isTp, level, tr }) {
   }
   return tr(`Grid #${level || "?"} скасовано`, `Grid #${level || "?"} cancelled`);
 }
-

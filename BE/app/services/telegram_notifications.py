@@ -7,7 +7,7 @@ import secrets
 from datetime import timedelta
 from urllib.parse import quote
 
-import httpx
+import httpx2 as httpx
 from sqlalchemy.orm import Session
 
 from app.core.clock import utcnow

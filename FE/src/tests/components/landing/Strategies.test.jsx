@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { LanguageProvider } from '../../../context/LanguageContext';
 import Strategies from '../../../components/landing/Strategies/Strategies';
 

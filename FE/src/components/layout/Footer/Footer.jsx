@@ -49,7 +49,6 @@ export default function Footer() {
             <ul>
               <li><a href="/backtests">{t('footer.backtestEngine')}</a></li>
               <li><a href="/bots">{t('footer.tradingBots')}</a></li>
-              <li><a href="http://localhost:8000/docs" target="_blank" rel="noreferrer">API · Swagger</a></li>
             </ul>
           </div>
           <div>

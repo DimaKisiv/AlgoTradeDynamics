@@ -15,7 +15,7 @@ MVP version · 2026 · [English version](user-guide.en.md)
 - [5. What you just saw: the terms explained](#5-what-you-just-saw-the-terms-explained)
 - [6. Second experiment: a scenario instead of manual clicks](#6-second-experiment-a-scenario-instead-of-manual-clicks)
 - [7. Third experiment: a test on real history](#7-third-experiment-a-test-on-real-history)
-- [8. Pattern Scalper: the bot that waits for its moment](#8-pattern-scalper-the-bot-that-waits-for-its-moment)
+- [8. Signal bots: Pattern Scalper and Momentum](#8-signal-bots-pattern-scalper-and-momentum)
 - [9. Reading the results without fooling yourself](#9-reading-the-results-without-fooling-yourself)
 - [10. The bot is doing nothing — what to check](#10-the-bot-is-doing-nothing--what-to-check)
 - [11. Limits of the platform, and safety](#11-limits-of-the-platform-and-safety)
@@ -142,7 +142,7 @@ The terms make more sense now, because each one refers to something that already
 | **Position**                | What appeared once the orders filled: how many coins, at what average price, and with what current result.                                                                                       |
 | **Average entry price**     | Your 63,375 — the average of two purchases at 65,000 and 61,750. Profit is measured from it.                                                                                                     |
 | **Take-profit (TP)**        | The level at which profit is taken automatically. It was the order that closed your position in step 6.                                                                                          |
-| **Stop-loss (SL)**          | The mirror level: it closes the position so the loss stops growing. The Grid Bot does not use one; the Pattern Scalper does.                                                                     |
+| **Stop-loss (SL)**          | The mirror level: it closes the position so the loss stops growing. The Grid Bot does not use one; the Pattern Scalper and Momentum do.                                                                     |
 | **PnL**                     | Profit or loss. _Realized_ is already locked in on closed trades; _unrealized_ is the current result of an open position and will still change.                                                  |
 | **Wallet balance / Equity** | Balance is the money in the account. Equity is the balance plus the current result of open positions — what the account is really worth right now.                                               |
 | **Drawdown**                | How far equity has fallen from its own peak. Rose to 11,000, dropped to 9,900 — a drawdown of about 10 %.                                                                                        |
@@ -177,9 +177,33 @@ An important property of the platform: the test runs **the same code** that runs
 
 ### Where the data comes from
 
-Historical candles are called a **dataset**. Daily BTCUSDT and ETHUSDT data for 2024 ships with the project, which is enough for the Grid Bot. You can load your own on the **Emulator → Historical** tab by specifying the pair, period and candle interval, or import one from a CSV file.
+Historical candles are called a **dataset**. Daily BTCUSDT and ETHUSDT data for 2024 ships with the project, which is enough for the Grid Bot. If you need a different period, a different pair or finer candles, you can download a set from Bybit right in the interface, or import one from a CSV file.
 
 A _candle_ is the price movement over a period of time: the open, the high, the low, the close and the traded volume. A _timeframe_ is the length of a single candle: `5m` is five minutes, `1h` an hour, `1D` a day.
+
+### How to download your own dataset from Bybit
+
+Open **Emulator → Historical**. The left card is called "Create historical dataset" — everything starts there.
+
+1. **Symbol** — the trading pair, for example `BTCUSDT`.
+2. **Dataset name** — optional, but it makes the set much easier to find later. Something like `BTCUSDT 15m January 2026`.
+3. **From** and **To** — the start and the end of the period, down to the minute. This is where you pick the dates: the system downloads exactly the window you asked for.
+4. **Candle interval** — anything from one minute to one week.
+5. Press **Download new dataset from Bybit**.
+
+No exchange keys are needed for this: the emulator reads candles from the public Bybit API, so the container just needs internet access. Data arrives in pages of a thousand candles, which is why a long period on a small timeframe takes noticeably longer than a year of daily candles.
+
+Once the download finishes, the set appears in the list below. Under its name the system shows the exchange, the interval, the number of candles, the covered period and a data-quality line: "Complete sequence" or "N missing candles". Always read that line, because **a backtest will not start on a period with gaps** — it will tell you straight away how many candles are missing and where the first gap is. If that happens, download the period again or pick a shorter continuous range.
+
+A few details that save time:
+
+- every download creates a **separate independent set**. Two sets with the same pair and interval are never merged, so you can keep 2025 and 2026 side by side and compare the results;
+- the list only shows sets for the pair currently typed into the **Symbol** field. If a set seems to have disappeared, the field most likely holds a different pair;
+- **Use** makes the set current for replay, and the bin icon deletes one you no longer need;
+- next to it there is **Import as separate CSV dataset** for history you already have as a file. It needs `open`, `high`, `low`, `close` columns plus a time column named `date`, `time`, `timestamp` or `open_time`; `volume` is strongly recommended;
+- Pattern Scalper and Momentum require a set with **non-zero volume** — the quality line shows this as "volume available". Without it the backtest refuses to start.
+
+Then go to **Backtests → New backtest**: the fresh set is already in the list, provided the pair and category match the bot.
 
 ### How to run a test
 
@@ -200,7 +224,7 @@ The **Conservative** option assumes the least favourable order for a grid: high 
 
 ---
 
-## 8. Pattern Scalper: the bot that waits for its moment
+## 8. Signal bots: Pattern Scalper and Momentum
 
 The Grid Bot does not think about market direction — it places orders and waits. The Pattern Scalper works differently: most of the time it does nothing, and it opens a position only when the chart forms the picture it is looking for.
 
@@ -220,7 +244,7 @@ On top of that, a breakout has to exceed the recent extreme by a margin (0.05 AT
 
 Once in a position, four safeguards manage it: a stop-loss and a take-profit derived from current market volatility; a maximum holding time (30 minutes by default); a cooldown after each exit (15 minutes); and a daily loss limit (2 %), after which the bot stops entering for the rest of the day.
 
-### Main settings
+### Pattern Scalper: main settings
 
 | Parameter              | Start with | What it changes                                                                                                                             |
 | ---------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -235,6 +259,41 @@ Once in a position, four safeguards manage it: a stop-loss and a take-profit der
 | `Allow SHORT`          | off        | Leave it off while you are getting acquainted — the logic is easier to follow.                                                              |
 
 > The Pattern Scalper cannot be tested properly by moving the price by hand: it needs candle history, a trend and volume. Test it only through **Backtest**, and make sure the bot's timeframe matches the dataset's. It needs finer candles — `1m`, `5m` or `15m`; the bundled daily data will not do.
+
+### Momentum Bot: the same idea, simpler
+
+Momentum follows the same principle as the scalper: wait for a signal instead of trading all the time. The difference is that it does not look for chart patterns. Four plain conditions are enough for it:
+
+- **trend** — the fast EMA (20) above the slow one (50) for a buy, below it for a sell;
+- **RSI** — 55 and up for LONG, 45 and down for SHORT, so the move has to be backed by strength;
+- **volume** — at least one and a half times above average;
+- **volatility** — ATR as a percentage of price above a floor, so the bot does not enter a dead market.
+
+Every signal gets a score from 0 to 100. This is easy to mix up: the scalper uses a 0-to-1 scale, where its `0.85` means the same thing as `85` here. The bot enters when the score reaches `Minimum signal score`, 70 by default. The reasons behind an entry show up on the **Events** tab, exactly as they do for the scalper.
+
+The position is then managed by an ATR-based stop and target plus a trailing stop: as the price moves your way the stop follows it and locks in part of the profit, and it never moves back. There is a third exit too — a strong opposite signal: if the bot is long and a short signal appears with a score above the threshold, the position is closed.
+
+Like the scalper, this is not machine learning but a set of explicit conditions that either line up or do not. And as with the scalper, the fee is the main enemy here: the smaller the timeframe and the softer the entry threshold, the larger the share of the result that goes to the exchange. So look at **Net PnL** and the average fee per cycle, not at Gross.
+
+### Momentum: main settings
+
+| Parameter | Start with | What it changes |
+|---|---|---|
+| `Timeframe` | `15m` | Candle length. Shorter means more signals and more noise. |
+| `Lookback candles` | `200` | How many recent candles feed the indicators. |
+| `Minimum signal score` | `70` | The quality bar for a signal on a 0–100 scale. Higher means fewer, stricter entries. |
+| `Fast EMA` / `Slow EMA` | `20` / `50` | The pair of averages that defines trend direction. |
+| `RSI period` | `14` | How many candles RSI uses. The classic value; there is no need to touch it. |
+| `RSI long min` / `RSI short max` | `55` / `45` | How convincing the move has to be before the bot treats the signal as real. |
+| `Volume multiplier` | `1.5` | How many times above average the volume must be. |
+| `Stop-loss ATR` / `Take-profit ATR` | `1.5` / `3.0` | Distance to the stop and to the target in units of current volatility. |
+| `Trailing stop ATR` | `2.0` | How far behind the price the moving stop trails. The switch next to it turns the trailing stop off. |
+| `Min ATR %` | `0.1` | The volatility floor. In a quieter market the bot ignores signals. |
+| `Risk per trade` | `0.5 %` | How much capital is at risk in a single trade. Because of it the real size may be smaller than Order Qty. |
+| `Cooldown` | `15 min` | The pause after an exit before the bot looks for the next signal. |
+| `Position bias` | `LONG + SHORT` | You can restrict the bot to one side. On a spot market SHORT is not available. |
+
+> Momentum, like the scalper, can only be tested through **Backtest**: moving the price by hand creates neither candle history nor volume. The dataset must contain volume, and the bot's timeframe has to match the dataset's.
 
 ---
 
@@ -272,9 +331,9 @@ The most common situation in the first few days. Work down the list from the top
 | ------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | Is the bot started?             | The status should be `Running` or `Waiting for signal`. Also check that `Bot active` is enabled.           |
 | Has the price reached an order? | The Grid Bot waits for the market to come down to its limit order. Without price movement nothing happens. |
-| Is there simply no signal?      | For the Pattern Scalper this is the normal state. It is not supposed to trade on every candle.             |
+| Is there simply no signal?      | For the Pattern Scalper and Momentum this is the normal state. They are not supposed to trade on every candle. |
 | Do the timeframes match?        | A bot on `5m` will not work with a `1h` dataset.                                                           |
-| Does the data have volume?      | Without volume the Pattern Scalper cannot check one of its five entry conditions.                          |
+| Does the data have volume?      | Without volume neither the Pattern Scalper nor Momentum can check one of their mandatory entry conditions. |
 | Does the data have gaps?        | The system may refuse to run a test over an incomplete period. Dataset quality is shown next to it.        |
 | Did a risk limit trigger?       | The log will show a `Risk Blocked` status or a daily loss limit message.                                   |
 | Is the order too small?         | Both the exchange and the emulator enforce a minimum order size.                                           |
@@ -308,7 +367,8 @@ The order that causes the least confusion:
 3. **A Grid Bot backtest** on the bundled daily data — learn to read the chart and the drawdown.
 4. **Three runs with different Grid Step values**, then compare them — feel how one parameter changes the result.
 5. **Pattern Scalper** on five-minute data with SHORT disabled — study the entry reasons on the Events tab.
-6. **The same test with slippage added** — see what execution actually costs.
+6. **Momentum on fifteen-minute data** — compare how the same market looks to a simpler entry logic.
+7. **The same test with slippage added** — see what execution actually costs.
 
 The point of the platform is not to promise easy money, but to show what automated trading looks like from the inside, what risks hide in it, and how to test a bot while mistakes are still free.
 
@@ -321,7 +381,7 @@ These appear in the interface, in bot settings and in reports, but had no explan
 | **Candle** | Price over a time slice compressed into four numbers: open, high, low, close — plus traded volume. The order of moves inside a candle is not stored, which is exactly why `Execution path` exists. |
 | **Timeframe** | The length of one candle: `5m` is five minutes, `1d` is a day. A smaller timeframe means more signals and more noise. |
 | **Long** | You bought and expect the price to rise. Everything Grid and DCA Bot do is long-only. |
-| **Short** | You sold what you do not own and profit if the price falls. Available in Pattern Scalper only, via the `Allow SHORT` switch. |
+| **Short** | You sold what you do not own and profit if the price falls. Available in Pattern Scalper via the `Allow SHORT` switch and in Momentum via `Position bias`. |
 | **Perpetual contract (linear)** | The default market type. You trade a contract on the price rather than the coins themselves — which is what makes shorts and leverage possible. |
 | **Leverage** | Trading with more than your own funds. It multiplies both profit and loss. For learning, leave it low. |
 | **Maker / taker** | Two fee types. *Maker*: your limit order sat in the book, lower fee. *Taker*: your market order took someone else's, higher fee. Grid is mostly maker, Pattern Scalper is taker. |
@@ -331,6 +391,7 @@ These appear in the interface, in bot settings and in reports, but had no explan
 | **EMA** | A moving average that weighs recent candles more heavily. Pattern Scalper compares a fast and a slow EMA to read trend direction. |
 | **RSI** | A 0-100 number showing the strength of a move and whether it is overheated. Used as a confirming entry condition. |
 | **ATR** | The average candle range over a recent period — a measure of current volatility. The scalper's stop and target are counted in ATR rather than fixed percentages, so they tighten on a calm market and widen on a violent one. |
+| **Trailing stop** | A stop that follows the price as it moves your way and never moves back. It locks in part of the profit even if the market turns around. Momentum uses one. |
 | **Martingale** | The "increase the stake after a loss" principle. The DCA ladder with growing volume is a mild form of it. It works while the deposit lasts, which is why the default position limit equals the volume of the entire ladder. |
 
 ---

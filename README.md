@@ -1,6 +1,6 @@
 # AlgoTradeDynamics
 
-Платформа для запуску Grid Bot, DCA Bot і Pattern Scalper на Bybit або локальному exchange emulator та для детермінованого тестування **тих самих стратегій** на історичних даних.
+Платформа для запуску Grid Bot, DCA Bot, Momentum Bot і Pattern Scalper на Bybit або локальному exchange emulator та для детермінованого тестування **тих самих стратегій** на історичних даних.
 
 Старий окремий MA Crossover / RSI backtester видалено. Нова вкладка **Backtests** бере конфігурацію одного з існуючих ботів, створює її snapshot, запускає приховану тестову копію через той самий trading engine і програє свічки в ізольованому emulator account.
 
@@ -62,14 +62,14 @@ alembic upgrade head
 
 1. **Manual** — встановлення конкретної ціни або плавний рух до цілі.
 2. **Scenario** — збережені послідовності рухів ціни.
-3. **Historical** — replay локально збережених свічок.
+3. **Historical** (в інтерфейсі — **Історичний**) — завантаження свічок з Bybit за довільний період і replay збережених datasets.
 
 Також доступні:
 
 - постійні тестові акаунти;
 - баланс, equity, позиції, ордери та executions;
 - reset account;
-- завантаження історії з Bybit для довільного символу;
+- завантаження історії з Bybit для довільного символу, періоду та інтервалу свічок;
 - імпорт CSV;
 - окремі datasets для різних періодів, джерел та timeframe;
 - перевірка кількості свічок, volume, меж покриття та внутрішніх пропусків;
@@ -77,7 +77,9 @@ alembic upgrade head
 
 Кожне завантаження з Bybit або CSV-імпорт створює **новий незалежний dataset** з власним `dataset_id`. Навіть якщо два набори мають однакові `symbol + interval + timestamps`, їхні свічки не змішуються. Підтримуються `1m`, `3m`, `5m`, `15m`, `30m`, `1h`, `2h`, `4h`, `6h`, `12h`, `1D` і `1W`.
 
-Вбудовано денні datasets `BTCUSDT` і `ETHUSDT` за 2024 рік. Для Pattern Scalper зазвичай варто починати з повних `1m`, `5m` або `15m` OHLCV-наборів.
+Завантаження на вкладці **Історичний** іде через публічний Bybit endpoint `/v5/market/kline` (адреса налаштовується змінною `BYBIT_PUBLIC_API_URL`), тому API-ключі не потрібні — достатньо, щоб контейнер `exchange-emulator` мав доступ до мережі. Запит розбивається на сторінки по 1000 свічок, максимум 1000 запитів на один набір. Одразу після завантаження набір перевіряється на пропуски та наявність volume і стає доступним у формі створення backtest.
+
+Вбудовано денні datasets `BTCUSDT` і `ETHUSDT` за 2024 рік. Pattern Scalper і Momentum вимагають наборів з ненульовим volume; для них зазвичай варто починати з повних `1m`, `5m` або `15m` OHLCV-наборів.
 
 ### Exchange WebSocket streams
 
@@ -124,6 +126,20 @@ Backend автоматично створює WS streams для running/retrying
 Поля моделі перевикористані: `order_qty` — базовий обсяг, `grid_orders_count` — кількість страхувальних ордерів, `grid_step_percent` — крок до першого страхувального ордера. Специфічні налаштування живуть у `settings`: `dca_volume_multiplier` (1.5), `dca_step_multiplier` (1.3), `take_profit_percent` (1.5). За замовчуванням `max_position_qty` дорівнює сумі всієї драбини, тож мартингейл не блокується ризик-лімітами.
 
 Синхронізація ордерів, Position TP, rollover циклу та risk limits — той самий спільний runtime, що і в Grid Bot (`dca_runtime.py` містить лише DCA-специфічну драбину і життєвий цикл).
+
+### Momentum Bot
+
+Сигнальна trend-following стратегія, що працює тільки на закритих свічках. Більшість часу бот поза ринком і тримає щонайбільше одну позицію.
+
+- контекст рахується з `lookback_candles` (за замовчуванням 200) на вибраному timeframe (за замовчуванням `15m`);
+- сигнал складають чотири умови: напрямок EMA (`20/50`), RSI (`14`; LONG від 55, SHORT до 45), перевищення середнього volume (`1.5x`) і мінімальна мінливість (`minimum_atr_percent`);
+- кожен сигнал отримує score в шкалі `0..100`; вхід відбувається лише від `minimum_signal_score` (за замовчуванням 70), а перелік умов, що спрацювали, записується в events;
+- вхід ринковим ордером; обсяг обмежений `risk_per_trade_percent` (0,5 %) від балансу з урахуванням дистанції до стопу, тому фактична кількість може бути меншою за `Order Qty`;
+- позицією керують ATR-стоп (`1.5 ATR`), ATR-ціль (`3.0 ATR`), необов'язковий trailing stop (`2.0 ATR`) і cooldown 15 хвилин після виходу;
+- сильний протилежний сигнал (score вище того самого порога) закриває поточну позицію;
+- `position_side` дозволяє обмежити бота лише LONG або лише SHORT; на `spot` SHORT недоступний, `inverse` не підтримується.
+
+Це rule-based MVP, а не ML-модель: набір явних умов, кожну з яких видно в events. Пороги входу навмисно консервативні, бо на дрібних timeframe комісії швидко стають головною статтею витрат.
 
 ### Pattern Scalper
 
@@ -202,7 +218,7 @@ GET /api/audit/export?format=json
 
 На `/backtests`:
 
-1. Обрати існуючого Grid Bot або Pattern Scalper.
+1. Обрати існуючого бота: Grid, DCA, Momentum або Pattern Scalper.
 2. Обрати конкретний dataset. Його interval підставляється автоматично.
 3. Вибрати точний початок і кінець у межах dataset до хвилини.
 4. Вказати стартовий баланс, fee rate та slippage.
@@ -226,13 +242,13 @@ GET /api/audit/export?format=json
 - окремий emulator account;
 - account-scoped market price, яка не рухає ціни інших emulator accounts.
 
-Перед запуском backend перевіряє відповідність символу й market category, наявність volume для Pattern Scalper, покриття вибраного проміжку та відсутність пропущених свічок. Усі kline-запити EMA/RSI/ATR/breakout/volume під час тесту прив’язані до того самого dataset, тому інші набори не можуть підмішатися.
+Перед запуском backend перевіряє відповідність символу й market category, наявність volume для сигнальних стратегій (Pattern Scalper і Momentum), покриття вибраного проміжку та відсутність пропущених свічок. Усі kline-запити EMA/RSI/ATR/breakout/volume під час тесту прив’язані до того самого dataset, тому інші набори не можуть підмішатися.
 
-Backtest використовує той самий strategy registry, worker tick, exchange adapter, reconciliation і risk logic, що й звичайний бот. Grid зберігає Position TP/cycle rollover, а Pattern Scalper — свої сигнали та керовані виходи.
+Backtest використовує той самий strategy registry, worker tick, exchange adapter, reconciliation і risk logic, що й звичайний бот. Grid і DCA зберігають Position TP та rollover циклу, а Pattern Scalper і Momentum — свої сигнали та керовані виходи.
 
 ### Execution model
 
-Кожна історична свічка програється через її intrabar points. Grid runner синхронізує стратегію після fill до стабільного стану. Pattern Scalper виконує tick на кожній simulated point, але формує сигнали лише за вже закритими свічками, без future leakage.
+У режимі emulator replay (Grid і DCA) кожна історична свічка програється через її intrabar points, а runner синхронізує стратегію після кожного fill до стабільного стану. Сигнальні стратегії (Pattern Scalper і Momentum) працюють у швидких рушіях і формують сигнали лише за вже закритими свічками, без future leakage.
 
 ### Керування
 
@@ -329,9 +345,9 @@ DELETE /api/backtests/{id}
 
 ## Перевірки
 
-Backend та emulator Python modules перевіряються через `compileall`. Core integration test запускає реальний emulator HTTP service, створює isolated account, програє bundled BTC history і перевіряє, що backtest завершується, записує points/cycles/metrics та не змінює global emulator market.
+Backend покритий набором pytest-тестів у `BE/tests` (19 файлів: API та автентифікація, ізоляція даних користувачів, стратегії grid/dca/momentum/pattern_scalper, швидкі backtest-рушії, audit trail, rate limiting, Telegram, compliance/privacy). Emulator має власні тести в `EXCHANGE_EMULATOR/tests`. Core integration test запускає реальний emulator HTTP service, створює isolated account, програє bundled BTC history і перевіряє, що backtest завершується, записує points/cycles/metrics та не змінює global emulator market.
 
-Frontend використовує React 18, Recharts і Vite. Для production build потрібен доступ до npm registry під час першого `npm ci`; Docker зробить це автоматично у звичайному середовищі.
+Клієнтська частина перевіряється Jest і Testing Library (`FE/src/tests`, 29 наборів). Стек: React 19, React Router 7, Recharts 3, Vite 8, ESLint 10, Node.js 22.12+. Для production build потрібен доступ до npm registry під час першого `npm ci`; Docker зробить це автоматично у звичайному середовищі.
 
 ## Поточні обмеження
 
@@ -339,7 +355,8 @@ Frontend використовує React 18, Recharts і Vite. Для production 
 - історична точність залежить від timeframe та intrabar model;
 - OHLC candle не показує справжній порядок trades усередині інтервалу;
 - partial fills, funding, spread, order-book imbalance та tick-level market data можна додати окремими етапами;
-- background backtest task живе всередині backend process, тому restart backend перериває активний запуск.
+- background backtest task живе всередині backend process, тому restart backend перериває активний запуск;
+- Bybit demo працює з одним ключем на весь сервер (`BYBIT_DEMO_API_KEY` / `BYBIT_DEMO_API_SECRET` з `.env`) — окремих ключів на користувача в моделі немає, тоді як в емуляторі кожен бот має власний `emulator_api_key`.
 
 ### Pattern Scalper revision 4 — context + pattern engine
 
@@ -362,9 +379,10 @@ Historical backtests are strategy-specific:
 
 - `grid` uses the full exchange-emulator replay engine because limit-order fills, grid rebuilds and order lifecycle behavior are part of the strategy.
 - `dca` uses the same exchange-emulator replay engine as `grid`: the market base order, resting safety limit orders and the moving position take-profit are all executed by the emulator, and the replay only ticks the bot on order fills.
+- `momentum` uses its own fast in-memory engine (`fast_momentum_backtest`). It shares the same `_signal` contract with the live runtime, so EMA/RSI/volume/ATR scoring, the entry threshold, ATR stop/target, trailing stop and cooldown behave identically in historical and live modes.
 - `pattern_scalper` uses the fast in-memory historical engine. It loads the selected dataset, calculates the same EMA/RSI/ATR/breakout/volume signal logic locally, simulates market fills with the configured fees and slippage, and persists the same chart/cycle/order/execution result contract without creating an emulator account.
 
-The emulator itself is unchanged and remains available for manual/scenario/historical replay and grid backtests.
+The emulator itself is unchanged and remains available for manual/scenario/historical replay and for the grid and DCA backtests.
 
 ## Security: API rate limiting
 

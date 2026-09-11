@@ -41,12 +41,10 @@
   --gradient-text: linear-gradient(135deg, #f4f5fa 0%, #aab1c4 100%);
   --gradient-glow: linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 60%);
 
-  /* Typography */
-  /*--font-display: 'Space Grotesk', system-ui, -apple-system, sans-serif;*/
-  /*--font-body: 'Space Grotesk', system-ui, -apple-system, sans-serif;*/
-  /*--font-mono: 'JetBrains Mono', 'Fira Code', monospace;*/
-  --font-display: 'Arial', system-ui, -apple-system, sans-serif;
-  --font-body: 'Arial', system-ui, -apple-system, sans-serif;
+  /* Typography — Cyrillic-safe Google Fonts */
+  --font-display: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-body: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
 
   /* Spacing scale */
   --space-1: 4px;
